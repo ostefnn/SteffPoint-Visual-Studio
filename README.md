@@ -9,7 +9,7 @@
 Turn screenshots, a logo and a headline into a consistent pack of social and product visuals in minutes, without being a designer.
 Runs entirely in your browser: **your images never leave your device.**
 
-[![Deploy to GitHub Pages](https://github.com/ostefnn/SteffPoint-Visual-Studio/actions/workflows/pages.yml/badge.svg)](https://github.com/ostefnn/SteffPoint-Visual-Studio/actions/workflows/pages.yml)
+[![Deploy to GitHub Pages](https://github.com/ostefnn/SteffPoint-Visual-Studio/actions/workflows/pages.yml/badge.svg?branch=main&event=push)](https://github.com/ostefnn/SteffPoint-Visual-Studio/actions/workflows/pages.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Local-first](https://img.shields.io/badge/local--first-no%20upload-10b981)
 ![TypeScript](https://img.shields.io/badge/TypeScript-React%2019-3178c6)
