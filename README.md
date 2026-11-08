@@ -54,7 +54,7 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 | 🗂️ **Projects** | Create, rename, duplicate, delete, favourite, search. Automatic thumbnails. Autosave. |
 | 💾 **Local storage** | Projects, images and thumbnails stored in IndexedDB. Close the tab, come back later, everything is there. |
 | 🧩 **11 templates** | Browser Hero, Device Mix, Browser Duo, Mobile Trio, Bento, Spotlight, Before / After, Features, Code, Editorial, Minimal. |
-| 🖼️ **Screenshots** | Up to 4 per project. Add by click, drag & drop anywhere, or paste (Ctrl/Cmd+V). |
+| 🖼️ **Screenshots** | Up to 4 per project. Add by click, drag & drop anywhere, or paste (Ctrl/Cmd+V). Desktop screenshots can sit in a browser, a macOS window, no frame, or a laptop. |
 | 🎯 **Crop & focal point** | Crop each edge, cover / contain, zoom in or out (0.5×–3×), and a focal point that stays visible when the layout changes between landscape, square and portrait. |
 | 🎨 **Brand** | One primary colour → derived palette. Light / dark theme, heading font, corner radius, shadow, logo (small / medium / large). |
 | 🌈 **Backgrounds** | Solid, gradient, soft glow, grid, mesh, with intensity and angle. |

@@ -3,6 +3,7 @@ import {
   analyzeProject,
   clampCode,
   CROP_MAX,
+  DESKTOP_FRAME_TEMPLATES,
   DEVICE_KINDS,
   DEVICE_LABELS,
   LIMITS,
@@ -13,6 +14,7 @@ import {
   screenshotRange,
   ZOOM_RANGE,
   type Crop,
+  type DesktopFrame,
   type DeviceKind,
   type DeviceOrientation,
   type RotatableDevice,
@@ -37,8 +39,11 @@ function ContentSection() {
   const template = useEditor((s) => s.project?.template);
   const devices = useEditor((s) => s.project?.devices);
   const orientation = useEditor((s) => s.project?.deviceOrientation);
+  const desktopFrame = useEditor((s) => s.project?.desktopFrame);
   const { update } = useEditor.getState();
   if (!content || !template) return null;
+  const showsDesktop =
+    DESKTOP_FRAME_TEMPLATES.includes(template) && (template !== 'device-mix' || normalizeDevices(devices).includes('desktop'));
 
   type TextKey = 'kicker' | 'title' | 'subtitle' | 'beforeLabel' | 'afterLabel' | 'codeFile';
   const maxLen: Record<TextKey, number> = {
@@ -77,6 +82,25 @@ function ContentSection() {
       <Field label="Subtitle" hint={count(content.subtitle, LIMITS.subtitle)}>
         <textarea value={content.subtitle} onChange={set('subtitle')} rows={3} className={cx(inputCls, 'resize-y')} />
       </Field>
+      {showsDesktop && (
+        <div>
+          <p className="mb-1 text-xs font-medium text-zinc-600">Desktop frame</p>
+          <Segmented<DesktopFrame>
+            label="Desktop frame"
+            value={desktopFrame ?? 'browser'}
+            options={[
+              { value: 'browser', label: 'Browser' },
+              { value: 'window', label: 'Window' },
+              { value: 'plain', label: 'Plain' },
+              { value: 'laptop', label: 'Laptop' },
+            ]}
+            onChange={(v) => update((d) => void (d.desktopFrame = v))}
+          />
+          <p className="mt-1 text-[11px] text-zinc-500">
+            Use Plain for app screenshots that already include their own title bar.
+          </p>
+        </div>
+      )}
       {template === 'device-mix' && (
         <DevicePicker devices={normalizeDevices(devices)} orientation={orientation ?? { tablet: 'portrait', mobile: 'portrait' }} />
       )}

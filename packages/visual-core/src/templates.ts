@@ -28,6 +28,12 @@ export type TemplateCategory =
 export type DeviceKind = 'desktop' | 'tablet' | 'mobile';
 export const DEVICE_KINDS: readonly DeviceKind[] = ['desktop', 'tablet', 'mobile'];
 export const DEVICE_LABELS: Record<DeviceKind, string> = { desktop: 'Desktop', tablet: 'Tablet', mobile: 'Mobile' };
+/** How desktop screenshots are framed: a browser, a bare macOS window, no chrome at all, or a laptop. */
+export type DesktopFrame = 'browser' | 'window' | 'plain' | 'laptop';
+export const DESKTOP_FRAMES: readonly DesktopFrame[] = ['browser', 'window', 'plain', 'laptop'];
+/** Templates that draw desktop screenshots in a desktop frame. */
+export const DESKTOP_FRAME_TEMPLATES: readonly TemplateId[] = ['browser-hero', 'browser-duo', 'device-mix'];
+
 /** Tablet and phone frames can be held upright or turned sideways. */
 export type DeviceOrientation = 'portrait' | 'landscape';
 export type RotatableDevice = Exclude<DeviceKind, 'desktop'>;
