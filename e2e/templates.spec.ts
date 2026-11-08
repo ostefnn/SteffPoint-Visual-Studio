@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
-import { addScreenshot, CYAN, expectColor, MAGENTA, newProject, probePng, readZip } from './helpers';
+import path from 'node:path';
+import { addScreenshot, CYAN, expectColor, FIXTURES, MAGENTA, newProject, probePng, readZip } from './helpers';
 
 async function useTemplate(page: Page, name: string) {
   await page.getByRole('tab', { name: 'Templates' }).click();
@@ -71,7 +72,8 @@ test('Device Mix turns the tablet and phone to landscape', async ({ page }) => {
   const images = page.getByTestId('canvas').locator('img');
   await expect(images).toHaveCount(2);
   const isWide = async (i: number) => {
-    const box = (await images.nth(i).boundingBox())!;
+    // The image box clips the screenshot; its shape is the device screen's shape.
+    const box = (await images.nth(i).locator('..').boundingBox())!;
     return box.width > box.height;
   };
   expect([await isWide(0), await isWide(1)]).toEqual([false, false]);
@@ -85,6 +87,44 @@ test('Device Mix turns the tablet and phone to landscape', async ({ page }) => {
   await expect(page.getByTestId('save-state')).toHaveText('Saved');
   await page.reload();
   await expect(page.getByRole('radiogroup', { name: 'Mobile orientation' }).getByRole('radio', { name: 'Landscape' })).toBeChecked();
+});
+
+test('Crop and zoom out reshape the screenshot in the export', async ({ page }) => {
+  await newProject(page);
+  await addScreenshot(page, 'split-cyan-magenta.png'); // left half cyan, right half magenta
+  await useTemplate(page, 'Spotlight'); // the imported screenshot is already selected
+  // Uncropped: the left of the frame shows the cyan half.
+  expectColor((await probePng(page, await exportLinkedIn(page), [0.4, 0.7])).rgb, CYAN);
+
+  // Cropping 45% from the left leaves (almost) only the magenta half.
+  await page.getByRole('slider', { name: /^Crop left/ }).fill('0.45');
+  await expect(page.getByTestId('crop-area')).toBeVisible();
+  expectColor((await probePng(page, await exportLinkedIn(page), [0.4, 0.7])).rgb, MAGENTA);
+
+  // Reset, then zoom out: the image shrinks and the frame's edge shows the card background.
+  await page.getByRole('button', { name: 'Reset Crop' }).click();
+  await page.getByRole('slider', { name: /^Zoom/ }).fill('0.5');
+  const { rgb } = await probePng(page, await exportLinkedIn(page), [0.2, 0.7]);
+  const [r, g, b] = rgb;
+  expect(Math.abs(r - CYAN[0]) + Math.abs(g - CYAN[1]) + Math.abs(b - CYAN[2])).toBeGreaterThan(150);
+});
+
+test('Logo size switches between small, medium and large', async ({ page }) => {
+  await newProject(page);
+  await page.getByRole('tab', { name: 'Brand' }).click();
+  await page.locator('[role=tabpanel] input[type=file]:not([multiple])').setInputFiles(path.join(FIXTURES, 'logo-300.png'));
+  const preview = page.getByRole('img', { name: 'Logo' });
+  await expect(preview).toBeVisible();
+  const src = (await preview.getAttribute('src'))!;
+  const logo = page.getByTestId('canvas').locator(`img[src="${src}"]`);
+  const height = async () => (await logo.boundingBox())!.height;
+  const sizes = page.getByRole('radiogroup', { name: 'Logo size' });
+  await expect(sizes.getByRole('radio', { name: 'Medium' })).toBeChecked();
+  const medium = await height();
+  await sizes.getByRole('radio', { name: 'Large' }).click();
+  await expect.poll(height).toBeCloseTo((medium * 2) / 1.4, 0);
+  await sizes.getByRole('radio', { name: 'Small' }).click();
+  await expect.poll(height).toBeCloseTo(medium / 1.4, 0);
 });
 
 test('Features lists the edited items', async ({ page }) => {

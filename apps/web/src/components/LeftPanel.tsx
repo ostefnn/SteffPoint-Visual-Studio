@@ -6,9 +6,11 @@ import {
   FORMAT_PRESETS,
   isHexColor,
   LIMITS,
+  LOGO_ADVICE,
   TEMPLATES,
   type BackgroundType,
   type HeadingFont,
+  type LogoSize,
 } from '@svs/visual-core';
 import { useEditor } from '../store/editor';
 import { imageFilesFrom, importImages, moveScreenshot, removeLogo, removeScreenshot } from '../lib/actions';
@@ -279,7 +281,25 @@ function BrandTab() {
             <Icon name="upload" /> Upload Logo
           </Button>
         )}
-        <p className="text-xs text-zinc-500">A transparent PNG or WebP works best.</p>
+        {brand.logoAssetId && (
+          <div>
+            <p className="mb-1 text-xs font-medium text-zinc-600">Logo size</p>
+            <Segmented<LogoSize>
+              label="Logo size"
+              value={brand.logoSize ?? 'medium'}
+              options={[
+                { value: 'small', label: 'Small' },
+                { value: 'medium', label: 'Medium' },
+                { value: 'large', label: 'Large' },
+              ]}
+              onChange={(v) => update((d) => void (d.brand.logoSize = v))}
+            />
+          </div>
+        )}
+        <p className="text-xs text-zinc-500">
+          Best: a transparent PNG or WebP, cropped tight to the logo, at least {LOGO_ADVICE.iconPx}&nbsp;×&nbsp;{LOGO_ADVICE.iconPx}&nbsp;px for an icon or{' '}
+          {LOGO_ADVICE.wordmarkWidthPx}&nbsp;px wide for a wordmark.
+        </p>
         <input
           ref={logoInput}
           type="file"

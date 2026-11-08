@@ -6,7 +6,7 @@ import { backgroundPeak, contrastRatio, derivePalette } from './color';
 import { getOrientation, type FormatPreset } from './formats';
 import type { Project } from './project';
 import { DEVICE_LABELS, getTemplate, TEMPLATES, type TemplateId } from './templates';
-import { subtitleSize } from './typography';
+import { logoHeight, subtitleSize } from './typography';
 import { LIMITS, normalizeDevices, screenshotRange } from './project';
 
 export type SuggestionLevel = 'info' | 'warning';
@@ -65,6 +65,19 @@ export function analyzeProject(project: Project, format: FormatPreset, exportSca
   const subPxInFeed = subtitleSize(u, orientation) * (FEED_THUMB_WIDTH / format.width);
   if (tpl.slots.subtitle && content.subtitle.trim() && subPxInFeed < 8) {
     out.push({ id: 'thumb-legibility', level: 'info', message: 'The subtitle will be under 8px in a feed preview. Consider removing it for this format.' });
+  }
+
+  // --- Logo ------------------------------------------------------------------------
+  const logo = brand.logoAssetId ? assets.get(brand.logoAssetId) : undefined;
+  if (logo && logo.height > 0) {
+    const needed = Math.ceil(logoHeight(u, brand.logoSize ?? 'medium') * exportScale);
+    if (logo.height < needed) {
+      out.push({
+        id: 'logo-small',
+        level: 'info',
+        message: `The logo is ${logo.height}px tall but shown at about ${needed}px at this export size, so it may look blurry. Use a larger file.`,
+      });
+    }
   }
 
   // --- Screenshots -------------------------------------------------------------
