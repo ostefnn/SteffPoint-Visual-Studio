@@ -25,6 +25,8 @@ interface EditorState {
   selectedShotId: string | null;
   activeFormat: FormatId;
   showSafeZones: boolean;
+  /** Carousel page shown on the canvas (index into the carousel pages), or null for the project itself. */
+  carouselPage: number | null;
 
   open(project: Project, urls: Record<string, string>): void;
   close(): void;
@@ -36,6 +38,7 @@ interface EditorState {
   selectShot(id: string | null): void;
   setActiveFormat(id: FormatId): void;
   toggleSafeZones(): void;
+  setCarouselPage(index: number | null): void;
 }
 
 export const useEditor = create<EditorState>((set, get) => ({
@@ -49,6 +52,7 @@ export const useEditor = create<EditorState>((set, get) => ({
   selectedShotId: null,
   activeFormat: 'linkedin',
   showSafeZones: false,
+  carouselPage: null,
 
   open(project, urls) {
     revokeAll(get().urls);
@@ -60,6 +64,7 @@ export const useEditor = create<EditorState>((set, get) => ({
       future: [],
       lastKey: null,
       selectedShotId: project.screenshots[0]?.id ?? null,
+      carouselPage: null,
       activeFormat: project.exportPresets[0] ?? 'linkedin',
     });
   },
@@ -112,6 +117,9 @@ export const useEditor = create<EditorState>((set, get) => ({
   },
   setActiveFormat(id) {
     set({ activeFormat: id });
+  },
+  setCarouselPage(index) {
+    set({ carouselPage: index });
   },
   toggleSafeZones() {
     set({ showSafeZones: !get().showSafeZones });

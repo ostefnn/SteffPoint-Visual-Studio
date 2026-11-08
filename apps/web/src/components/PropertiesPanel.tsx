@@ -1,5 +1,6 @@
 import { useMemo, useRef } from 'react';
 import {
+  buildCarouselSlides,
   analyzeProject,
   clampCode,
   CROP_MAX,
@@ -37,7 +38,13 @@ export function PropertiesPanel({ className }: { className?: string }) {
 
 function ContentSection() {
   const content = useEditor((s) => s.project?.content);
-  const template = useEditor((s) => s.project?.template);
+  const projectTemplate = useEditor((s) => s.project?.template);
+  // When a carousel page is on the canvas, show the fields of that page's template:
+  // its content (features, code, figures…) is shared with the project.
+  const pageTemplate = useEditor((s) =>
+    s.project && s.carouselPage !== null ? buildCarouselSlides(s.project)[s.carouselPage]?.variant.template : undefined,
+  );
+  const template = pageTemplate ?? projectTemplate;
   const devices = useEditor((s) => s.project?.devices);
   const orientation = useEditor((s) => s.project?.deviceOrientation);
   const desktopFrame = useEditor((s) => s.project?.desktopFrame);
@@ -108,6 +115,12 @@ function ContentSection() {
 
   return (
     <Section title="Content">
+      {pageTemplate && (
+        <p className="rounded-md bg-blue-50 px-2 py-1.5 text-xs text-blue-900">
+          Shared content, used by the project and every carousel page. A page’s own kicker, title and subtitle are set in the
+          Carousel tab.
+        </p>
+      )}
       <Field label="Kicker" hint={count(content.kicker, LIMITS.kicker)}>
         <input value={content.kicker} onChange={set('kicker')} className={inputCls} placeholder="e.g. New release…" />
       </Field>

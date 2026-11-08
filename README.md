@@ -62,7 +62,7 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 | 🛟 **Safe zones** | Overlay showing where platform UI may cover your visual (e.g. stories, profile banners). |
 | ↩️ **Undo / redo** | Bounded history (60 steps); rapid edits like typing or sliders are merged into one step. |
 | 📦 **Export** | PNG, JPEG or WebP at 1×, 2× or 3×. One image, or a ZIP with every selected format plus `project.json`. |
-| 🗂️ **LinkedIn carousel** | One click exports a 4:5 multi-page PDF for a LinkedIn document post: cover, one page per screenshot (titled with its caption), then your features. |
+| 🗂️ **LinkedIn carousel** | A 4:5 multi-page PDF for a LinkedIn document post. Automatic pages (cover, one per screenshot, features), or your own: a template per page, page-specific kicker/title/subtitle and screenshots, add, duplicate, reorder (drag, buttons or Alt+↑/↓). Up to 10 pages, with carousel-specific advice. |
 | 💡 **Smart suggestions** | Deterministic checks, no AI: title length, WCAG AA contrast, legibility in feeds, wrong template or device for the screenshot orientation, images or logo too small for the export size, missing quote author, figures or event date. Informative only, never blocks export. |
 | 🔁 **Import / export JSON** | Portable project file with images embedded. Backup, move between browsers, share. |
 
@@ -125,7 +125,7 @@ At 2× and 3× the pixel size is multiplied. Very large exports (> ~33 MP) show 
 7. Select a screenshot to **crop** its edges and set **zoom, fit and focal point** (click or drag on the image, or use arrow keys).
 8. Check every format in the **bottom strip**; tick the ones to export. Turn on **Safe zones** if needed.
 9. **Export** → choose file type and resolution → download the ZIP.
-10. **LinkedIn carousel** (optional): give each screenshot a *Carousel caption* in the Image panel, then in Export click **Export Carousel PDF** and post the file on LinkedIn as a document.
+10. **LinkedIn carousel** (optional): open the **Carousel** tab. Pages are generated automatically (captions from the Image panel become page titles). Click **Customize Pages** to pick a template per page, give a page its own text or screenshots, add a closing page and reorder. Then in Export click **Export Carousel PDF** and post the file on LinkedIn as a document.
 
 Your work is saved automatically in the browser. Use **JSON** on a project card to back it up, and **Import project** to restore it.
 
@@ -234,6 +234,13 @@ Exported `project.json` / `*.svs.json`:
       "crop": { "top": 0, "right": 0, "bottom": 0, "left": 0 }
     }],
     "exportPresets": ["linkedin", "open-graph", "square"],
+    "carousel": {
+      "pageNumbers": true,
+      "slides": [
+        { "id": "var_…", "template": "minimal", "content": { "title": "Too many tabs?" }, "screenshotIds": [] },
+        { "id": "var_…", "template": "device-mix", "content": {}, "screenshotIds": null }
+      ]
+    },
     "customFormat": { "width": 1600, "height": 900 },
     "devices": ["desktop", "mobile"],
     "deviceOrientation": { "tablet": "portrait", "mobile": "portrait" },
@@ -244,6 +251,8 @@ Exported `project.json` / `*.svs.json`:
 ```
 
 `schemaVersion` lets future versions migrate older files. Every import goes through `migrateProject()`, which drops unknown fields, clamps values, removes dangling references and fills newer fields with defaults, so files from earlier versions open unchanged. Projects that used the retired *Desktop + Mobile* template open as *Device Mix* with desktop and mobile.
+
+In `carousel.slides`, each page is a **variant**: a template, optional `content` overrides (a missing `kicker`, `title` or `subtitle` uses the project's), and `screenshotIds` (`null` = the project's screenshots). An empty `slides` list means automatic pages.
 
 ## Architecture
 
@@ -301,7 +310,7 @@ Found a security issue? Please open a private security advisory on GitHub rather
 
 **V1 — Better Cover Studio** (this release): projects, IndexedDB, autosave, JSON, 15 templates (including Device Mix, App Store, Testimonial, Key Figures, Event), device and laptop frames, App Store formats, crop/zoom/focal point, brand with logo size, undo/redo, safe zones, custom sizes, PNG/JPEG/WebP, ZIP export, LinkedIn carousel PDF.
 
-**V2 — Visual Studio:** editable carousel slides (reorder, custom text per page), reusable Brand Kits, Asset Manager, variants (Original / Dark / Minimal…), more Before/After modes (split, slider), richer accessibility checks, FR / NL / EN interface.
+**V2 — Visual Studio:** reusable Brand Kits, Asset Manager, variants beyond the carousel (Original / Dark / Minimal…, built on the same `Variant` model), more Before/After modes (split, slider), richer accessibility checks, FR / NL / EN interface.
 
 **V3 — Visual Platform:** optional cloud sync and teams, batch generator (CSV/JSON), URL capture service, render API, CMS integrations, AI-assisted copy. Remote features will always be opt-in and clearly labelled.
 

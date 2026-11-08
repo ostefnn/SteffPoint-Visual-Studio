@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  analyzeCarousel,
   buildCarouselSlides,
+  createVariant,
   CAROUSEL_MAX_SLIDES,
   createScreenshotSlot,
   analyzeProject,
@@ -291,47 +293,91 @@ describe('LinkedIn carousel', () => {
       { id: 'd', name: 'desktop.png', mime: 'image/png', width: 1600, height: 1000, size: 1 },
       { id: 'm', name: 'phone.png', mime: 'image/png', width: 1170, height: 2532, size: 1 },
     );
-    p.screenshots.push(
-      { ...createScreenshotSlot('d'), caption: 'Dashboard' },
-      { ...createScreenshotSlot('m'), caption: '' },
-    );
+    p.screenshots.push({ ...createScreenshotSlot('d'), id: 'sd', caption: 'Dashboard' }, { ...createScreenshotSlot('m'), id: 'sm' });
     return p;
   };
+  const templates = (p: ReturnType<typeof withShots>) => buildCarouselSlides(p).map((s) => s.variant.template);
 
-  it('builds cover, one slide per screenshot and a features slide', () => {
-    const slides = buildCarouselSlides(withShots());
-    expect(slides.map((s) => s.kind)).toEqual(['cover', 'screenshot', 'screenshot', 'features']);
-    expect(slides[0].project.template).toBe('browser-hero');
-    expect(slides[1].project.template).toBe('spotlight');
+  it('generates cover, one page per screenshot and features automatically', () => {
+    const p = withShots();
+    const slides = buildCarouselSlides(p);
+    expect(templates(p)).toEqual(['browser-hero', 'spotlight', 'mobile-trio', 'features']);
+    expect(slides.every((s) => s.auto)).toBe(true);
     expect(slides[1].project.content.title).toBe('Dashboard');
-    expect(slides[1].project.screenshots).toHaveLength(1);
-    expect(slides[2].project.template).toBe('mobile-trio'); // portrait image → phone
-    expect(slides[2].label).toBe('Screenshot 2');
+    expect(slides[1].project.screenshots.map((x) => x.id)).toEqual(['sd']);
+    expect(slides[2].label).toBe('Mobile Trio');
+    expect(slides[0].project.content.kicker).toBe(p.content.kicker); // cover keeps its kicker
     expect(slides[3].project.content.kicker).toBe('4 / 4');
-    expect(slides[0].project.content.kicker).toBe(withShots().content.kicker); // cover untouched
   });
 
-  it('skips the features slide when empty or already the cover', () => {
+  it('skips the features page when empty or already the cover', () => {
     const p = withShots();
     p.content.features = ['', ' '];
-    expect(buildCarouselSlides(p).map((s) => s.kind)).not.toContain('features');
+    expect(templates(p)).not.toContain('features');
     const q = withShots();
     q.template = 'features';
-    expect(buildCarouselSlides(q).map((s) => s.kind)).not.toContain('features');
+    expect(templates(q).filter((t) => t === 'features')).toHaveLength(1);
   });
 
-  it('caps the number of slides', () => {
+  it('uses custom pages with their own template, text and screenshots', () => {
+    const p = withShots();
+    p.carousel.slides = [
+      createVariant({ template: 'minimal', content: { title: 'Hook' } }),
+      createVariant({ template: 'spotlight', screenshotIds: ['sm', 'missing'] }),
+      createVariant({ template: 'event', content: { kicker: 'Try it' } }),
+    ];
+    const slides = buildCarouselSlides(p);
+    expect(slides.map((s) => s.auto)).toEqual([false, false, false]);
+    expect(slides[0].project.content.title).toBe('Hook');
+    expect(slides[0].project.content.subtitle).toBe(p.content.subtitle); // inherited
+    expect(slides[1].project.screenshots.map((x) => x.id)).toEqual(['sm']); // unknown id ignored
+    expect(slides[1].project.content.kicker).toBe('2 / 3');
+    expect(slides[2].project.content.kicker).toBe('Try it'); // own kicker wins over numbering
+    expect(slides[0].project.brand).toBe(p.brand); // brand shared
+  });
+
+  it('can turn page numbers off', () => {
+    const p = withShots();
+    p.carousel.pageNumbers = false;
+    expect(buildCarouselSlides(p)[1].project.content.kicker).toBe(p.content.kicker);
+  });
+
+  it('caps the number of pages', () => {
     const p = withShots();
     for (let i = 0; i < 20; i++) p.screenshots.push(createScreenshotSlot('d'));
     expect(buildCarouselSlides(p).length).toBeLessThanOrEqual(CAROUSEL_MAX_SLIDES);
+    p.carousel.slides = Array.from({ length: 15 }, () => createVariant());
+    expect(buildCarouselSlides(p).length).toBe(CAROUSEL_MAX_SLIDES);
   });
 
-  it('migrates captions safely', () => {
+  it('advises on page count, missing screenshots and a closing page', () => {
+    const p = withShots();
+    p.carousel.slides = [createVariant({ template: 'browser-duo', screenshotIds: ['sd'] })];
+    const ids = analyzeCarousel(p).map((s) => s.id);
+    expect(ids).toContain('carousel-short');
+    expect(ids).toContain('carousel-shots-0');
+    expect(analyzeCarousel(withShots()).map((s) => s.id)).toContain('carousel-cta');
+  });
+
+  it('migrates captions and carousel pages safely', () => {
     const p = migrateProject({
       assets: [{ id: 'a', mime: 'image/png' }],
-      screenshots: [{ assetId: 'a', caption: 'x'.repeat(200) + '\nnext' }, { assetId: 'a' }],
+      screenshots: [{ id: 's1', assetId: 'a', caption: 'x'.repeat(200) + '\nnext' }, { assetId: 'a' }],
+      carousel: {
+        pageNumbers: false,
+        slides: [
+          { template: 'nope', content: { title: 'T', foo: 1, subtitle: 3 }, screenshotIds: ['s1', 'ghost', 's1'] },
+          { template: 'browser-mobile', screenshotIds: 'all' },
+          ...Array.from({ length: 20 }, () => ({ template: 'minimal' })),
+        ],
+      },
     });
     expect(p.screenshots[0].caption.length).toBe(90);
     expect(p.screenshots[1].caption).toBe('');
+    expect(p.carousel.pageNumbers).toBe(false);
+    expect(p.carousel.slides).toHaveLength(CAROUSEL_MAX_SLIDES);
+    expect(p.carousel.slides[0]).toMatchObject({ template: 'minimal', content: { title: 'T' }, screenshotIds: ['s1'] });
+    expect(p.carousel.slides[1]).toMatchObject({ template: 'device-mix', screenshotIds: null });
+    expect(migrateProject({}).carousel).toEqual({ slides: [], pageNumbers: true });
   });
 });

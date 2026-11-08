@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { resolveFormat } from '@svs/visual-core';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { buildCarouselSlides, CAROUSEL_FORMAT, resolveFormat } from '@svs/visual-core';
 import { useEditor } from '../store/editor';
 import { notify, useToasts } from '../store/toasts';
 import { useProjectSession, type SaveState } from '../lib/useProjectSession';
@@ -186,19 +186,35 @@ function Canvas() {
   const urls = useEditor((s) => s.urls);
   const active = useEditor((s) => s.activeFormat);
   const showSafe = useEditor((s) => s.showSafeZones);
+  const carouselPage = useEditor((s) => s.carouselPage);
   const [ref, size] = useElementSize<HTMLDivElement>();
-  const format = resolveFormat(active, project.customFormat);
-  const { update, toggleSafeZones } = useEditor.getState();
+  const { update, toggleSafeZones, setCarouselPage } = useEditor.getState();
+  // While a carousel page is selected, the canvas shows that page at the carousel size.
+  const slides = useMemo(() => (carouselPage === null ? [] : buildCarouselSlides(project)), [project, carouselPage]);
+  const slide = carouselPage === null ? undefined : slides[carouselPage];
+  const format = slide ? resolveFormat(CAROUSEL_FORMAT) : resolveFormat(active, project.customFormat);
+  const shown = slide ? slide.project : project;
   const pad = 32;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex flex-wrap items-center gap-3 border-b border-zinc-200 bg-white px-4 py-2 text-sm">
-        <span className="font-medium">{format.label}</span>
+        {slide ? (
+          <span className="font-medium">
+            Carousel · Page {carouselPage! + 1} / {slides.length}
+          </span>
+        ) : (
+          <span className="font-medium">{format.label}</span>
+        )}
         <span className="tabular-nums text-zinc-500">
           {format.width} × {format.height}
         </span>
-        {active === 'custom' && (
+        {slide && (
+          <Button size="sm" variant="ghost" onClick={() => setCarouselPage(null)}>
+            Show Project
+          </Button>
+        )}
+        {!slide && active === 'custom' && (
           <span className="flex items-center gap-1">
             {(['width', 'height'] as const).map((k) => (
               <input
@@ -222,13 +238,13 @@ function Canvas() {
       <div ref={ref} className="checker relative flex h-[56vh] max-h-[640px] flex-none items-center justify-center overflow-hidden lg:h-auto lg:max-h-none lg:min-h-0 lg:flex-1" data-testid="canvas">
         {size.width > 0 && (
           <Stage
-            project={project}
+            project={shown}
             format={format}
             urls={urls}
             maxWidth={size.width - pad * 2}
             maxHeight={size.height - pad * 2}
             showSafeZones={showSafe}
-            label={`Preview: ${format.label}, ${format.width} × ${format.height}`}
+            label={slide ? `Preview: carousel page ${carouselPage! + 1} of ${slides.length}` : `Preview: ${format.label}, ${format.width} × ${format.height}`}
             className="shadow-xl ring-1 ring-black/5"
           />
         )}

@@ -16,17 +16,19 @@ import { useEditor } from '../store/editor';
 import { imageFilesFrom, importImages, moveScreenshot, removeLogo, removeScreenshot } from '../lib/actions';
 import { Button, cx, Field, Icon, inputCls, Section, Segmented, Slider } from './ui';
 import { Stage } from './Stage';
+import { CarouselPanel } from './CarouselPanel';
 
 const NONE: never[] = [];
 const DEFAULT_BRAND = createProject().brand;
 
-type Tab = 'templates' | 'images' | 'brand' | 'background';
+type Tab = 'templates' | 'images' | 'brand' | 'background' | 'carousel';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'templates', label: 'Templates' },
   { id: 'images', label: 'Images' },
   { id: 'brand', label: 'Brand' },
   { id: 'background', label: 'Background' },
+  { id: 'carousel', label: 'Carousel' },
 ];
 
 export function LeftPanel({ className }: { className?: string }) {
@@ -50,7 +52,7 @@ export function LeftPanel({ className }: { className?: string }) {
         role="tablist"
         aria-label="Editor panels"
         onKeyDown={onTabKeyDown}
-        className="sticky top-0 z-10 flex gap-1 border-b border-zinc-200 bg-zinc-50 p-2"
+        className="sticky top-0 z-10 flex flex-wrap gap-1 border-b border-zinc-200 bg-zinc-50 p-2"
       >
         {TABS.map((t) => (
           <button
@@ -66,7 +68,7 @@ export function LeftPanel({ className }: { className?: string }) {
             tabIndex={tab === t.id ? 0 : -1}
             onClick={() => setTab(t.id)}
             className={cx(
-              'flex-1 rounded-md px-1.5 py-1.5 text-xs font-medium transition-transform duration-100 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 motion-safe:active:scale-[0.97]',
+              'min-w-[30%] flex-1 rounded-md px-1.5 py-1.5 text-xs font-medium transition-transform duration-100 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 motion-safe:active:scale-[0.97]',
               tab === t.id ? 'bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200' : 'text-zinc-600 hover:text-zinc-900',
             )}
           >
@@ -79,6 +81,7 @@ export function LeftPanel({ className }: { className?: string }) {
         {tab === 'images' && <ImagesTab />}
         {tab === 'brand' && <BrandTab />}
         {tab === 'background' && <BackgroundTab />}
+        {tab === 'carousel' && <CarouselPanel />}
       </div>
     </aside>
   );
