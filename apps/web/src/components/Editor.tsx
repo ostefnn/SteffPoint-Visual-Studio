@@ -80,7 +80,7 @@ export function Editor({ projectId, onExit }: { projectId: string; onExit: () =>
       </div>
     );
   }
-  if (!project) return <div className="flex h-full items-center justify-center text-sm text-zinc-500">Loading project…</div>;
+  if (!project) return <div className="flex h-full items-center justify-center text-sm text-muted">Loading project…</div>;
 
   return (
     <div
@@ -102,7 +102,7 @@ export function Editor({ projectId, onExit }: { projectId: string; onExit: () =>
     >
       <TopBar saveState={saveState} onExit={exit} onExport={() => setExportOpen(true)} />
       {saveState === 'conflict' && (
-        <div role="alert" className="flex flex-wrap items-center gap-3 border-b border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+        <div role="alert" className="flex flex-wrap items-center gap-3 border-b border-warn-line bg-warn-soft px-4 py-2 text-sm text-warn-ink">
           <span className="mr-auto">
             This project was changed in another tab. Your latest edits are <strong>not saved</strong>.
           </span>
@@ -115,17 +115,17 @@ export function Editor({ projectId, onExit }: { projectId: string; onExit: () =>
         </div>
       )}
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[288px_minmax(0,1fr)_320px]">
-        <LeftPanel className="order-2 border-zinc-200 bg-zinc-50 lg:order-1 lg:overflow-y-auto lg:border-r" />
+        <LeftPanel className="order-2 border-line bg-panel lg:order-1 lg:overflow-y-auto lg:border-r" />
         <main className="order-1 flex min-h-0 flex-col lg:order-2">
           <Canvas />
           <FormatStrip />
         </main>
-        <PropertiesPanel className="order-3 border-zinc-200 bg-zinc-50 lg:overflow-y-auto lg:border-l" />
+        <PropertiesPanel className="order-3 border-line bg-panel lg:overflow-y-auto lg:border-l" />
       </div>
       {exportOpen && <ExportDialog onClose={() => setExportOpen(false)} />}
       {dragging && (
-        <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-blue-600/10 ring-4 ring-inset ring-blue-600">
-          <p className="rounded-xl bg-white px-5 py-3 text-sm font-medium shadow-lg">Drop images to add screenshots</p>
+        <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-accent/10 ring-4 ring-inset ring-accent">
+          <p className="rounded-xl bg-surface px-5 py-3 text-sm font-medium shadow-lg">Drop images to add screenshots</p>
         </div>
       )}
       <Toasts />
@@ -134,10 +134,10 @@ export function Editor({ projectId, onExit }: { projectId: string; onExit: () =>
 }
 
 const SAVE_LABEL: Record<SaveState, { text: string; cls: string }> = {
-  saved: { text: 'Saved', cls: 'text-zinc-500' },
-  saving: { text: 'Saving…', cls: 'text-zinc-500' },
-  error: { text: 'Not saved', cls: 'font-medium text-red-600' },
-  conflict: { text: 'Not saved (conflict)', cls: 'font-medium text-amber-700' },
+  saved: { text: 'Saved', cls: 'text-muted' },
+  saving: { text: 'Saving…', cls: 'text-muted' },
+  error: { text: 'Not saved', cls: 'font-medium text-danger' },
+  conflict: { text: 'Not saved (conflict)', cls: 'font-medium text-warn' },
 };
 
 function TopBar({ saveState, onExit, onExport }: { saveState: SaveState; onExit: () => void; onExport: () => void }) {
@@ -146,7 +146,7 @@ function TopBar({ saveState, onExit, onExport }: { saveState: SaveState; onExit:
   const canRedo = useEditor((s) => s.future.length > 0);
   const { update, undo, redo } = useEditor.getState();
   return (
-    <header className="flex flex-wrap items-center gap-2 border-b border-zinc-200 bg-white px-3 py-2">
+    <header className="flex flex-wrap items-center gap-2 border-b border-line bg-surface px-3 py-2">
       <h1 className="sr-only">Editing: {name || 'Untitled project'}</h1>
       <Button variant="ghost" onClick={onExit} aria-label="Back to Projects">
         <Icon name="back" /> <span className="hidden sm:inline">Projects</span>
@@ -198,15 +198,15 @@ function Canvas() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex flex-wrap items-center gap-3 border-b border-zinc-200 bg-white px-4 py-2 text-sm">
+      <div className="flex flex-wrap items-center gap-3 border-b border-line bg-surface px-4 py-2 text-sm">
         {slide ? (
           <span className="font-medium">
-            Carousel · Page {carouselPage! + 1} / {slides.length}
+            Carousel page {carouselPage! + 1} of {slides.length}
           </span>
         ) : (
           <span className="font-medium">{format.label}</span>
         )}
-        <span className="tabular-nums text-zinc-500">
+        <span className="tabular-nums text-muted">
           {format.width} × {format.height}
         </span>
         {slide && (
@@ -231,7 +231,7 @@ function Canvas() {
             ))}
           </span>
         )}
-        <label className="ml-auto flex items-center gap-2 text-xs text-zinc-600">
+        <label className="ml-auto flex items-center gap-2 text-xs text-muted">
           <input type="checkbox" checked={showSafe} onChange={toggleSafeZones} /> Safe zones
         </label>
       </div>
@@ -245,7 +245,7 @@ function Canvas() {
             maxHeight={size.height - pad * 2}
             showSafeZones={showSafe}
             label={slide ? `Preview: carousel page ${carouselPage! + 1} of ${slides.length}` : `Preview: ${format.label}, ${format.width} × ${format.height}`}
-            className="shadow-xl ring-1 ring-black/5"
+            className="shadow-xl ring-1 ring-ink/5"
           />
         )}
       </div>
@@ -264,7 +264,7 @@ function Toasts() {
           role={t.tone === 'error' ? 'alert' : 'status'}
           className={cx(
             'flex items-center gap-3 rounded-lg px-4 py-2 text-sm shadow-lg',
-            t.tone === 'error' ? 'bg-red-600 text-white' : 'bg-zinc-900 text-white',
+            t.tone === 'error' ? 'bg-danger text-on-accent' : 'bg-ink text-on-accent',
           )}
         >
           {t.message}

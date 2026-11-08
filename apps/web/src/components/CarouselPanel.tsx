@@ -86,7 +86,7 @@ export function CarouselPanel() {
   return (
     <>
       <Section title={`Pages ${slides.length}/${CAROUSEL_MAX_SLIDES}`}>
-        <p className="text-xs text-zinc-600">
+        <p className="text-xs text-muted">
           {custom
             ? 'Custom pages. Brand, background and images stay shared with the project.'
             : 'Automatic pages: cover, one page per screenshot (titled with its caption), then your features.'}
@@ -107,7 +107,7 @@ export function CarouselPanel() {
             </Button>
           )}
         </div>
-        <label className="flex items-center gap-2 text-xs text-zinc-700">
+        <label className="flex items-center gap-2 text-xs text-ink-soft">
           <input
             type="checkbox"
             checked={project.carousel.pageNumbers}
@@ -134,8 +134,8 @@ export function CarouselPanel() {
               }}
               onDragEnd={() => setDragFrom(null)}
               className={cx(
-                'flex items-center gap-2 rounded-lg bg-white p-1.5 ring-1',
-                active === i ? 'ring-2 ring-blue-600' : 'ring-zinc-200',
+                'flex items-center gap-2 rounded-lg bg-surface p-1.5 ring-1',
+                active === i ? 'ring-2 ring-accent' : 'ring-line',
                 dragFrom === i && 'opacity-50',
               )}
             >
@@ -152,13 +152,13 @@ export function CarouselPanel() {
                 }}
                 className="flex min-w-0 flex-1 items-center gap-2 text-left"
               >
-                <Stage project={s.project} format={FORMAT} urls={urls} maxWidth={44} maxHeight={55} className="flex-none rounded-sm ring-1 ring-black/5" />
+                <Stage project={s.project} format={FORMAT} urls={urls} maxWidth={44} maxHeight={55} className="flex-none rounded-sm ring-1 ring-ink/5" />
                 <span className="min-w-0">
                   <span className="line-clamp-2 text-xs font-medium break-words">
                     {i + 1}. {s.label}
                   </span>
                   {TEMPLATES.find((t) => t.id === s.variant.template)?.name !== s.label && (
-                    <span className="block text-[11px] text-zinc-500">{TEMPLATES.find((t) => t.id === s.variant.template)?.name}</span>
+                    <span className="block text-[11px] text-muted">{TEMPLATES.find((t) => t.id === s.variant.template)?.name}</span>
                   )}
                 </span>
               </button>
@@ -196,19 +196,19 @@ export function CarouselPanel() {
       ) : null}
       {!custom && (
         <Section title="Edit a page">
-          <p className="text-xs text-zinc-500">Click “Customize Pages” to choose each page’s template, text and screenshots.</p>
+          <p className="text-xs text-muted">Click “Customize Pages” to choose each page’s template, text and screenshots.</p>
         </Section>
       )}
 
       <Section title={`Carousel advice (${advice.length})`}>
         {advice.length === 0 ? (
-          <p className="text-xs text-emerald-700">Looks good.</p>
+          <p className="text-xs text-ok">Looks good.</p>
         ) : (
           <ul className="space-y-2">
             {advice.map((a) => (
               <li
                 key={a.id}
-                className={cx('rounded-md px-2.5 py-2 text-xs', a.level === 'warning' ? 'bg-amber-50 text-amber-900' : 'bg-white text-zinc-700 ring-1 ring-zinc-200')}
+                className={cx('rounded-md px-2.5 py-2 text-xs', a.level === 'warning' ? 'bg-warn-soft text-warn-ink' : 'bg-surface text-ink-soft ring-1 ring-line')}
               >
                 {a.message}
               </li>
@@ -256,7 +256,7 @@ function PageEditor({
           <Button size="sm" variant="ghost" className="px-1.5" disabled={!canAdd} onClick={onDuplicate} aria-label={`Duplicate page ${index + 1}`}>
             <Icon name="copy" className="size-3.5" />
           </Button>
-          <Button size="sm" variant="ghost" className="px-1.5 text-red-600" disabled={!canRemove} onClick={onRemove} aria-label={`Delete page ${index + 1}`}>
+          <Button size="sm" variant="ghost" className="px-1.5 text-danger" disabled={!canRemove} onClick={onRemove} aria-label={`Delete page ${index + 1}`}>
             <Icon name="trash" className="size-3.5" />
           </Button>
         </div>
@@ -266,7 +266,7 @@ function PageEditor({
         <select
           value={variant.template}
           onChange={(e) => edit((v) => void (v.template = e.target.value as TemplateId))}
-          className={cx(inputCls, 'bg-white text-zinc-900')}
+          className={cx(inputCls, 'bg-surface text-ink')}
         >
           {TEMPLATES.map((t) => (
             <option key={t.id} value={t.id}>
@@ -281,9 +281,9 @@ function PageEditor({
         const value = own ? variant.content[k]! : project.content[k];
         return (
           <fieldset key={k} className="space-y-1">
-            <legend className="flex w-full items-center justify-between text-xs font-medium text-zinc-600">
+            <legend className="flex w-full items-center justify-between text-xs font-medium text-muted">
               {TEXT_LABEL[k]}
-              <label className="flex items-center gap-1.5 font-normal text-zinc-500">
+              <label className="flex items-center gap-1.5 font-normal text-muted">
                 <input
                   type="checkbox"
                   aria-label={`Page ${index + 1} ${TEXT_LABEL[k].toLowerCase()}: same as project`}
@@ -305,7 +305,7 @@ function PageEditor({
                 disabled={!own}
                 maxLength={TEXT_LIMIT[k]}
                 onChange={(e) => edit((v) => void (v.content[k] = e.target.value), `page-${variant.id}-${k}`)}
-                className={cx(inputCls, !own && 'bg-zinc-100 text-zinc-500')}
+                className={cx(inputCls, !own && 'bg-subtle text-muted')}
               />
             ) : (
               <textarea
@@ -315,7 +315,7 @@ function PageEditor({
                 rows={k === 'title' ? 2 : 3}
                 maxLength={TEXT_LIMIT[k]}
                 onChange={(e) => edit((v) => void (v.content[k] = e.target.value), `page-${variant.id}-${k}`)}
-                className={cx(inputCls, 'resize-y', !own && 'bg-zinc-100 text-zinc-500')}
+                className={cx(inputCls, 'resize-y', !own && 'bg-subtle text-muted')}
               />
             )}
           </fieldset>
@@ -324,9 +324,9 @@ function PageEditor({
 
       {project.screenshots.length > 0 && (
         <fieldset className="space-y-2">
-          <legend className="flex w-full items-center justify-between text-xs font-medium text-zinc-600">
+          <legend className="flex w-full items-center justify-between text-xs font-medium text-muted">
             Screenshots
-            <label className="flex items-center gap-1.5 font-normal text-zinc-500">
+            <label className="flex items-center gap-1.5 font-normal text-muted">
               <input
                 type="checkbox"
                 aria-label={`Page ${index + 1} screenshots: same as project`}
@@ -340,7 +340,7 @@ function PageEditor({
             <ul className="grid grid-cols-4 gap-1.5">
               {project.screenshots.map((s, i) => (
                 <li key={s.id}>
-                  <label className={cx('block cursor-pointer rounded-md p-0.5 ring-1', chosen.has(s.id) ? 'ring-2 ring-blue-600' : 'ring-zinc-200 opacity-60')}>
+                  <label className={cx('block cursor-pointer rounded-md p-0.5 ring-1', chosen.has(s.id) ? 'ring-2 ring-accent' : 'ring-line opacity-60')}>
                     <input
                       type="checkbox"
                       className="sr-only"
@@ -366,7 +366,7 @@ function PageEditor({
           )}
         </fieldset>
       )}
-      <p className="text-[11px] text-zinc-500">
+      <p className="text-[11px] text-muted">
         Template content such as features, code, figures or quotes is shared with the project and edited in the Content panel.
       </p>
     </Section>

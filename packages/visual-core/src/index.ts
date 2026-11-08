@@ -5,3 +5,4 @@ export * from './typography';
 export * from './project';
 export * from './rules';
 export * from './carousel';
+export * from './styles';

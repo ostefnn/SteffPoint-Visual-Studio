@@ -31,6 +31,18 @@ It includes or depends on the third-party software listed below. Each package ke
 | setimmediate | 1.0.5 | MIT | https://github.com/yuzujs/setImmediate |
 | util-deprecate | 1.0.2 | MIT | https://github.com/TooTallNate/util-deprecate |
 
+## Bundled fonts (SIL Open Font License 1.1)
+
+Packaged into the build from Fontsource and served by the app itself; no request goes to a font CDN.
+
+| Font | Package | Author | Source |
+|---|---|---|---|
+| Geist | @fontsource-variable/geist 5.3.0 | Vercel | https://github.com/vercel/geist-font |
+| Bricolage Grotesque | @fontsource-variable/bricolage-grotesque 5.3.0 | Mathieu Triay | https://github.com/ateliertriay/bricolage |
+| Instrument Serif | @fontsource/instrument-serif 5.3.0 | Instrument | https://github.com/Instrument/instrument-serif |
+
+The OFL text ships in each package (`node_modules/@fontsource*/…/LICENSE`).
+
 ## Development tooling (not shipped)
 
 Vite, @vitejs/plugin-react, Tailwind CSS, @tailwindcss/vite, TypeScript, Vitest, Playwright (Apache-2.0) and @types packages. All MIT or Apache-2.0. Tailwind generates CSS into the build (MIT).
@@ -49,9 +61,9 @@ If code is reused later, its copyright notice and full MIT license text must be 
 
 ## Assets
 
-- **Fonts:** none bundled. The app uses system font stacks (Inter, Segoe UI, Georgia, etc. only if already installed on the device).
+- **Fonts:** Geist, Bricolage Grotesque and Instrument Serif are bundled (see above). The Soft style also uses system stacks (Inter, Segoe UI…) when installed on the device.
 - **Icons:** drawn in-house as inline SVG paths.
 - **Device mockups (browser, phone):** drawn in code with CSS, generic, no brand or trademarked device artwork.
-- **Screenshots in `docs/images/`:** generated for documentation from synthetic sample content.
+- **Screenshots in `docs/images/` and `apps/web/public/samples/`:** captures of SteffPoint Visual Studio itself, used for documentation and for the template gallery previews.
 
 Trademarks mentioned (LinkedIn, GitHub, Product Hunt, Open Graph, Microsoft 365, SharePoint) belong to their respective owners and are used only to describe output sizes. No affiliation or endorsement is implied.

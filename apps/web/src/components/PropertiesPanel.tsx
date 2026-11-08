@@ -108,7 +108,7 @@ function ContentSection() {
   const features = Array.from({ length: LIMITS.featureItems }, (_, i) => content.features[i] ?? '');
   const codeLines = content.code.split('\n').length;
   const count = (v: string, max: number) => (
-    <span className={cx(v.length > max * 0.8 && 'text-amber-600')}>
+    <span className={cx(v.length > max * 0.8 && 'text-warn')}>
       {v.length}/{max}
     </span>
   );
@@ -116,13 +116,13 @@ function ContentSection() {
   return (
     <Section title="Content">
       {pageTemplate && (
-        <p className="rounded-md bg-blue-50 px-2 py-1.5 text-xs text-blue-900">
+        <p className="rounded-md bg-accent-soft px-2 py-1.5 text-xs text-accent-deep">
           Shared content, used by the project and every carousel page. A page’s own kicker, title and subtitle are set in the
           Carousel tab.
         </p>
       )}
       <Field label="Kicker" hint={count(content.kicker, LIMITS.kicker)}>
-        <input value={content.kicker} onChange={set('kicker')} className={inputCls} placeholder="e.g. New release…" />
+        <input value={content.kicker} onChange={set('kicker')} className={inputCls} placeholder="e.g. Version 2.4…" />
       </Field>
       {slots.title && (
         <Field label="Title" hint={count(content.title, LIMITS.title)}>
@@ -140,23 +140,23 @@ function ContentSection() {
             <textarea value={content.quote} onChange={set('quote')} rows={4} className={cx(inputCls, 'resize-y')} />
           </Field>
           <Field label="Name">
-            <input value={content.author} onChange={set('author')} className={inputCls} placeholder="e.g. Alex Martin…" />
+            <input value={content.author} onChange={set('author')} className={inputCls} placeholder="Their full name…" />
           </Field>
           <Field label="Role">
-            <input value={content.authorRole} onChange={set('authorRole')} className={inputCls} placeholder="e.g. Head of Marketing, Northwind…" />
+            <input value={content.authorRole} onChange={set('authorRole')} className={inputCls} placeholder="Their role and company…" />
           </Field>
-          <p className="text-[11px] text-zinc-500">The first screenshot is used as the photo; without one, the initials are shown.</p>
+          <p className="text-[11px] text-muted">The first screenshot is used as the photo; without one, the initials are shown.</p>
         </>
       )}
       {template === 'stats' && (
         <fieldset className="space-y-2">
-          <legend className="mb-1 text-xs font-medium text-zinc-600">Figures (up to {LIMITS.statItems})</legend>
+          <legend className="mb-1 text-xs font-medium text-muted">Figures (up to {LIMITS.statItems})</legend>
           {stats.map((st, i) => (
             <div key={i} className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-2">
               <input
                 value={st.value}
                 aria-label={`Figure ${i + 1} value`}
-                placeholder={i === 0 ? '10k+…' : 'Value…'}
+                placeholder={i === 0 ? 'e.g. 12…' : 'Value…'}
                 onChange={(e) => setStat(i, 'value', e.target.value)}
                 className={cx(inputCls, 'font-semibold tabular-nums')}
               />
@@ -182,17 +182,17 @@ function ContentSection() {
             </Field>
           </div>
           <Field label="Place">
-            <input value={content.eventPlace} onChange={set('eventPlace')} className={inputCls} placeholder="e.g. Online · Microsoft Teams…" />
+            <input value={content.eventPlace} onChange={set('eventPlace')} className={inputCls} placeholder="e.g. Online, Microsoft Teams…" />
           </Field>
           <Field label="Call to action">
-            <input value={content.cta} onChange={set('cta')} className={inputCls} placeholder="e.g. Register now…" />
+            <input value={content.cta} onChange={set('cta')} className={inputCls} placeholder="e.g. Register…" />
           </Field>
-          <p className="text-[11px] text-zinc-500">Screenshots 1–3 are shown as speaker photos.</p>
+          <p className="text-[11px] text-muted">Screenshots 1 to 3 are shown as speaker photos.</p>
         </>
       )}
       {showsDesktop && (
         <div>
-          <p className="mb-1 text-xs font-medium text-zinc-600">Desktop frame</p>
+          <p className="mb-1 text-xs font-medium text-muted">Desktop frame</p>
           <Segmented<DesktopFrame>
             label="Desktop frame"
             value={desktopFrame ?? 'browser'}
@@ -204,7 +204,7 @@ function ContentSection() {
             ]}
             onChange={(v) => update((d) => void (d.desktopFrame = v))}
           />
-          <p className="mt-1 text-[11px] text-zinc-500">
+          <p className="mt-1 text-[11px] text-muted">
             Use Plain for app screenshots that already include their own title bar.
           </p>
         </div>
@@ -224,7 +224,7 @@ function ContentSection() {
       )}
       {template === 'features' && (
         <fieldset className="space-y-2">
-          <legend className="mb-1 text-xs font-medium text-zinc-600">Features (up to {LIMITS.featureItems})</legend>
+          <legend className="mb-1 text-xs font-medium text-muted">Features (up to {LIMITS.featureItems})</legend>
           {features.map((f, i) => (
             <input
               key={i}
@@ -243,7 +243,7 @@ function ContentSection() {
             <input value={content.codeFile} onChange={set('codeFile')} className={cx(inputCls, 'font-mono')} placeholder="e.g. index.ts" />
           </Field>
           <Field label="Code" hint={
-              <span className={cx(codeLines >= LIMITS.codeLines && 'text-amber-600')}>
+              <span className={cx(codeLines >= LIMITS.codeLines && 'text-warn')}>
                 {codeLines}/{LIMITS.codeLines} lines
               </span>
             }>
@@ -284,7 +284,7 @@ function ImageSection() {
   if (!shot) {
     return (
       <Section title="Image">
-        <p className="text-xs text-zinc-500">Select a screenshot in the Images tab to adjust its crop and focal point.</p>
+        <p className="text-xs text-muted">Select a screenshot in the Images tab to adjust its crop and focal point.</p>
       </Section>
     );
   }
@@ -306,13 +306,13 @@ function ImageSection() {
           <Button size="sm" variant="ghost" className="px-1.5" onClick={() => duplicateScreenshot(shot.id)} aria-label="Duplicate screenshot" title="Duplicate (Ctrl/Cmd+D)">
             <Icon name="copy" className="size-3.5" />
           </Button>
-          <Button size="sm" variant="ghost" className="px-1.5 text-red-600" onClick={() => removeScreenshot(shot.id)} aria-label="Remove screenshot" title="Remove (Delete)">
+          <Button size="sm" variant="ghost" className="px-1.5 text-danger" onClick={() => removeScreenshot(shot.id)} aria-label="Remove screenshot" title="Remove (Delete)">
             <Icon name="trash" className="size-3.5" />
           </Button>
         </div>
       }
     >
-      {index >= max && <p className="rounded-md bg-amber-50 px-2 py-1.5 text-xs text-amber-800">This template shows {max} screenshot(s); this one is hidden.</p>}
+      {index >= max && <p className="rounded-md bg-warn-soft px-2 py-1.5 text-xs text-warn-ink">This template shows {max} screenshot(s); this one is hidden.</p>}
       <Field label="Carousel caption" hint={`${(shot.caption ?? '').length}/${LIMITS.caption}`}>
         <input
           value={shot.caption ?? ''}
@@ -356,7 +356,7 @@ function ImageSection() {
         onChange={(v) => set('zoom', v, `zoom-${shot.id}`)}
       />
       <fieldset className="space-y-2">
-        <legend className="flex w-full items-center justify-between text-xs font-medium text-zinc-600">
+        <legend className="flex w-full items-center justify-between text-xs font-medium text-muted">
           Crop
           {cropped && (
             <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[11px]" onClick={() => set('crop', { ...NO_CROP })}>
@@ -403,7 +403,7 @@ function DevicePicker({ devices, orientation }: { devices: DeviceKind[]; orienta
   const atMin = devices.length <= MIN_DEVICES;
   return (
     <fieldset>
-      <legend className="mb-1 text-xs font-medium text-zinc-600">Devices</legend>
+      <legend className="mb-1 text-xs font-medium text-muted">Devices</legend>
       <div className="flex gap-1.5">
         {DEVICE_KINDS.map((d) => {
           const on = devices.includes(d);
@@ -411,8 +411,8 @@ function DevicePicker({ devices, orientation }: { devices: DeviceKind[]; orienta
             <label
               key={d}
               className={cx(
-                'flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium ring-1 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-blue-600',
-                on ? 'bg-blue-50 text-blue-800 ring-blue-300' : 'bg-white text-zinc-700 ring-zinc-200 hover:bg-zinc-50',
+                'flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium ring-1 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent',
+                on ? 'bg-accent-soft text-accent-deep ring-accent-line' : 'bg-surface text-ink-soft ring-line hover:bg-panel',
               )}
             >
               <input type="checkbox" className="sr-only" checked={on} disabled={on && atMin} onChange={() => toggle(d)} />
@@ -425,7 +425,7 @@ function DevicePicker({ devices, orientation }: { devices: DeviceKind[]; orienta
         .filter((d) => devices.includes(d))
         .map((d) => (
           <div key={d} className="mt-2 flex items-center gap-2">
-            <span className="w-14 flex-none text-xs text-zinc-600">{DEVICE_LABELS[d]}</span>
+            <span className="w-14 flex-none text-xs text-muted">{DEVICE_LABELS[d]}</span>
             <div className="flex-1">
               <Segmented
                 label={`${DEVICE_LABELS[d]} orientation`}
@@ -440,7 +440,7 @@ function DevicePicker({ devices, orientation }: { devices: DeviceKind[]; orienta
             </div>
           </div>
         ))}
-      <p className="mt-1 text-[11px] text-zinc-500">
+      <p className="mt-1 text-[11px] text-muted">
         Pick {MIN_DEVICES} or 3. Screenshots fill the devices in order: {devices.map((d) => DEVICE_LABELS[d].toLowerCase()).join(', ')}.
       </p>
     </fieldset>
@@ -486,7 +486,7 @@ function FocalPicker({
   };
   return (
     <div>
-      <p className="mb-1 text-xs font-medium text-zinc-600">Focal point</p>
+      <p className="mb-1 text-xs font-medium text-muted">Focal point</p>
       <div className="checker flex justify-center rounded-lg p-1">
         <div
           ref={ref}
@@ -500,7 +500,7 @@ function FocalPicker({
             pick(e);
           }}
           onPointerMove={(e) => e.buttons === 1 && pick(e)}
-          className="relative cursor-crosshair touch-none select-none overflow-hidden focus-visible:outline-2 focus-visible:outline-blue-600"
+          className="relative cursor-crosshair touch-none select-none overflow-hidden focus-visible:outline-2 focus-visible:outline-accent"
         >
           {url &&
             (asset && asset.width > 0 && asset.height > 0 ? (
@@ -521,23 +521,23 @@ function FocalPicker({
             // Dim what the crop removes.
             <span
               data-testid="crop-area"
-              className="pointer-events-none absolute border border-white/80"
+              className="pointer-events-none absolute border border-surface/80"
               style={{
                 left: `${crop.left * 100}%`,
                 top: `${crop.top * 100}%`,
                 width: `${cw * 100}%`,
                 height: `${ch * 100}%`,
-                boxShadow: '0 0 0 9999px rgba(9, 9, 11, 0.55)',
+                boxShadow: '0 0 0 9999px var(--color-crop-dim)',
               }}
             />
           )}
           <span
-            className="pointer-events-none absolute size-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-blue-600/60 shadow-[0_0_0_1px_rgba(0,0,0,0.4)]"
+            className="pointer-events-none absolute size-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-surface bg-accent/60 shadow-[0_0_0_1px_var(--color-handle-edge)]"
             style={{ left: `${(crop.left + x * cw) * 100}%`, top: `${(crop.top + y * ch) * 100}%` }}
           />
         </div>
       </div>
-      <p className="mt-1 text-[11px] text-zinc-500">This area stays visible when the layout changes between formats.</p>
+      <p className="mt-1 text-[11px] text-muted">This area stays visible when the layout changes between formats.</p>
     </div>
   );
 }
@@ -550,19 +550,19 @@ function Suggestions() {
   return (
     <Section title={`Suggestions (${list.length})`}>
       {list.length === 0 ? (
-        <p className="text-xs text-emerald-700">Looks good for this format.</p>
+        <p className="text-xs text-ok">Looks good for this format.</p>
       ) : (
         <ul className="space-y-2">
           {list.map((s) => (
             <li
               key={s.id}
-              className={cx('rounded-md px-2.5 py-2 text-xs', s.level === 'warning' ? 'bg-amber-50 text-amber-900' : 'bg-white text-zinc-700 ring-1 ring-zinc-200')}
+              className={cx('rounded-md px-2.5 py-2 text-xs', s.level === 'warning' ? 'bg-warn-soft text-warn-ink' : 'bg-surface text-ink-soft ring-1 ring-line')}
             >
               {s.message}
               {s.action?.template && (
                 <button
                   type="button"
-                  className="ml-1 font-medium text-blue-700 underline underline-offset-2"
+                  className="ml-1 font-medium text-accent-deep underline underline-offset-2"
                   onClick={() => update((d) => void (d.template = s.action!.template!))}
                 >
                   {s.action.label}
@@ -572,7 +572,7 @@ function Suggestions() {
           ))}
         </ul>
       )}
-      <p className="text-[11px] text-zinc-400">Checks run locally and never block export.</p>
+      <p className="text-[11px] text-faint">Checks run locally and never block export.</p>
     </Section>
   );
 }

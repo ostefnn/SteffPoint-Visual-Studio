@@ -17,12 +17,12 @@ export function Button({
       type="button"
       {...rest}
       className={cx(
-        'inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition-[color,background-color,box-shadow,transform] duration-100 ease-out motion-safe:active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-40 disabled:pointer-events-none',
+        'inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition-[color,background-color,box-shadow,transform] duration-100 ease-out motion-safe:active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-40 disabled:pointer-events-none',
         size === 'sm' ? 'h-8 px-2.5 text-xs' : 'h-9 px-3.5 text-sm',
-        variant === 'primary' && 'bg-blue-600 text-white hover:bg-blue-700',
-        variant === 'secondary' && 'bg-white text-zinc-800 ring-1 ring-zinc-200 hover:bg-zinc-50',
-        variant === 'ghost' && 'text-zinc-700 hover:bg-zinc-200/70',
-        variant === 'danger' && 'bg-white text-red-600 ring-1 ring-red-200 hover:bg-red-50',
+        variant === 'primary' && 'bg-accent text-on-accent hover:bg-accent-strong',
+        variant === 'secondary' && 'bg-surface text-ink ring-1 ring-line hover:bg-panel',
+        variant === 'ghost' && 'text-ink-soft hover:bg-subtle-strong/70',
+        variant === 'danger' && 'bg-surface text-danger ring-1 ring-danger-line hover:bg-danger-soft',
         className,
       )}
     />
@@ -32,10 +32,10 @@ export function Button({
 export function Field({ label, hint, children }: { label: string; hint?: ReactNode; children: ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1 flex items-baseline justify-between text-xs font-medium text-zinc-600">
+      <span className="mb-1 flex items-baseline justify-between text-xs font-medium text-muted">
         {label}
         {hint && (
-          <span className="font-normal text-zinc-400" aria-hidden="true">
+          <span className="font-normal text-faint" aria-hidden="true">
             {hint}
           </span>
         )}
@@ -46,7 +46,7 @@ export function Field({ label, hint, children }: { label: string; hint?: ReactNo
 }
 
 export const inputCls =
-  'w-full rounded-lg border-0 bg-white px-2.5 py-1.5 text-sm ring-1 ring-zinc-200 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-600';
+  'w-full rounded-lg border-0 bg-surface px-2.5 py-1.5 text-sm ring-1 ring-field placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent';
 
 export function Slider({
   label,
@@ -67,9 +67,9 @@ export function Slider({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 flex justify-between text-xs font-medium text-zinc-600">
+      <span className="mb-1 flex justify-between text-xs font-medium text-muted">
         {label}
-        <span className="tabular-nums text-zinc-400">{format ? format(value) : value}</span>
+        <span className="tabular-nums text-faint">{format ? format(value) : value}</span>
       </span>
       <input
         type="range"
@@ -96,7 +96,7 @@ export function Segmented<T extends string>({
   label: string;
 }) {
   return (
-    <div role="radiogroup" aria-label={label} className="flex rounded-lg bg-zinc-200/70 p-0.5">
+    <div role="radiogroup" aria-label={label} className="flex rounded-lg bg-subtle-strong/70 p-0.5">
       {options.map((o) => (
         <button
           key={o.value}
@@ -106,7 +106,7 @@ export function Segmented<T extends string>({
           onClick={() => onChange(o.value)}
           className={cx(
             'flex-1 rounded-md px-2 py-1 text-xs font-medium transition-[color,background-color,box-shadow,transform] duration-100 ease-out motion-safe:active:scale-[0.97]',
-            value === o.value ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900',
+            value === o.value ? 'bg-surface text-ink shadow-sm' : 'text-muted hover:text-ink',
           )}
         >
           {o.label}
@@ -118,9 +118,9 @@ export function Segmented<T extends string>({
 
 export function Section({ title, children, action }: { title: string; children: ReactNode; action?: ReactNode }) {
   return (
-    <section className="space-y-3 border-b border-zinc-200 p-4 last:border-b-0">
+    <section className="space-y-3 border-b border-line p-4 last:border-b-0">
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{title}</h3>
+        <h3 className="text-sm font-semibold text-ink">{title}</h3>
         {action}
       </div>
       {children}

@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   BRAND_COLOR_PRESETS,
+  getStyle,
+  STYLE_IDS,
+  STYLES,
+  type StyleId,
   createProject,
   derivePalette,
   FORMAT_PRESETS,
@@ -52,7 +56,7 @@ export function LeftPanel({ className }: { className?: string }) {
         role="tablist"
         aria-label="Editor panels"
         onKeyDown={onTabKeyDown}
-        className="sticky top-0 z-10 flex flex-wrap gap-1 border-b border-zinc-200 bg-zinc-50 p-2"
+        className="sticky top-0 z-10 flex flex-wrap gap-1 border-b border-line bg-panel p-2"
       >
         {TABS.map((t) => (
           <button
@@ -68,8 +72,8 @@ export function LeftPanel({ className }: { className?: string }) {
             tabIndex={tab === t.id ? 0 : -1}
             onClick={() => setTab(t.id)}
             className={cx(
-              'min-w-[30%] flex-1 rounded-md px-1.5 py-1.5 text-xs font-medium transition-transform duration-100 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 motion-safe:active:scale-[0.97]',
-              tab === t.id ? 'bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200' : 'text-zinc-600 hover:text-zinc-900',
+              'min-w-[30%] flex-1 rounded-md px-1.5 py-1.5 text-xs font-medium transition-transform duration-100 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-safe:active:scale-[0.97]',
+              tab === t.id ? 'bg-surface text-ink shadow-sm ring-1 ring-line' : 'text-muted hover:text-ink',
             )}
           >
             {t.label}
@@ -103,8 +107,8 @@ function TemplatesTab() {
             aria-pressed={active}
             title={t.description}
             className={cx(
-              'overflow-hidden rounded-lg bg-white text-left ring-1 transition',
-              active ? 'ring-2 ring-blue-600' : 'ring-zinc-200 hover:ring-zinc-400',
+              'overflow-hidden rounded-lg bg-surface text-left ring-1 transition',
+              active ? 'ring-2 ring-accent' : 'ring-line hover:ring-field',
             )}
           >
             <Stage project={{ ...project, template: t.id }} format={FORMAT_PRESETS.linkedin} urls={urls} maxWidth={124} maxHeight={65} className="w-full" />
@@ -131,11 +135,11 @@ function ImagesTab() {
         type="button"
         disabled={full}
         onClick={() => input.current?.click()}
-        className="flex w-full flex-col items-center gap-1 rounded-lg border-2 border-dashed border-zinc-300 bg-white px-3 py-5 text-center text-sm text-zinc-600 hover:border-blue-500 hover:text-blue-700 disabled:opacity-50"
+        className="flex w-full flex-col items-center gap-1 rounded-lg border-2 border-dashed border-field bg-surface px-3 py-5 text-center text-sm text-muted hover:border-accent hover:text-accent-deep disabled:opacity-50"
       >
         <Icon name="upload" className="size-5" />
         <span className="font-medium">Add Screenshots</span>
-        <span className="text-xs text-zinc-400">Click, drop anywhere, or paste (Ctrl/Cmd+V)</span>
+        <span className="text-xs text-faint">Click, drop anywhere, or paste (Ctrl/Cmd+V)</span>
       </button>
       <input
         ref={input}
@@ -154,7 +158,7 @@ function ImagesTab() {
           return (
             <li
               key={s.id}
-              className={cx('flex items-center gap-2 rounded-lg bg-white p-1.5 ring-1', selected === s.id ? 'ring-2 ring-blue-600' : 'ring-zinc-200')}
+              className={cx('flex items-center gap-2 rounded-lg bg-surface p-1.5 ring-1', selected === s.id ? 'ring-2 ring-accent' : 'ring-line')}
             >
               <button type="button" onClick={() => selectShot(s.id)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
                 <span className="checker block size-11 flex-none overflow-hidden rounded">
@@ -164,7 +168,7 @@ function ImagesTab() {
                   <span className="block truncate text-xs font-medium">
                     {i + 1}. {a?.name ?? 'image'}
                   </span>
-                  <span className="text-[11px] text-zinc-500">
+                  <span className="text-[11px] text-muted">
                     {a?.width} × {a?.height}
                   </span>
                 </span>
@@ -183,7 +187,7 @@ function ImagesTab() {
                 >
                   <Icon name="right" className="size-3.5 rotate-90" />
                 </Button>
-                <Button size="sm" variant="ghost" className="px-1.5 text-red-600" onClick={() => removeScreenshot(s.id)} aria-label="Remove screenshot">
+                <Button size="sm" variant="ghost" className="px-1.5 text-danger" onClick={() => removeScreenshot(s.id)} aria-label="Remove screenshot">
                   <Icon name="trash" className="size-3.5" />
                 </Button>
               </div>
@@ -202,6 +206,66 @@ const FONTS: { value: HeadingFont; label: string }[] = [
   { value: 'mono', label: 'Mono' },
 ];
 
+/** Style presets: one choice sets typefaces, kicker, frames, shadows and background treatment. */
+function StylePicker() {
+  const project = useEditor((s) => s.project);
+  const urls = useEditor((s) => s.urls);
+  const { update } = useEditor.getState();
+  if (!project) return null;
+  const current = project.brand.style;
+  const choose = (id: StyleId) =>
+    update((d) => {
+      if (d.brand.style === id) return;
+      d.brand.style = id;
+      // A style brings its own background and screenshot frame; both stay editable afterwards.
+      d.background.type = STYLES[id].defaults.background;
+      d.desktopFrame = STYLES[id].defaults.desktopFrame;
+    });
+  return (
+    <Section title="Style">
+      <div role="radiogroup" aria-label="Style" className="grid grid-cols-2 gap-2">
+        {STYLE_IDS.map((id) => {
+          const st = STYLES[id];
+          const on = current === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              onClick={() => choose(id)}
+              title={st.description}
+              className={cx(
+                'overflow-hidden rounded-lg bg-surface text-left ring-1 transition-transform duration-100 ease-out motion-safe:active:scale-[0.97]',
+                on ? 'ring-2 ring-accent' : 'ring-line hover:ring-field',
+              )}
+            >
+              <Stage
+                project={{
+                  ...project,
+                  brand: { ...project.brand, style: id },
+                  background: { ...project.background, type: st.defaults.background },
+                  desktopFrame: st.defaults.desktopFrame,
+                }}
+                format={FORMAT_PRESETS.linkedin}
+                urls={urls}
+                maxWidth={124}
+                maxHeight={65}
+                className="w-full"
+              />
+              <span className="block px-2 pt-1.5 text-xs font-medium text-ink">
+                {st.name}
+                {id === 'soft' && <span className="font-normal text-muted"> (original)</span>}
+              </span>
+              <span className="block px-2 pb-1.5 text-[11px] leading-snug text-muted">{st.description}</span>
+            </button>
+          );
+        })}
+      </div>
+    </Section>
+  );
+}
+
 function BrandTab() {
   const brand = useEditor((s) => s.project?.brand) ?? DEFAULT_BRAND;
   const urls = useEditor((s) => s.urls);
@@ -209,7 +273,8 @@ function BrandTab() {
   const [hex, setHex] = useState(brand.primary);
   useEffect(() => setHex(brand.primary), [brand.primary]); // keep in sync with undo/redo
   const logoInput = useRef<HTMLInputElement>(null);
-  const pal = derivePalette(brand.primary, brand.theme);
+  const pal = derivePalette(brand.primary, brand.theme, brand.style);
+  const spec = getStyle(brand.style);
 
   const setPrimary = (c: string) => {
     setHex(c);
@@ -218,12 +283,13 @@ function BrandTab() {
 
   return (
     <>
+      <StylePicker />
       <Section title="Colour">
         <div className="flex items-center gap-2">
           <input
             type="color"
             aria-label="Primary colour"
-            value={brand.primary.length === 7 ? brand.primary : '#2563eb'}
+            value={brand.primary.length === 7 ? brand.primary : DEFAULT_BRAND.primary}
             onChange={(e) => setPrimary(e.target.value)}
             className="h-9 w-12 cursor-pointer rounded-lg border-0 bg-transparent p-0"
           />
@@ -236,14 +302,14 @@ function BrandTab() {
               type="button"
               onClick={() => setPrimary(c)}
               aria-label={`Use ${c}`}
-              className={cx('size-6 rounded-full ring-offset-2', brand.primary === c && 'ring-2 ring-zinc-900')}
+              className={cx('size-6 rounded-full ring-offset-2', brand.primary === c && 'ring-2 ring-ink')}
               style={{ background: c }}
             />
           ))}
         </div>
         <div>
-          <p className="mb-1 text-xs font-medium text-zinc-600">Derived palette</p>
-          <div className="flex overflow-hidden rounded-lg ring-1 ring-zinc-200">
+          <p className="mb-1 text-xs font-medium text-muted">Derived palette</p>
+          <div className="flex overflow-hidden rounded-lg ring-1 ring-line">
             {[pal.bg, pal.primarySoft, pal.primary, pal.primaryStrong, pal.accent, pal.text].map((c, i) => (
               <span key={i} className="h-6 flex-1" style={{ background: c }} title={c} />
             ))}
@@ -260,11 +326,17 @@ function BrandTab() {
         />
       </Section>
       <Section title="Typography & shape">
-        <Field label="Heading font">
-          <Segmented label="Heading font" value={brand.headingFont} options={FONTS} onChange={(v) => update((d) => void (d.brand.headingFont = v))} />
-        </Field>
+        {spec.heading === null ? (
+          <Field label="Heading font">
+            <Segmented label="Heading font" value={brand.headingFont} options={FONTS} onChange={(v) => update((d) => void (d.brand.headingFont = v))} />
+          </Field>
+        ) : (
+          <p className="text-xs text-muted">Typefaces come from the {spec.name} style.</p>
+        )}
         <Slider label="Corner radius" min={0} max={1} step={0.05} value={brand.radius} format={(v) => `${Math.round(v * 100)}%`} onChange={(v) => update((d) => void (d.brand.radius = v), 'radius')} />
-        <Slider label="Shadow" min={0} max={1} step={0.05} value={brand.shadow} format={(v) => `${Math.round(v * 100)}%`} onChange={(v) => update((d) => void (d.brand.shadow = v), 'shadow')} />
+        {spec.shadow === 'soft' && (
+          <Slider label="Shadow" min={0} max={1} step={0.05} value={brand.shadow} format={(v) => `${Math.round(v * 100)}%`} onChange={(v) => update((d) => void (d.brand.shadow = v), 'shadow')} />
+        )}
       </Section>
       <Section title="Logo">
         {brand.logoAssetId && urls[brand.logoAssetId] ? (
@@ -286,7 +358,7 @@ function BrandTab() {
         )}
         {brand.logoAssetId && (
           <div>
-            <p className="mb-1 text-xs font-medium text-zinc-600">Logo size</p>
+            <p className="mb-1 text-xs font-medium text-muted">Logo size</p>
             <Segmented<LogoSize>
               label="Logo size"
               value={brand.logoSize ?? 'medium'}
@@ -299,7 +371,7 @@ function BrandTab() {
             />
           </div>
         )}
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-muted">
           Best: a transparent PNG or WebP, cropped tight to the logo, at least {LOGO_ADVICE.iconPx}&nbsp;×&nbsp;{LOGO_ADVICE.iconPx}&nbsp;px for an icon or{' '}
           {LOGO_ADVICE.wordmarkWidthPx}&nbsp;px wide for a wordmark.
         </p>
@@ -331,8 +403,14 @@ function BackgroundTab() {
   const urls = useEditor((s) => s.urls);
   const bg = project.background;
   const { update } = useEditor.getState();
+  const spec = getStyle(project.brand.style);
   return (
     <Section title="Background">
+      {spec.brandBackground && (
+        <p className="rounded-md bg-accent-soft px-2 py-1.5 text-xs text-accent-deep">
+          The {spec.name} style uses your brand colour as the background. These settings apply when you switch to another style.
+        </p>
+      )}
       <div className="grid grid-cols-2 gap-2">
         {BACKGROUNDS.map((b) => (
           <button
@@ -341,8 +419,8 @@ function BackgroundTab() {
             aria-pressed={bg.type === b.value}
             onClick={() => update((d) => void (d.background.type = b.value))}
             className={cx(
-              'overflow-hidden rounded-lg bg-white text-left ring-1',
-              bg.type === b.value ? 'ring-2 ring-blue-600' : 'ring-zinc-200 hover:ring-zinc-400',
+              'overflow-hidden rounded-lg bg-surface text-left ring-1',
+              bg.type === b.value ? 'ring-2 ring-accent' : 'ring-line hover:ring-field',
             )}
           >
             <Stage

@@ -13,7 +13,7 @@ test('custom carousel: templates per page, own text, reorder, add, undo, export'
 
   await page.getByRole('tab', { name: 'Carousel' }).click();
   // Opening the tab shows page 1 on the canvas.
-  await expect(page.getByText('Carousel · Page 1 / 4')).toBeVisible();
+  await expect(page.getByText('Carousel page 1 of 4')).toBeVisible();
   await expect(pages(page)).toHaveCount(4);
 
   await page.getByRole('button', { name: 'Customize Pages' }).click();
@@ -29,7 +29,7 @@ test('custom carousel: templates per page, own text, reorder, add, undo, export'
   // Add a closing page: it is added last and selected.
   await page.getByRole('button', { name: 'Add Page' }).click();
   await expect(pages(page)).toHaveCount(5);
-  await expect(page.getByText('Carousel · Page 5 / 5')).toBeVisible();
+  await expect(page.getByText('Carousel page 5 of 5')).toBeVisible();
   await page.getByRole('checkbox', { name: 'Page 5 title: same as project' }).uncheck();
   await page.getByRole('textbox', { name: 'Page 5 title' }).fill('Try it today');
 

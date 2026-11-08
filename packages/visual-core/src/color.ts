@@ -105,11 +105,66 @@ export interface Palette {
   border: string;
 }
 
-/** Derive a full palette from a single brand colour. */
-export function derivePalette(primary: string, theme: Theme): Palette {
+/** Ink used by the Bold style for labels, outlines and hard shadows. */
+export const BOLD_INK = '#0c0d10';
+
+/**
+ * Derive a full palette from a single brand colour.
+ * `soft` keeps the original palette (brand-tinted ground, accent shifted 40° in hue).
+ * The other styles use a neutral ground and an accent derived from the brand itself,
+ * so no style but Soft drifts toward violet.
+ */
+export function derivePalette(primary: string, theme: Theme, style: 'minimal' | 'editorial' | 'bold' | 'soft' = 'soft'): Palette {
   const p = isHexColor(primary) ? primary : '#2563eb';
+  const onPrimary = contrastRatio(p, '#ffffff') >= contrastRatio(p, BOLD_INK) ? '#ffffff' : BOLD_INK;
+  if (style === 'bold') {
+    return {
+      primary: p,
+      primarySoft: mix(p, BOLD_INK, 0.18),
+      primaryStrong: BOLD_INK,
+      accent: BOLD_INK,
+      onPrimary,
+      bg: p,
+      bgAlt: mix(p, BOLD_INK, 0.25),
+      // Cards sit a step darker than the ground, so the ground's text colour stays readable on them.
+      surface: mix(p, BOLD_INK, 0.22),
+      text: onPrimary,
+      textMuted: mix(onPrimary, p, 0.16),
+      border: BOLD_INK,
+    };
+  }
+  if (style === 'minimal' || style === 'editorial') {
+    const ground = style === 'editorial' ? (theme === 'dark' ? '#141414' : '#ffffff') : theme === 'dark' ? '#121315' : '#f3f4f5';
+    if (theme === 'dark') {
+      return {
+        primary: p,
+        primarySoft: mix(ground, p, 0.3),
+        primaryStrong: mix(p, '#ffffff', 0.35),
+        accent: mix(p, '#ffffff', 0.3),
+        onPrimary,
+        bg: ground,
+        bgAlt: mix(ground, p, 0.25),
+        surface: mix(ground, '#ffffff', 0.05),
+        text: '#f2f3f5',
+        textMuted: '#a9adb6',
+        border: mix(ground, '#ffffff', 0.18),
+      };
+    }
+    return {
+      primary: p,
+      primarySoft: mix('#ffffff', p, 0.12),
+      primaryStrong: mix(p, '#000000', 0.3),
+      accent: mix(p, '#000000', 0.28),
+      onPrimary,
+      bg: ground,
+      bgAlt: mix(ground, p, 0.14),
+      surface: '#ffffff',
+      text: '#111316',
+      textMuted: '#4a4e57',
+      border: style === 'editorial' ? '#cfd0d4' : '#c9ccd2',
+    };
+  }
   const accent = shiftHue(p, 40);
-  const onPrimary = contrastRatio(p, '#ffffff') >= contrastRatio(p, '#0b0b10') ? '#ffffff' : '#0b0b10';
   if (theme === 'dark') {
     return {
       primary: p,
