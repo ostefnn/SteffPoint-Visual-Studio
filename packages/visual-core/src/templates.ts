@@ -3,6 +3,7 @@
 export type TemplateId =
   | 'browser-hero'
   | 'browser-mobile'
+  | 'device-mix'
   | 'features'
   | 'code'
   | 'browser-duo'
@@ -23,6 +24,13 @@ export type TemplateCategory =
   | 'announcement'
   | 'documentation'
   | 'minimal';
+
+/** Devices the Device Mix template can show, always drawn in this order (back to front). */
+export type DeviceKind = 'desktop' | 'tablet' | 'mobile';
+export const DEVICE_KINDS: readonly DeviceKind[] = ['desktop', 'tablet', 'mobile'];
+export const DEVICE_LABELS: Record<DeviceKind, string> = { desktop: 'Desktop', tablet: 'Tablet', mobile: 'Mobile' };
+/** Device Mix needs at least this many devices; with fewer, a dedicated template fits better. */
+export const MIN_DEVICES = 2;
 
 /** The kind of screenshot a template is designed for. */
 export type ShotKind = 'desktop' | 'mobile' | 'any';
@@ -60,6 +68,14 @@ export const TEMPLATES: TemplateDefinition[] = [
     description: 'A browser window with a phone in front: show that your app is responsive.',
     shotKind: 'any',
     slots: { ...text, screenshots: { min: 2, max: 2 } },
+  },
+  {
+    id: 'device-mix',
+    name: 'Device Mix',
+    category: 'app-showcase',
+    description: 'Pick two or three devices (desktop, tablet, mobile) to show your app on every screen.',
+    shotKind: 'any',
+    slots: { ...text, screenshots: { min: 2, max: 3 } },
   },
   {
     id: 'browser-duo',

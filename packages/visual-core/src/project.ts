@@ -1,6 +1,6 @@
 import { clampCustomSize, FORMAT_ORDER, type FormatId } from './formats';
 import { isHexColor, type Theme } from './color';
-import { isTemplateId, type TemplateId } from './templates';
+import { DEVICE_KINDS, getTemplate, isTemplateId, MIN_DEVICES, type DeviceKind, type TemplateId } from './templates';
 import type { HeadingFont } from './typography';
 
 export const PROJECT_SCHEMA_VERSION = '1.0';
@@ -91,6 +91,8 @@ export interface Project {
   screenshots: ScreenshotSlot[];
   exportPresets: FormatId[];
   customFormat: { width: number; height: number };
+  /** Devices shown by the Device Mix template, in DEVICE_KINDS order. Screenshot i goes in device i. */
+  devices: DeviceKind[];
 }
 
 export function uid(prefix = ''): string {
@@ -138,7 +140,23 @@ export function createProject(init: Partial<Pick<Project, 'name' | 'template'>> 
     screenshots: [],
     exportPresets: ['linkedin', 'open-graph', 'square', 'story', 'github'],
     customFormat: { width: 1600, height: 900 },
+    devices: [...DEVICE_KINDS],
   };
+}
+
+/** Keep known devices, in canonical order, without duplicates; fall back to all devices below MIN_DEVICES. */
+export function normalizeDevices(v: unknown): DeviceKind[] {
+  const list = Array.isArray(v) ? DEVICE_KINDS.filter((d) => v.includes(d)) : [];
+  return list.length >= MIN_DEVICES ? list : [...DEVICE_KINDS];
+}
+
+/** How many screenshots the project's template shows (Device Mix depends on the chosen devices). */
+export function screenshotRange(p: Pick<Project, 'template' | 'devices'>): { min: number; max: number } {
+  if (p.template === 'device-mix') {
+    const n = normalizeDevices(p.devices).length;
+    return { min: n, max: n };
+  }
+  return getTemplate(p.template).slots.screenshots;
 }
 
 export function createScreenshotSlot(assetId: string): ScreenshotSlot {
@@ -270,5 +288,6 @@ export function migrateProject(raw: unknown): Project {
       width: clampCustomSize(num(custom.width, d.customFormat.width, 1, 100_000)),
       height: clampCustomSize(num(custom.height, d.customFormat.height, 1, 100_000)),
     },
+    devices: normalizeDevices(r.devices),
   };
 }

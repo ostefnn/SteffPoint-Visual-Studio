@@ -5,9 +5,9 @@
 import { backgroundPeak, contrastRatio, derivePalette } from './color';
 import { getOrientation, type FormatPreset } from './formats';
 import type { Project } from './project';
-import { getTemplate, TEMPLATES, type TemplateId } from './templates';
+import { DEVICE_LABELS, getTemplate, TEMPLATES, type TemplateId } from './templates';
 import { subtitleSize } from './typography';
-import { LIMITS } from './project';
+import { LIMITS, normalizeDevices, screenshotRange } from './project';
 
 export type SuggestionLevel = 'info' | 'warning';
 
@@ -68,7 +68,7 @@ export function analyzeProject(project: Project, format: FormatPreset, exportSca
   }
 
   // --- Screenshots -------------------------------------------------------------
-  const { min, max } = tpl.slots.screenshots;
+  const { min, max } = screenshotRange(project);
   if (shots.length < min) {
     out.push({ id: 'shots-missing', level: 'warning', message: `${tpl.name} expects at least ${min} screenshot${min > 1 ? 's' : ''}.` });
   }
@@ -104,7 +104,24 @@ export function analyzeProject(project: Project, format: FormatPreset, exportSca
     }
   }
 
-  if (tpl.slots.screenshots.max === 0 && project.screenshots.length > 0) {
+  // Device Mix: each screenshot goes into a fixed device; flag obvious mismatches.
+  if (tpl.id === 'device-mix') {
+    normalizeDevices(project.devices).forEach((device, i) => {
+      const a = shots[i];
+      if (!a) return;
+      const portrait = a.height > a.width * 1.2;
+      const landscape = a.width > a.height * 1.2;
+      if ((device === 'desktop' && portrait) || (device === 'mobile' && landscape)) {
+        out.push({
+          id: `device-fit-${i}`,
+          level: 'info',
+          message: `Screenshot ${i + 1} looks like a ${portrait ? 'phone' : 'desktop'} screen but sits in the ${DEVICE_LABELS[device].toLowerCase()} frame. Reorder screenshots in the Images tab.`,
+        });
+      }
+    });
+  }
+
+  if (max === 0 && project.screenshots.length > 0) {
     const better = TEMPLATES.find((t) => t.id === 'spotlight');
     if (better) {
       out.push({

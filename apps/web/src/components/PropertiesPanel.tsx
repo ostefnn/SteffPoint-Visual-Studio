@@ -1,5 +1,17 @@
 import { useMemo, useRef } from 'react';
-import { analyzeProject, clampCode, getTemplate, LIMITS, resolveFormat, type ScreenshotSlot } from '@svs/visual-core';
+import {
+  analyzeProject,
+  clampCode,
+  DEVICE_KINDS,
+  DEVICE_LABELS,
+  LIMITS,
+  MIN_DEVICES,
+  normalizeDevices,
+  resolveFormat,
+  screenshotRange,
+  type DeviceKind,
+  type ScreenshotSlot,
+} from '@svs/visual-core';
 import { useEditor } from '../store/editor';
 import { duplicateScreenshot, removeScreenshot } from '../lib/actions';
 import { Button, cx, Field, Icon, inputCls, Section, Segmented, Slider } from './ui';
@@ -17,6 +29,7 @@ export function PropertiesPanel({ className }: { className?: string }) {
 function ContentSection() {
   const content = useEditor((s) => s.project?.content);
   const template = useEditor((s) => s.project?.template);
+  const devices = useEditor((s) => s.project?.devices);
   const { update } = useEditor.getState();
   if (!content || !template) return null;
 
@@ -57,6 +70,7 @@ function ContentSection() {
       <Field label="Subtitle" hint={count(content.subtitle, LIMITS.subtitle)}>
         <textarea value={content.subtitle} onChange={set('subtitle')} rows={3} className={cx(inputCls, 'resize-y')} />
       </Field>
+      {template === 'device-mix' && <DevicePicker devices={normalizeDevices(devices)} />}
       {template === 'before-after' && (
         <div className="grid grid-cols-2 gap-2">
           <Field label="Before label">
@@ -121,6 +135,7 @@ function ImageSection() {
   const urls = useEditor((s) => s.urls);
   const assets = useEditor((s) => s.project?.assets);
   const template = useEditor((s) => s.project?.template);
+  const devices = useEditor((s) => s.project?.devices);
   const { update } = useEditor.getState();
   const index = shots?.findIndex((s) => s.id === selectedId) ?? -1;
   const shot = index >= 0 ? shots![index] : undefined;
@@ -133,7 +148,7 @@ function ImageSection() {
     );
   }
 
-  const max = getTemplate(template ?? '').slots.screenshots.max;
+  const { max } = screenshotRange({ template: template ?? 'browser-hero', devices: devices ?? [] });
   const set = <K extends keyof ScreenshotSlot>(key: K, value: ScreenshotSlot[K], coalesce?: string) =>
     update((d) => {
       const s = d.screenshots.find((x) => x.id === shot.id);
@@ -182,6 +197,42 @@ function ImageSection() {
         <Slider label="Focal Y" min={0} max={1} step={0.01} value={shot.focalY} format={(v) => `${Math.round(v * 100)}%`} onChange={(v) => set('focalY', v, `focal-${shot.id}`)} />
       </div>
     </Section>
+  );
+}
+
+/** Device Mix: choose which frames to show. At least MIN_DEVICES stay selected. */
+function DevicePicker({ devices }: { devices: DeviceKind[] }) {
+  const { update } = useEditor.getState();
+  const toggle = (d: DeviceKind) =>
+    update((p) => {
+      const next = devices.includes(d) ? devices.filter((x) => x !== d) : DEVICE_KINDS.filter((x) => x === d || devices.includes(x));
+      if (next.length >= MIN_DEVICES) p.devices = next;
+    });
+  const atMin = devices.length <= MIN_DEVICES;
+  return (
+    <fieldset>
+      <legend className="mb-1 text-xs font-medium text-zinc-600">Devices</legend>
+      <div className="flex gap-1.5">
+        {DEVICE_KINDS.map((d) => {
+          const on = devices.includes(d);
+          return (
+            <label
+              key={d}
+              className={cx(
+                'flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium ring-1 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-blue-600',
+                on ? 'bg-blue-50 text-blue-800 ring-blue-300' : 'bg-white text-zinc-700 ring-zinc-200 hover:bg-zinc-50',
+              )}
+            >
+              <input type="checkbox" className="sr-only" checked={on} disabled={on && atMin} onChange={() => toggle(d)} />
+              {DEVICE_LABELS[d]}
+            </label>
+          );
+        })}
+      </div>
+      <p className="mt-1 text-[11px] text-zinc-500">
+        Pick {MIN_DEVICES} or 3. Screenshots fill the devices in order: {devices.map((d) => DEVICE_LABELS[d].toLowerCase()).join(', ')}.
+      </p>
+    </fieldset>
   );
 }
 
