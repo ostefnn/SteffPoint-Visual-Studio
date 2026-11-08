@@ -214,3 +214,23 @@ test('Code renders the snippet in a dark editor', async ({ page }) => {
   const { rgb } = await probePng(page, await exportLinkedIn(page), [0.9, 0.55]);
   expectColor(rgb, [15, 17, 23], 10);
 });
+
+test('Laptop frame keeps a real 16:10 screen in every format', async ({ page }) => {
+  await newProject(page);
+  await addScreenshot(page, 'desktop-magenta.png');
+  await page.getByRole('radio', { name: 'Laptop' }).click();
+  for (const format of ['LinkedIn', 'Square 1:1', 'Story 9:16', 'Banner']) {
+    await page.locator('ul[aria-label=Formats] li', { hasText: format }).first().locator('button').click();
+    const ratio = await page.getByTestId('canvas').locator('[data-laptop-screen-ratio] > div').first().evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      return r.width / r.height;
+    });
+    expect(ratio, format).toBeCloseTo(1.6, 1);
+    // The whole laptop, base included, stays inside the canvas.
+    const [laptop, canvas] = await Promise.all([
+      page.getByTestId('canvas').locator('[data-laptop-screen-ratio]').first().locator('xpath=..').boundingBox(),
+      page.getByTestId('canvas').locator('> div').first().boundingBox(),
+    ]);
+    expect(laptop!.y + laptop!.height, format).toBeLessThanOrEqual(canvas!.y + canvas!.height + 1);
+  }
+});
