@@ -15,6 +15,22 @@ test('project survives a reload', async ({ page }) => {
   await expect.poll(() => page.locator('[role=tabpanel] li img').evaluate((i: HTMLImageElement) => i.naturalWidth)).toBe(1600);
 });
 
+test('save indicator never claims "Saved" for an unwritten edit', async ({ page }) => {
+  await newProject(page);
+  // Type and read the indicator in the same task, before React runs effects:
+  // this is exactly the window in which a fast reload used to see a stale "Saved".
+  const label = await titleBox(page).evaluate((el: HTMLTextAreaElement) => {
+    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!;
+    setter.call(el, 'Not yet stored');
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    return document.querySelector('[data-testid=save-state]')?.textContent;
+  });
+  expect(label).not.toBe('Saved');
+  await expect(page.getByTestId('save-state')).toHaveText('Saved');
+  await page.reload();
+  await expect(titleBox(page)).toHaveValue('Not yet stored');
+});
+
 test('undo and redo the title', async ({ page }) => {
   await newProject(page);
   const original = await titleBox(page).inputValue();

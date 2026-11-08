@@ -28,6 +28,7 @@ const TAB_ID = Math.random().toString(36).slice(2);
 
 export function useProjectSession(projectId: string) {
   const project = useEditor((s) => s.project);
+  const unsaved = useEditor((s) => s.unsaved);
   const [status, setStatus] = useState<'loading' | 'missing' | 'ready'>('loading');
   const [saveState, setSaveState] = useState<SaveState>('saved');
   const [generation, setGeneration] = useState(0);
@@ -67,6 +68,7 @@ export function useProjectSession(projectId: string) {
         dirty.current = false;
         loaded.current = p;
         setSaveState('saved');
+        useEditor.getState().markSaved(p);
       }
       channel.current?.postMessage({ type: 'saved', id: p.id, revision: res.revision, tab: TAB_ID } satisfies Message);
       return true;
@@ -181,9 +183,13 @@ export function useProjectSession(projectId: string) {
     setGeneration((g) => g + 1);
   }
 
+  // Errors and conflicts win; otherwise any change not yet written reads as "Saving…"
+  // from the very first render after the edit (no stale "Saved").
+  const effectiveState: SaveState = saveState === 'error' || saveState === 'conflict' ? saveState : unsaved ? 'saving' : 'saved';
+
   return {
     status,
-    saveState,
+    saveState: effectiveState,
     /** Save immediately (Ctrl/Cmd+S). */
     saveNow: () => persist(),
     /** Conflict resolution: overwrite the other tab's version with ours. */
