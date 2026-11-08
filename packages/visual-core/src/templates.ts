@@ -2,6 +2,9 @@
 
 export type TemplateId =
   | 'browser-hero'
+  | 'browser-mobile'
+  | 'features'
+  | 'code'
   | 'browser-duo'
   | 'mobile-trio'
   | 'bento'
@@ -17,6 +20,8 @@ export type TemplateCategory =
   | 'product'
   | 'before-after'
   | 'editorial'
+  | 'announcement'
+  | 'documentation'
   | 'minimal';
 
 /** The kind of screenshot a template is designed for. */
@@ -47,6 +52,14 @@ export const TEMPLATES: TemplateDefinition[] = [
     description: 'One screenshot in a browser window next to your headline.',
     shotKind: 'desktop',
     slots: { ...text, screenshots: { min: 1, max: 1 } },
+  },
+  {
+    id: 'browser-mobile',
+    name: 'Desktop + Mobile',
+    category: 'app-showcase',
+    description: 'A browser window with a phone in front: show that your app is responsive.',
+    shotKind: 'any',
+    slots: { ...text, screenshots: { min: 2, max: 2 } },
   },
   {
     id: 'browser-duo',
@@ -97,6 +110,22 @@ export const TEMPLATES: TemplateDefinition[] = [
     slots: { ...text, screenshots: { min: 0, max: 1 } },
   },
   {
+    id: 'features',
+    name: 'Features',
+    category: 'announcement',
+    description: 'Headline plus up to four highlights. Ideal for “What’s new” and release notes.',
+    shotKind: 'any',
+    slots: { ...text, screenshots: { min: 0, max: 0 } },
+  },
+  {
+    id: 'code',
+    name: 'Code',
+    category: 'documentation',
+    description: 'A code snippet in an editor window next to your headline.',
+    shotKind: 'any',
+    slots: { ...text, screenshots: { min: 0, max: 0 } },
+  },
+  {
     id: 'minimal',
     name: 'Minimal',
     category: 'minimal',
@@ -112,6 +141,8 @@ export const TEMPLATE_CATEGORIES: { id: TemplateCategory; label: string }[] = [
   { id: 'mobile', label: 'Mobile' },
   { id: 'product', label: 'Product' },
   { id: 'before-after', label: 'Before / After' },
+  { id: 'announcement', label: 'Announcement' },
+  { id: 'documentation', label: 'Documentation' },
   { id: 'editorial', label: 'Editorial' },
   { id: 'minimal', label: 'Minimal' },
 ];

@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   analyzeProject,
   contrastRatio,
+  clampCode,
   createProject,
+  fitCodeFontSize,
   derivePalette,
   FORMAT_PRESETS,
   getOrientation,
@@ -86,6 +88,36 @@ describe('project migration', () => {
   });
 });
 
+describe('features and code content', () => {
+  it('migrates features and code safely', () => {
+    const p = migrateProject({
+      content: { features: ['a', 42, 'b\nc', 'd', 'e', 'f'], code: 'x\ty\r\n' + 'z\n'.repeat(40), codeFile: 'f.ts' },
+    });
+    expect(p.content.features).toEqual(['a', 'b c', 'd', 'e']);
+    expect(p.content.code.split('\n')).toHaveLength(20);
+    expect(p.content.code.startsWith('x  y\n')).toBe(true);
+    expect(p.content.codeFile).toBe('f.ts');
+  });
+
+  it('keeps defaults for old projects without these fields', () => {
+    const p = migrateProject({ content: { title: 'Old' } });
+    expect(p.content.features.length).toBeGreaterThan(0);
+    expect(p.content.code).toContain('createPack');
+  });
+
+  it('clamps code length', () => {
+    expect(clampCode('a'.repeat(5000)).length).toBe(1500);
+  });
+
+  it('fits code into its box', () => {
+    const code = 'const x = 1;\n'.repeat(10);
+    expect(fitCodeFontSize(code, 600, 400, 30)).toBeLessThanOrEqual(30);
+    const wide = 'x'.repeat(120);
+    const size = fitCodeFontSize(wide, 600, 400, 30);
+    expect((120 + 4) * 0.62 * size).toBeLessThanOrEqual(600.0001);
+  });
+});
+
 describe('rules', () => {
   it('flags a long title and missing screenshots', () => {
     const p = createProject();
@@ -101,6 +133,15 @@ describe('rules', () => {
     p.screenshots.push({ id: 's', assetId: 'a', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0 });
     const s = analyzeProject(p, FORMAT_PRESETS.linkedin).find((x) => x.id === 'tpl-orientation');
     expect(s?.action?.template).toBe('mobile-trio');
+  });
+
+  it('flags empty features and wide code', () => {
+    const p = createProject({ template: 'features' });
+    p.content.features = ['', ' '];
+    expect(analyzeProject(p, FORMAT_PRESETS.linkedin).map((s) => s.id)).toContain('features-empty');
+    p.template = 'code';
+    p.content.code = 'x'.repeat(90);
+    expect(analyzeProject(p, FORMAT_PRESETS.linkedin).map((s) => s.id)).toContain('code-wide');
   });
 
   it('warns about small images', () => {

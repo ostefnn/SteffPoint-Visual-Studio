@@ -53,7 +53,7 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 |---|---|
 | 🗂️ **Projects** | Create, rename, duplicate, delete, favourite, search. Automatic thumbnails. Autosave. |
 | 💾 **Local storage** | Projects, images and thumbnails stored in IndexedDB. Close the tab, come back later, everything is there. |
-| 🧩 **8 templates** | Browser Hero, Browser Duo, Mobile Trio, Bento, Spotlight, Before / After, Editorial, Minimal. |
+| 🧩 **11 templates** | Browser Hero, Desktop + Mobile, Browser Duo, Mobile Trio, Bento, Spotlight, Before / After, Features, Code, Editorial, Minimal. |
 | 🖼️ **Screenshots** | Up to 4 per project. Add by click, drag & drop anywhere, or paste (Ctrl/Cmd+V). |
 | 🎯 **Crop & focal point** | Cover / contain, zoom, and a focal point that stays visible when the layout changes between landscape, square and portrait. |
 | 🎨 **Brand** | One primary colour → derived palette. Light / dark theme, heading font, corner radius, shadow, logo. |
@@ -74,11 +74,14 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 | Template | Best for | Screenshots |
 |---|---|---|
 | **Browser Hero** | Web app launch, one key screen | 1 |
+| **Desktop + Mobile** | Responsive apps: browser window with a phone in front | 2 (desktop, then mobile) |
 | **Browser Duo** | Showing two related screens | 2 |
 | **Mobile Trio** | Mobile apps | 1–3 |
 | **Bento** | Feature overview | 1–3 |
 | **Spotlight** | One hero screenshot with a brand glow | 1 |
 | **Before / After** | Redesigns, SharePoint/SPFx makeovers, UX improvements | 2 |
+| **Features** | “What’s new”, release notes, feature highlights (up to 4 items) | 0 |
+| **Code** | Code snippet in an editor window, with light syntax colouring | 0 |
 | **Editorial** | Articles, announcements, blog covers | 0–1 |
 | **Minimal** | Text-only announcements | 0 |
 
@@ -275,7 +278,7 @@ Found a security issue? Please open a private security advisory on GitHub rather
 
 ## Roadmap
 
-**V1 — Better Cover Studio** (this release): projects, IndexedDB, autosave, JSON, 8 templates, crop/zoom/focal point, brand, undo/redo, safe zones, custom sizes, PNG/JPEG/WebP, ZIP export.
+**V1 — Better Cover Studio** (this release): projects, IndexedDB, autosave, JSON, 11 templates, crop/zoom/focal point, brand, undo/redo, safe zones, custom sizes, PNG/JPEG/WebP, ZIP export.
 
 **V2 — Visual Studio:** reusable Brand Kits, Asset Manager, variants (Original / Dark / Minimal…), more Before/After modes (split, slider), more device mockups, richer accessibility checks, FR / NL / EN interface.
 

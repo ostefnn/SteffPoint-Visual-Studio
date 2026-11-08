@@ -6,6 +6,8 @@
 import type { CSSProperties, ReactNode } from 'react';
 import {
   backgroundPeak,
+  CODE_LINE_HEIGHT,
+  fitCodeFontSize,
   BODY_STACK,
   derivePalette,
   FONT_STACKS,
@@ -723,9 +725,255 @@ function Minimal(ctx: Ctx) {
   );
 }
 
+
+function BrowserMobile(ctx: Ctx) {
+  const { w, h, o, wide } = ctx;
+  let text: ReactNode;
+  let browser: CSSProperties;
+  let phoneH: number, phoneX: number, phoneY: number;
+  if (o === 'landscape') {
+    text = <TextBlock ctx={ctx} style={leftColumn(ctx, wide ? 0.32 : 0.36)} scale={0.92} />;
+    browser = abs(w * (wide ? 0.38 : 0.42), h * 0.12, w * (wide ? 0.48 : 0.5), h * 0.74);
+    phoneH = h * (wide ? 0.84 : 0.72);
+    phoneX = w * (wide ? 0.83 : 0.8);
+    phoneY = h * (wide ? 0.12 : 0.24);
+  } else {
+    const portrait = o === 'portrait';
+    text = <TextBlock ctx={ctx} align="center" style={topBlock(ctx)} scale={0.92} />;
+    browser = abs(w * 0.05, h * (portrait ? 0.44 : 0.46), w * 0.76, h * (portrait ? 0.3 : 0.42));
+    phoneH = h * (portrait ? 0.3 : 0.42);
+    phoneX = w * 0.68;
+    phoneY = h * 0.52;
+  }
+  const phoneW = phoneH * 0.48;
+  return (
+    <>
+      {text}
+      <BrowserFrame ctx={ctx} index={0} style={browser} />
+      <PhoneFrame ctx={ctx} index={1} width={phoneW} style={abs(phoneX, phoneY, phoneW, phoneH, { zIndex: 2 })} />
+    </>
+  );
+}
+
+function CheckBadge({ size, bg, fg }: { size: number; bg: string; fg: string }) {
+  return (
+    <span style={{ flex: 'none', width: size, height: size, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <svg viewBox="0 0 24 24" width={size * 0.58} height={size * 0.58} fill="none" stroke={fg} strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M5 12.5 10 17.5 19 7" />
+      </svg>
+    </span>
+  );
+}
+
+function Features(ctx: Ctx) {
+  const { w, h, o, u, pal, wide, p } = ctx;
+  const items = p.content.features.filter((f) => f.trim()).slice(0, 4);
+  const size = u * (o === 'portrait' ? 4.6 : o === 'square' ? 3.8 : wide ? 2.8 : 3.3);
+  const card = (txt: string, i: number) => (
+    <div
+      key={i}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: u * 1.6,
+        padding: `${u * 1.5}px ${u * 2}px`,
+        borderRadius: ctx.radius,
+        background: pal.surface,
+        border: `${Math.max(1, u * 0.12)}px solid ${pal.border}`,
+        boxShadow: ctx.shadow === 'none' ? undefined : `0 ${u * 0.3}px ${u * 1.4}px rgba(0,0,0,${0.04 + 0.08 * p.brand.shadow})`,
+        minWidth: 0,
+      }}
+    >
+      <CheckBadge size={size * 1.45} bg={pal.primary} fg={pal.onPrimary} />
+      <span style={{ fontSize: size, fontWeight: 600, lineHeight: 1.25, color: pal.text, overflowWrap: 'break-word', minWidth: 0 }}>{txt}</span>
+    </div>
+  );
+  const list = (style: CSSProperties, columns = 1) => (
+    <div
+      style={{
+        position: 'absolute',
+        display: 'grid',
+        gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+        alignContent: 'center',
+        gap: u * 1.6,
+        ...style,
+      }}
+    >
+      {items.map(card)}
+    </div>
+  );
+  if (wide) {
+    return (
+      <>
+        <TextBlock ctx={ctx} style={leftColumn(ctx, 0.34)} scale={0.9} />
+        {list({ left: w * 0.42, right: w * 0.04, top: h * 0.1, bottom: h * 0.1 }, 2)}
+      </>
+    );
+  }
+  if (o === 'landscape') {
+    return (
+      <>
+        <TextBlock ctx={ctx} style={leftColumn(ctx, 0.4)} />
+        {list({ left: w * 0.52, right: w * 0.06, top: h * 0.08, bottom: h * 0.08 })}
+      </>
+    );
+  }
+  const portrait = o === 'portrait';
+  return (
+    <>
+      <TextBlock ctx={ctx} align="center" style={topBlock(ctx)} subtitle={portrait} />
+      {list({ left: w * 0.07, right: w * 0.07, top: h * (portrait ? 0.4 : 0.4), bottom: h * (portrait ? 0.2 : 0.06) })}
+    </>
+  );
+}
+
+// --- Code ---------------------------------------------------------------------
+
+const KEYWORDS = new Set(
+  'const let var function return import from export default if else for while do switch case break continue class new await async type interface extends implements public private protected static readonly enum def in of as try catch finally throw yield lambda with pass elif and or not is using namespace void true false null undefined None True False this self'.split(
+    ' ',
+  ),
+);
+const TOKEN = /(\/\/.*$|#.*$|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|\b\d+(?:\.\d+)?\b|[A-Za-z_$][\w$]*)/g;
+
+type TokenKind = 'plain' | 'comment' | 'string' | 'number' | 'keyword' | 'fn';
+
+/** Tiny line-based highlighter: deterministic, no dependency, good enough for a visual. */
+function tokenize(line: string): { text: string; kind: TokenKind }[] {
+  const out: { text: string; kind: TokenKind }[] = [];
+  let last = 0;
+  for (const m of line.matchAll(TOKEN)) {
+    const t = m[0];
+    const i = m.index ?? 0;
+    if (i > last) out.push({ text: line.slice(last, i), kind: 'plain' });
+    let kind: TokenKind = 'plain';
+    if (t.startsWith('//') || t.startsWith('#')) kind = 'comment';
+    else if (/^["'`]/.test(t)) kind = 'string';
+    else if (/^\d/.test(t)) kind = 'number';
+    else if (KEYWORDS.has(t)) kind = 'keyword';
+    else if (line[i + t.length] === '(') kind = 'fn';
+    out.push({ text: t, kind });
+    last = i + t.length;
+  }
+  if (last < line.length) out.push({ text: line.slice(last), kind: 'plain' });
+  return out;
+}
+
+function CodeWindow({
+  ctx,
+  box,
+  maxFont,
+  valign = 'center',
+}: {
+  ctx: Ctx;
+  box: { left: number; top: number; width: number; height: number };
+  maxFont: number;
+  valign?: 'center' | 'top';
+}) {
+  const { u, pal, p } = ctx;
+  const theme: Record<TokenKind, string> & { bg: string; bar: string; gutter: string } = {
+    bg: '#0f1117',
+    bar: '#171a23',
+    gutter: '#4b5263',
+    plain: '#e6e8ef',
+    comment: '#6b7280',
+    string: '#a5e075',
+    number: '#f7a26c',
+    keyword: mix(pal.primary, '#ffffff', 0.45),
+    fn: '#82aaff',
+  };
+  const bar = u * 3.6;
+  const pad = u * 2.4;
+  const code = p.content.code.replace(/\s+$/, '') || ' ';
+  const lines = code.split('\n');
+  const fontSize = fitCodeFontSize(code, box.width - pad * 2, box.height - bar - pad * 2, maxFont);
+  // Shrink the window to its content so short snippets do not float in an empty editor.
+  const height = Math.min(box.height, bar + pad * 2 + lines.length * fontSize * CODE_LINE_HEIGHT + 2);
+  const top = valign === 'center' ? box.top + (box.height - height) / 2 : box.top;
+  const dot = u * 1.05;
+  return (
+    <div
+      style={{
+        ...abs(box.left, top, box.width, height),
+        display: 'flex',
+        flexDirection: 'column',
+        borderRadius: ctx.radius,
+        overflow: 'hidden',
+        background: theme.bg,
+        boxShadow: ctx.shadow,
+        border: `${Math.max(1, u * 0.12)}px solid rgba(255,255,255,0.08)`,
+      }}
+    >
+      <div style={{ height: bar, flex: 'none', display: 'flex', alignItems: 'center', gap: dot * 0.7, padding: `0 ${u * 1.6}px`, background: theme.bar }}>
+        {['#ff5f57', '#febc2e', '#28c840'].map((c) => (
+          <span key={c} style={{ width: dot, height: dot, borderRadius: '50%', background: c, flex: 'none' }} />
+        ))}
+        {p.content.codeFile.trim() && (
+          <span
+            style={{
+              marginLeft: u * 1.6,
+              padding: `${u * 0.5}px ${u * 1.4}px`,
+              borderRadius: u * 0.8,
+              background: theme.bg,
+              color: '#c9cdd8',
+              fontFamily: FONT_STACKS.mono,
+              fontSize: u * 1.6,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {p.content.codeFile}
+          </span>
+        )}
+      </div>
+      <div style={{ flex: 1, padding: pad, overflow: 'hidden', fontFamily: FONT_STACKS.mono, fontSize, lineHeight: CODE_LINE_HEIGHT, color: theme.plain }}>
+        {lines.map((line, i) => (
+          <div key={i} style={{ whiteSpace: 'pre', display: 'flex' }}>
+            <span style={{ width: '2ch', marginRight: '1.5ch', textAlign: 'right', color: theme.gutter, flex: 'none', userSelect: 'none' }}>{i + 1}</span>
+            <span>
+              {tokenize(line).map((t, j) => (
+                <span key={j} style={{ color: theme[t.kind], fontStyle: t.kind === 'comment' ? 'italic' : undefined }}>
+                  {t.text}
+                </span>
+              ))}
+              {line === '' ? ' ' : null}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Code(ctx: Ctx) {
+  const { w, h, o, wide } = ctx;
+  if (o === 'landscape') {
+    return (
+      <>
+        <TextBlock ctx={ctx} style={leftColumn(ctx, wide ? 0.3 : 0.34)} scale={0.9} />
+        <CodeWindow ctx={ctx} maxFont={ctx.u * 3} box={{ left: w * (wide ? 0.37 : 0.42), top: h * 0.08, width: w * (wide ? 0.59 : 0.54), height: h * 0.84 }} />
+      </>
+    );
+  }
+  const portrait = o === 'portrait';
+  return (
+    <>
+      <TextBlock ctx={ctx} align="center" style={topBlock(ctx)} scale={0.9} subtitle={portrait} />
+      <CodeWindow
+        ctx={ctx}
+        maxFont={ctx.u * (portrait ? 4 : 3.4)}
+        valign={portrait ? 'center' : 'top'}
+        box={{ left: w * 0.05, top: h * (portrait ? 0.36 : 0.36), width: w * 0.9, height: h * (portrait ? 0.46 : 0.58) }}
+      />
+    </>
+  );
+}
+
 const TEMPLATE_COMPONENTS: Record<string, (ctx: Ctx) => ReactNode> = {
   'browser-hero': BrowserHero,
   'browser-duo': BrowserDuo,
+  'browser-mobile': BrowserMobile,
+  features: Features,
+  code: Code,
   'mobile-trio': MobileTrio,
   bento: Bento,
   spotlight: Spotlight,
