@@ -47,10 +47,10 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
   }, [projects, query, favOnly]);
 
   const actions = {
-    rename: async (p: Project) => {
-      const name = prompt('Project name', p.name)?.trim();
-      if (!name) return;
-      await patchProject(p.id, { name: name.slice(0, 80) });
+    rename: async (p: Project, raw: string) => {
+      const name = raw.trim().slice(0, 80);
+      if (!name || name === p.name) return;
+      await patchProject(p.id, { name });
       refresh();
     },
     duplicate: async (p: Project) => {
@@ -202,7 +202,9 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
   );
 }
 
-type Actions = Record<'rename' | 'duplicate' | 'remove' | 'favorite' | 'exportJson', (p: Project) => void>;
+type Actions = Record<'duplicate' | 'remove' | 'favorite' | 'exportJson', (p: Project) => void> & {
+  rename: (p: Project, name: string) => void;
+};
 
 function ProjectCard({ project, onOpen, actions }: { project: Project; onOpen: () => void; actions: Actions }) {
   const [thumb, setThumb] = useState<Blob>();
@@ -210,6 +212,24 @@ function ProjectCard({ project, onOpen, actions }: { project: Project; onOpen: (
     getThumbnail(project.id).then(setThumb);
   }, [project.id, project.updatedAt]);
   const url = useObjectUrl(thumb);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(project.name);
+  const renameBtn = useRef<HTMLButtonElement>(null);
+  const done = useRef(false); // guards against blur firing after Enter/Esc already finished
+
+  const startRename = () => {
+    setDraft(project.name);
+    done.current = false;
+    setEditing(true);
+  };
+  // Enter / blur commit, Esc cancels; an empty name keeps the current one.
+  const finishRename = (save: boolean) => {
+    if (done.current) return;
+    done.current = true;
+    setEditing(false);
+    if (save && draft.trim()) actions.rename(project, draft);
+    requestAnimationFrame(() => renameBtn.current?.focus());
+  };
 
   return (
     <li className="group overflow-hidden rounded-xl bg-white ring-1 ring-zinc-200">
@@ -224,7 +244,32 @@ function ProjectCard({ project, onOpen, actions }: { project: Project; onOpen: (
       </button>
       <div className="flex items-start gap-2 p-3">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">{project.name}</p>
+          {editing ? (
+            <input
+              autoFocus
+              aria-label="Project name"
+              name="project-name"
+              autoComplete="off"
+              maxLength={80}
+              value={draft}
+              aria-invalid={!draft.trim()}
+              onChange={(e) => setDraft(e.target.value)}
+              onFocus={(e) => e.currentTarget.select()}
+              onBlur={() => finishRename(true)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (draft.trim()) finishRename(true);
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  finishRename(false);
+                }
+              }}
+              className={cx(inputCls, 'py-0.5 font-medium', !draft.trim() && 'ring-red-400 focus:ring-red-500')}
+            />
+          ) : (
+            <p className="truncate text-sm font-medium">{project.name}</p>
+          )}
           <p className="text-xs text-zinc-500">Edited {new Date(project.updatedAt).toLocaleString()}</p>
         </div>
         <button
@@ -238,7 +283,7 @@ function ProjectCard({ project, onOpen, actions }: { project: Project; onOpen: (
         </button>
       </div>
       <div className="flex gap-1 border-t border-zinc-100 px-2 py-1.5">
-        <Button size="sm" variant="ghost" onClick={() => actions.rename(project)}>
+        <Button ref={renameBtn} size="sm" variant="ghost" onClick={startRename} aria-label={`Rename ${project.name}`}>
           <Icon name="edit" className="size-3.5" /> Rename
         </Button>
         <Button size="sm" variant="ghost" onClick={() => actions.duplicate(project)}>

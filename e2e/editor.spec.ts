@@ -98,3 +98,45 @@ test('focal point image reserves its size before decoding', async ({ page }) => 
   expect(box.height).toBeLessThanOrEqual(192.5);
   expect(Math.abs(box.width / box.height - ratio)).toBeLessThan(0.02);
 });
+
+test('rename a project inline from the dashboard', async ({ page }) => {
+  await newProject(page);
+  await page.getByRole('button', { name: 'Back to Projects' }).click();
+  const card = page.locator('li', { has: page.getByRole('button', { name: /^Rename / }) }).first();
+  const nameBox = card.getByRole('textbox', { name: 'Project name' });
+
+  // Esc cancels.
+  const original = (await card.locator('p.truncate').innerText()).trim();
+  await card.getByRole('button', { name: /^Rename / }).click();
+  await expect(nameBox).toBeFocused();
+  await nameBox.fill('Discarded');
+  await page.keyboard.press('Escape');
+  await expect(nameBox).toHaveCount(0);
+  await expect(card).toContainText(original);
+
+  // An empty name is rejected: Enter keeps editing, blur keeps the old name.
+  await card.getByRole('button', { name: /^Rename / }).click();
+  await nameBox.fill('   ');
+  await page.keyboard.press('Enter');
+  await expect(nameBox).toBeVisible();
+  await expect(nameBox).toHaveAttribute('aria-invalid', 'true');
+
+  // Enter saves, and the name survives a reload.
+  await nameBox.fill('Launch visuals');
+  await page.keyboard.press('Enter');
+  await expect(nameBox).toHaveCount(0);
+  await expect(card).toContainText('Launch visuals');
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Rename Launch visuals' })).toBeVisible();
+
+  // Blur saves too.
+  await page.getByRole('button', { name: 'Rename Launch visuals' }).click();
+  await page.getByRole('textbox', { name: 'Project name' }).fill('Blurred name');
+  await page.getByRole('heading', { name: 'Projects' }).click();
+  await expect(page.getByRole('button', { name: 'Rename Blurred name' })).toBeVisible();
+});
+
+test('editor screen exposes an h1 for assistive tech', async ({ page }) => {
+  await newProject(page);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(/^Editing: /);
+});

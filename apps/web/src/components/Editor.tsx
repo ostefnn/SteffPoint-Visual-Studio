@@ -147,6 +147,7 @@ function TopBar({ saveState, onExit, onExport }: { saveState: SaveState; onExit:
   const { update, undo, redo } = useEditor.getState();
   return (
     <header className="flex flex-wrap items-center gap-2 border-b border-zinc-200 bg-white px-3 py-2">
+      <h1 className="sr-only">Editing: {name || 'Untitled project'}</h1>
       <Button variant="ghost" onClick={onExit} aria-label="Back to Projects">
         <Icon name="back" /> <span className="hidden sm:inline">Projects</span>
       </Button>
@@ -203,6 +204,7 @@ function Canvas() {
               <input
                 key={k}
                 type="number"
+                inputMode="numeric"
                 min={64}
                 max={4096}
                 aria-label={`Custom ${k}`}
@@ -226,6 +228,7 @@ function Canvas() {
             maxWidth={size.width - pad * 2}
             maxHeight={size.height - pad * 2}
             showSafeZones={showSafe}
+            label={`Preview: ${format.label}, ${format.width} × ${format.height}`}
             className="shadow-xl ring-1 ring-black/5"
           />
         )}
