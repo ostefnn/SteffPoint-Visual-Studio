@@ -1,0 +1,306 @@
+import { useEffect, useRef, useState } from 'react';
+import { resolveFormat, type Project } from '@svs/visual-core';
+import { useEditor } from '../store/editor';
+import { notify, useToasts } from '../store/toasts';
+import { collectGarbage, getBlob, getProject, putThumbnail, saveProject } from '../lib/db';
+import { renderThumbnail } from '../lib/exporter';
+import { duplicateScreenshot, imageFilesFrom, importImages, removeScreenshot } from '../lib/actions';
+import { Button, cx, Icon, inputCls, useElementSize } from './ui';
+import { Stage } from './Stage';
+import { PrivacyBadge } from './PrivacyBadge';
+import { LeftPanel } from './LeftPanel';
+import { PropertiesPanel } from './PropertiesPanel';
+import { FormatStrip } from './FormatStrip';
+import { ExportDialog } from './ExportDialog';
+
+const SAVE_DELAY = 400;
+const THUMB_DELAY = 2000;
+
+function isTextField(t: EventTarget | null) {
+  const el = t as HTMLElement | null;
+  return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+}
+
+export function Editor({ projectId, onExit }: { projectId: string; onExit: () => void }) {
+  const project = useEditor((s) => s.project);
+  const [status, setStatus] = useState<'loading' | 'missing' | 'ready'>('loading');
+  const [saveState, setSaveState] = useState<'saved' | 'saving'>('saved');
+  const [exportOpen, setExportOpen] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const loaded = useRef<Project | null>(null);
+  const dirty = useRef(false);
+
+  // ---- Load project and its images; save + clean up on exit ----------------
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const p = await getProject(projectId);
+      if (!p) return !cancelled && setStatus('missing');
+      const urls: Record<string, string> = {};
+      for (const a of p.assets) {
+        const b = await getBlob(p.id, a.id);
+        if (b) urls[a.id] = URL.createObjectURL(b);
+      }
+      if (cancelled) return Object.values(urls).forEach((u) => URL.revokeObjectURL(u));
+      loaded.current = p;
+      useEditor.getState().open(p, urls);
+      setStatus('ready');
+    })();
+    return () => {
+      cancelled = true;
+      const p = useEditor.getState().project;
+      if (p && p.id === projectId) {
+        const final = dirty.current ? { ...p, updatedAt: Date.now() } : p;
+        saveProject(final).then(() => collectGarbage(final));
+      }
+      dirty.current = false;
+      useEditor.getState().close();
+    };
+  }, [projectId]);
+
+  // ---- Autosave + thumbnail ---------------------------------------------------
+  const saveNow = async () => {
+    const p = useEditor.getState().project;
+    if (!p) return;
+    setSaveState('saving');
+    await saveProject({ ...p, updatedAt: Date.now() });
+    dirty.current = false;
+    setSaveState('saved');
+  };
+
+  useEffect(() => {
+    if (!project || status !== 'ready') return;
+    const changed = project !== loaded.current;
+    if (changed) {
+      dirty.current = true;
+      setSaveState('saving');
+    }
+    const t1 = changed ? setTimeout(saveNow, SAVE_DELAY) : undefined;
+    const t2 = setTimeout(async () => {
+      try {
+        await putThumbnail(project.id, await renderThumbnail(project, useEditor.getState().urls));
+      } catch {
+        /* thumbnails are best effort */
+      }
+    }, THUMB_DELAY);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [project, status]);
+
+  useEffect(() => {
+    const flush = () => {
+      const p = useEditor.getState().project;
+      if (p && dirty.current) saveProject({ ...p, updatedAt: Date.now() });
+    };
+    window.addEventListener('pagehide', flush);
+    return () => window.removeEventListener('pagehide', flush);
+  }, []);
+
+  // ---- Keyboard shortcuts and paste ------------------------------------------
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      const key = e.key.toLowerCase();
+      const ed = useEditor.getState();
+      if (mod && key === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) ed.redo();
+        else ed.undo();
+      } else if (mod && key === 'y') {
+        e.preventDefault();
+        ed.redo();
+      } else if (mod && key === 's') {
+        e.preventDefault();
+        saveNow().then(() => notify('Project saved locally.'));
+      } else if (mod && key === 'd' && !isTextField(e.target)) {
+        e.preventDefault();
+        if (ed.selectedShotId) duplicateScreenshot(ed.selectedShotId);
+      } else if ((e.key === 'Delete' || e.key === 'Backspace') && !isTextField(e.target) && ed.selectedShotId) {
+        e.preventDefault();
+        removeScreenshot(ed.selectedShotId);
+      } else if (e.key === 'Escape') {
+        if (isTextField(e.target)) (e.target as HTMLElement).blur();
+        else ed.selectShot(null);
+      }
+    };
+    const onPaste = (e: ClipboardEvent) => {
+      const files = imageFilesFrom(e.clipboardData?.files);
+      if (!files.length) return;
+      e.preventDefault();
+      importImages(files, 'screenshot');
+    };
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('paste', onPaste);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('paste', onPaste);
+    };
+  }, []);
+
+  if (status === 'missing') {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-3">
+        <p className="font-medium">This project does not exist on this device.</p>
+        <Button onClick={onExit}>Back to projects</Button>
+      </div>
+    );
+  }
+  if (!project) return <div className="flex h-full items-center justify-center text-sm text-zinc-500">Loading project…</div>;
+
+  return (
+    <div
+      className="flex min-h-full flex-col lg:h-full"
+      onDragOver={(e) => {
+        if (e.dataTransfer.types.includes('Files')) {
+          e.preventDefault();
+          setDragging(true);
+        }
+      }}
+      onDragLeave={(e) => {
+        if (e.currentTarget === e.target || !e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false);
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragging(false);
+        importImages(imageFilesFrom(e.dataTransfer.files), 'screenshot');
+      }}
+    >
+      <TopBar saveState={saveState} onExit={onExit} onExport={() => setExportOpen(true)} />
+      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[288px_minmax(0,1fr)_320px]">
+        <LeftPanel className="order-2 border-zinc-200 bg-zinc-50 lg:order-1 lg:overflow-y-auto lg:border-r" />
+        <main className="order-1 flex min-h-0 flex-col lg:order-2">
+          <Canvas />
+          <FormatStrip />
+        </main>
+        <PropertiesPanel className="order-3 border-zinc-200 bg-zinc-50 lg:overflow-y-auto lg:border-l" />
+      </div>
+      {exportOpen && <ExportDialog onClose={() => setExportOpen(false)} />}
+      {dragging && (
+        <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-blue-600/10 ring-4 ring-inset ring-blue-600">
+          <p className="rounded-xl bg-white px-5 py-3 text-sm font-medium shadow-lg">Drop images to add screenshots</p>
+        </div>
+      )}
+      <Toasts />
+    </div>
+  );
+}
+
+function TopBar({ saveState, onExit, onExport }: { saveState: 'saved' | 'saving'; onExit: () => void; onExport: () => void }) {
+  const name = useEditor((s) => s.project?.name ?? '');
+  const canUndo = useEditor((s) => s.past.length > 0);
+  const canRedo = useEditor((s) => s.future.length > 0);
+  const { update, undo, redo } = useEditor.getState();
+  return (
+    <header className="flex flex-wrap items-center gap-2 border-b border-zinc-200 bg-white px-3 py-2">
+      <Button variant="ghost" onClick={onExit} aria-label="Back to projects">
+        <Icon name="back" /> <span className="hidden sm:inline">Projects</span>
+      </Button>
+      <input
+        aria-label="Project name"
+        value={name}
+        maxLength={80}
+        onChange={(e) => update((d) => void (d.name = e.target.value), 'name')}
+        className={cx(inputCls, 'w-48 font-medium sm:w-64')}
+      />
+      <div className="flex">
+        <Button variant="ghost" onClick={undo} disabled={!canUndo} aria-label="Undo" title="Undo (Ctrl/Cmd+Z)">
+          <Icon name="undo" />
+        </Button>
+        <Button variant="ghost" onClick={redo} disabled={!canRedo} aria-label="Redo" title="Redo (Ctrl/Cmd+Shift+Z)">
+          <Icon name="redo" />
+        </Button>
+      </div>
+      <span className="text-xs text-zinc-500" aria-live="polite">
+        {saveState === 'saving' ? 'Saving…' : 'Saved'}
+      </span>
+      <div className="ml-auto flex items-center gap-2">
+        <span className="hidden md:inline">
+          <PrivacyBadge />
+        </span>
+        <Button variant="primary" onClick={onExport}>
+          <Icon name="download" /> Export
+        </Button>
+      </div>
+    </header>
+  );
+}
+
+function Canvas() {
+  const project = useEditor((s) => s.project)!;
+  const urls = useEditor((s) => s.urls);
+  const active = useEditor((s) => s.activeFormat);
+  const showSafe = useEditor((s) => s.showSafeZones);
+  const [ref, size] = useElementSize<HTMLDivElement>();
+  const format = resolveFormat(active, project.customFormat);
+  const { update, toggleSafeZones } = useEditor.getState();
+  const pad = 32;
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex flex-wrap items-center gap-3 border-b border-zinc-200 bg-white px-4 py-2 text-sm">
+        <span className="font-medium">{format.label}</span>
+        <span className="tabular-nums text-zinc-500">
+          {format.width} × {format.height}
+        </span>
+        {active === 'custom' && (
+          <span className="flex items-center gap-1">
+            {(['width', 'height'] as const).map((k) => (
+              <input
+                key={k}
+                type="number"
+                min={64}
+                max={4096}
+                aria-label={`Custom ${k}`}
+                value={project.customFormat[k]}
+                onChange={(e) => update((d) => void (d.customFormat[k] = Number(e.target.value) || 64), `custom-${k}`)}
+                className={cx(inputCls, 'w-20 py-1')}
+              />
+            ))}
+          </span>
+        )}
+        <label className="ml-auto flex items-center gap-2 text-xs text-zinc-600">
+          <input type="checkbox" checked={showSafe} onChange={toggleSafeZones} /> Safe zones
+        </label>
+      </div>
+      <div ref={ref} className="checker relative flex h-[56vh] min-h-0 flex-1 items-center justify-center overflow-hidden lg:h-auto">
+        {size.width > 0 && (
+          <Stage
+            project={project}
+            format={format}
+            urls={urls}
+            maxWidth={size.width - pad * 2}
+            maxHeight={size.height - pad * 2}
+            showSafeZones={showSafe}
+            className="shadow-xl ring-1 ring-black/5"
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Toasts() {
+  const toasts = useToasts((s) => s.toasts);
+  const dismiss = useToasts((s) => s.dismiss);
+  return (
+    <div className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 flex-col items-center gap-2" aria-live="polite">
+      {toasts.map((t) => (
+        <div
+          key={t.id}
+          role={t.tone === 'error' ? 'alert' : 'status'}
+          className={cx(
+            'flex items-center gap-3 rounded-lg px-4 py-2 text-sm shadow-lg',
+            t.tone === 'error' ? 'bg-red-600 text-white' : 'bg-zinc-900 text-white',
+          )}
+        >
+          {t.message}
+          <button type="button" onClick={() => dismiss(t.id)} aria-label="Dismiss" className="opacity-70 hover:opacity-100">
+            <Icon name="x" className="size-3.5" />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
