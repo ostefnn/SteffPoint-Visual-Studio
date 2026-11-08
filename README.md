@@ -62,7 +62,7 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 | 🛟 **Safe zones** | Overlay showing where platform UI may cover your visual (e.g. stories, profile banners). |
 | ↩️ **Undo / redo** | Bounded history (60 steps); rapid edits like typing or sliders are merged into one step. |
 | 📦 **Export** | PNG, JPEG or WebP at 1×, 2× or 3×. One image, or a ZIP with every selected format plus `project.json`. |
-| 💡 **Smart suggestions** | Deterministic checks, no AI: title length, WCAG AA contrast, legibility in feeds, wrong template for screenshot orientation, images too small. Informative only, never blocks export. |
+| 💡 **Smart suggestions** | Deterministic checks, no AI: title length, WCAG AA contrast, legibility in feeds, wrong template or device for the screenshot orientation, images or logo too small for the export size, missing quote author, figures or event date. Informative only, never blocks export. |
 | 🔁 **Import / export JSON** | Portable project file with images embedded. Backup, move between browsers, share. |
 
 ![Dashboard](docs/images/dashboard.png)
@@ -116,11 +116,11 @@ At 2× and 3× the pixel size is multiplied. Very large exports (> ~33 MP) show 
 
 1. **New project** from the dashboard, or click a template to start from it.
 2. **Images** tab: add 1 to 4 screenshots (click, drop or paste).
-3. **Content** panel (right): kicker, title, subtitle.
+3. **Content** panel (right): kicker, title, subtitle, plus the fields of the current template (quote and author, figures, event details, devices and their orientation, desktop frame).
 4. **Templates** tab: pick a layout. Previews use your own screenshots.
-5. **Brand** tab: colour, theme, font, radius, shadow, logo.
+5. **Brand** tab: colour, theme, font, radius, shadow, logo and its size. Best logo file: a transparent PNG or WebP cropped tight, at least 512 × 512 px for an icon or 800 px wide for a wordmark.
 6. **Background** tab: style and intensity.
-7. Select a screenshot to set **zoom, fit and focal point** (click or drag on the image, or use arrow keys).
+7. Select a screenshot to **crop** its edges and set **zoom, fit and focal point** (click or drag on the image, or use arrow keys).
 8. Check every format in the **bottom strip**; tick the ones to export. Turn on **Safe zones** if needed.
 9. **Export** → choose file type and resolution → download the ZIP.
 
@@ -216,20 +216,31 @@ Exported `project.json` / `*.svs.json`:
   "project": {
     "schemaVersion": "1.0",
     "name": "Cockpit SteffPoint Launch",
-    "template": "browser-hero",
-    "content": { "kicker": "New release", "title": "Cockpit SteffPoint", "subtitle": "One cockpit. All my environments." },
-    "brand": { "primary": "#0078d4", "theme": "light", "headingFont": "sans", "radius": 0.5, "shadow": 0.5, "logoAssetId": null },
+    "template": "device-mix",
+    "content": {
+      "kicker": "New release", "title": "Cockpit SteffPoint", "subtitle": "One cockpit. All my environments.",
+      "quote": "…", "author": "…", "authorRole": "…",
+      "stats": [{ "value": "10k+", "label": "Visuals exported" }],
+      "eventDate": "…", "eventTime": "…", "eventPlace": "…", "cta": "…"
+    },
+    "brand": { "primary": "#0078d4", "theme": "light", "headingFont": "sans", "radius": 0.5, "shadow": 0.5, "logoAssetId": null, "logoSize": "medium" },
     "background": { "type": "glow", "intensity": 0.6, "angle": 135 },
     "assets": [{ "id": "ast_…", "name": "home.png", "mime": "image/png", "width": 1600, "height": 1000, "size": 123456 }],
-    "screenshots": [{ "id": "shot_…", "assetId": "ast_…", "fit": "cover", "zoom": 1, "focalX": 0.5, "focalY": 0 }],
+    "screenshots": [{
+      "id": "shot_…", "assetId": "ast_…", "fit": "cover", "zoom": 1, "focalX": 0.5, "focalY": 0,
+      "crop": { "top": 0, "right": 0, "bottom": 0, "left": 0 }
+    }],
     "exportPresets": ["linkedin", "open-graph", "square"],
-    "customFormat": { "width": 1600, "height": 900 }
+    "customFormat": { "width": 1600, "height": 900 },
+    "devices": ["desktop", "mobile"],
+    "deviceOrientation": { "tablet": "portrait", "mobile": "portrait" },
+    "desktopFrame": "browser"
   },
   "assets": { "ast_…": "data:image/png;base64,…" }
 }
 ```
 
-`schemaVersion` lets future versions migrate older files. Every import goes through `migrateProject()`, which drops unknown fields, clamps values and removes dangling references.
+`schemaVersion` lets future versions migrate older files. Every import goes through `migrateProject()`, which drops unknown fields, clamps values, removes dangling references and fills newer fields with defaults, so files from earlier versions open unchanged. Projects that used the retired *Desktop + Mobile* template open as *Device Mix* with desktop and mobile.
 
 ## Architecture
 
@@ -241,7 +252,7 @@ SteffPoint-Visual-Studio/
 │       └── src/
 │           ├── components/      Dashboard, Editor, panels, export dialog, UI kit
 │           ├── render/          Composition renderer: templates, frames, backgrounds
-│           ├── lib/             IndexedDB, image import, exporter, project file
+│           ├── lib/             IndexedDB, image import, exporter, Safari shadow fix, project file
 │           └── store/           Zustand stores (editor + undo/redo, toasts)
 ├── packages/
 │   └── visual-core/             Framework-free domain model (no DOM, no React)
@@ -263,7 +274,7 @@ SteffPoint-Visual-Studio/
 └── README.md
 ```
 
-**Rendering pipeline:** the `Composition` component is a pure function of *(project, width, height, image URLs)*. The editor shows it scaled down with a CSS transform. For export it is rendered off-screen at native size and rasterised with [modern-screenshot](https://github.com/qq15725/modern-screenshot), so preview and export are the same DOM.
+**Rendering pipeline:** the `Composition` component is a pure function of *(project, width, height, image URLs)*. The editor shows it scaled down with a CSS transform. For export it is rendered off-screen at native size and rasterised with [modern-screenshot](https://github.com/qq15725/modern-screenshot), so preview and export are the same DOM. Safari and iOS browsers draw CSS box-shadows wrongly in that capture step (no blur, no rounded corners), so on WebKit the exporter first replaces them with stacked rounded layers (`lib/flattenShadows.ts`).
 
 **Why `visual-core` is separate:** it can later power a render API, a batch generator or Microsoft 365 / SharePoint adapters without depending on the web UI.
 
@@ -285,9 +296,9 @@ Found a security issue? Please open a private security advisory on GitHub rather
 
 ## Roadmap
 
-**V1 — Better Cover Studio** (this release): projects, IndexedDB, autosave, JSON, 11 templates, crop/zoom/focal point, brand, undo/redo, safe zones, custom sizes, PNG/JPEG/WebP, ZIP export.
+**V1 — Better Cover Studio** (this release): projects, IndexedDB, autosave, JSON, 15 templates (including Device Mix, App Store, Testimonial, Key Figures, Event), device and laptop frames, App Store formats, crop/zoom/focal point, brand with logo size, undo/redo, safe zones, custom sizes, PNG/JPEG/WebP, ZIP export.
 
-**V2 — Visual Studio:** reusable Brand Kits, Asset Manager, variants (Original / Dark / Minimal…), more Before/After modes (split, slider), more device mockups, richer accessibility checks, FR / NL / EN interface.
+**V2 — Visual Studio:** LinkedIn carousels (multi-slide PDF), reusable Brand Kits, Asset Manager, variants (Original / Dark / Minimal…), more Before/After modes (split, slider), richer accessibility checks, FR / NL / EN interface.
 
 **V3 — Visual Platform:** optional cloud sync and teams, batch generator (CSV/JSON), URL capture service, render API, CMS integrations, AI-assisted copy. Remote features will always be opt-in and clearly labelled.
 
