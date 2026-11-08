@@ -23,6 +23,7 @@ export function FormatStrip() {
                 type="button"
                 onClick={() => setActiveFormat(id)}
                 aria-pressed={active === id}
+                aria-label={`Preview ${f.label}`}
                 className={cx(
                   'flex h-[76px] w-[124px] items-center justify-center rounded-lg bg-zinc-100 ring-1 transition',
                   active === id ? 'ring-2 ring-blue-600' : 'ring-zinc-200 hover:ring-zinc-400',

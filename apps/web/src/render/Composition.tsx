@@ -15,11 +15,13 @@ import {
   getTemplate,
   kickerSize,
   mix,
+  normalizeDevices,
   shiftHue,
   subtitleSize,
   titleSize,
   withAlpha,
   type Orientation,
+  type DeviceKind,
   type Palette,
   type Project,
   type ScreenshotSlot,
@@ -262,6 +264,39 @@ function PhoneFrame({ ctx, index, style, width }: { ctx: Ctx; index: number; sty
           }}
         />
       </div>
+    </div>
+  );
+}
+
+/** Portrait tablet: thin, even bezel and a camera dot on the top edge. */
+function TabletFrame({ ctx, index, style, width }: { ctx: Ctx; index: number; style: CSSProperties; width: number }) {
+  const bezel = width * 0.04;
+  return (
+    <div
+      style={{
+        ...style,
+        borderRadius: width * 0.07,
+        padding: bezel,
+        background: '#0d0f14',
+        boxShadow: ctx.shadow === 'none' ? `0 0 0 ${Math.max(1, ctx.u * 0.15)}px rgba(255,255,255,0.08)` : ctx.shadow,
+      }}
+    >
+      <div style={{ position: 'relative', width: '100%', height: '100%', borderRadius: width * 0.035, overflow: 'hidden' }}>
+        <ImageBox ctx={ctx} slot={ctx.shots[index]} index={index} />
+      </div>
+      <span
+        style={{
+          position: 'absolute',
+          top: bezel / 2,
+          left: '50%',
+          width: bezel * 0.36,
+          height: bezel * 0.36,
+          marginLeft: -bezel * 0.18,
+          marginTop: -bezel * 0.18,
+          borderRadius: '50%',
+          background: '#2a2e38',
+        }}
+      />
     </div>
   );
 }
@@ -755,6 +790,101 @@ function BrowserMobile(ctx: Ctx) {
   );
 }
 
+/** Width / height of the device frames, used to keep their proportions whatever the format. */
+const DEVICE_RATIO = { tablet: 0.75, mobile: 0.48 } as const;
+
+/**
+ * Layout of each device inside the device area, as fractions of that area.
+ * Desktop is a rectangle; tablet and mobile are placed by horizontal centre and bottom edge, with a
+ * target height and a maximum width so their aspect ratio holds in every format.
+ */
+type DeviceSlot = { l: number; t: number; w: number; h: number } | { cx: number; b: number; hf: number; wf: number };
+const DEVICE_LAYOUTS: Record<string, Partial<Record<DeviceKind, DeviceSlot>>> = {
+  'desktop+tablet+mobile': {
+    desktop: { l: 0, t: 0, w: 0.78, h: 0.74 },
+    tablet: { cx: 0.78, b: 0.98, hf: 0.8, wf: 0.4 },
+    mobile: { cx: 0.5, b: 1, hf: 0.58, wf: 0.2 },
+  },
+  'desktop+tablet': {
+    desktop: { l: 0, t: 0.02, w: 0.8, h: 0.78 },
+    tablet: { cx: 0.78, b: 0.98, hf: 0.82, wf: 0.42 },
+  },
+  'desktop+mobile': {
+    desktop: { l: 0, t: 0.04, w: 0.84, h: 0.8 },
+    mobile: { cx: 0.84, b: 0.98, hf: 0.7, wf: 0.26 },
+  },
+  'tablet+mobile': {
+    tablet: { cx: 0.4, b: 0.96, hf: 0.94, wf: 0.62 },
+    mobile: { cx: 0.78, b: 1, hf: 0.7, wf: 0.3 },
+  },
+};
+
+function DeviceMix(ctx: Ctx) {
+  const { w, h, o, wide } = ctx;
+  const devices = normalizeDevices(ctx.p.devices);
+  const layout = DEVICE_LAYOUTS[devices.join('+')] ?? DEVICE_LAYOUTS['desktop+tablet+mobile'];
+
+  // The area the devices share: right of the text in landscape, below it otherwise.
+  let text: ReactNode;
+  let area: { x: number; y: number; w: number; h: number };
+  if (o === 'landscape') {
+    text = <TextBlock ctx={ctx} style={leftColumn(ctx, wide ? 0.32 : 0.34)} scale={0.9} />;
+    const x = w * (wide ? 0.38 : 0.41);
+    area = { x, y: h * 0.08, w: w * 0.97 - x, h: h * 0.86 };
+  } else {
+    text = <TextBlock ctx={ctx} align="center" style={topBlock(ctx)} scale={0.92} />;
+    const y = h * (o === 'portrait' ? 0.44 : 0.46);
+    area = { x: w * 0.05, y, w: w * 0.9, h: h * 0.96 - y };
+  }
+
+  // Tablet + mobile without a desktop: keep the phone overlapping the tablet's right edge and centre the
+  // pair, so they read as one group even when the area is much wider than tall (banners, squares).
+  const size = (device: 'tablet' | 'mobile', slot: { hf: number; wf: number }) => {
+    const dh = Math.min(slot.hf * area.h, (slot.wf * area.w) / DEVICE_RATIO[device]);
+    return { dw: dh * DEVICE_RATIO[device], dh };
+  };
+  const pairLeft: Partial<Record<DeviceKind, number>> = {};
+  const ts = layout.tablet;
+  const ms = layout.mobile;
+  if (!layout.desktop && ts && ms && !('l' in ts) && !('l' in ms)) {
+    const t = size('tablet', ts);
+    const m = size('mobile', ms);
+    const overlap = m.dw * 0.35;
+    const left = area.x + (area.w - (t.dw + m.dw - overlap)) / 2;
+    pairLeft.tablet = left;
+    pairLeft.mobile = left + t.dw - overlap;
+  }
+
+  return (
+    <>
+      {text}
+      {devices.map((device, index) => {
+        const slot = layout[device];
+        if (!slot) return null;
+        const z = index + 1; // desktop at the back, mobile in front
+        if ('l' in slot) {
+          return (
+            <BrowserFrame
+              key={device}
+              ctx={ctx}
+              index={index}
+              style={abs(area.x + slot.l * area.w, area.y + slot.t * area.h, slot.w * area.w, slot.h * area.h, { zIndex: z })}
+            />
+          );
+        }
+        const { dw, dh } = size(device as 'tablet' | 'mobile', slot);
+        const left = pairLeft[device] ?? area.x + slot.cx * area.w - dw / 2;
+        const style = abs(left, area.y + slot.b * area.h - dh, dw, dh, { zIndex: z });
+        return device === 'tablet' ? (
+          <TabletFrame key={device} ctx={ctx} index={index} width={dw} style={style} />
+        ) : (
+          <PhoneFrame key={device} ctx={ctx} index={index} width={dw} style={style} />
+        );
+      })}
+    </>
+  );
+}
+
 function CheckBadge({ size, bg, fg }: { size: number; bg: string; fg: string }) {
   return (
     <span style={{ flex: 'none', width: size, height: size, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -972,6 +1102,7 @@ const TEMPLATE_COMPONENTS: Record<string, (ctx: Ctx) => ReactNode> = {
   'browser-hero': BrowserHero,
   'browser-duo': BrowserDuo,
   'browser-mobile': BrowserMobile,
+  'device-mix': DeviceMix,
   features: Features,
   code: Code,
   'mobile-trio': MobileTrio,

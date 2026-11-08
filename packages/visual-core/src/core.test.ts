@@ -10,7 +10,9 @@ import {
   getOrientation,
   isScaleReasonable,
   migrateProject,
+  normalizeDevices,
   resolveFormat,
+  screenshotRange,
   sanitizeText,
 } from './index';
 
@@ -149,5 +151,37 @@ describe('rules', () => {
     p.assets.push({ id: 'a', name: 'tiny.png', mime: 'image/png', width: 300, height: 200, size: 1 });
     p.screenshots.push({ id: 's', assetId: 'a', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0 });
     expect(analyzeProject(p, FORMAT_PRESETS.linkedin, 2).map((s) => s.id)).toContain('shot-small');
+  });
+});
+
+describe('device mix', () => {
+  it('normalizes the device list', () => {
+    expect(normalizeDevices(['mobile', 'desktop', 'mobile'])).toEqual(['desktop', 'mobile']);
+    expect(normalizeDevices(['tablet'])).toEqual(['desktop', 'tablet', 'mobile']); // below the minimum
+    expect(normalizeDevices('nope')).toEqual(['desktop', 'tablet', 'mobile']);
+    expect(migrateProject({ devices: ['tablet', 'phone', 'mobile'] }).devices).toEqual(['tablet', 'mobile']);
+    expect(migrateProject({}).devices).toEqual(['desktop', 'tablet', 'mobile']); // older files
+  });
+
+  it('expects one screenshot per selected device', () => {
+    expect(screenshotRange({ template: 'device-mix', devices: ['desktop', 'mobile'] })).toEqual({ min: 2, max: 2 });
+    expect(screenshotRange({ template: 'device-mix', devices: ['desktop', 'tablet', 'mobile'] })).toEqual({ min: 3, max: 3 });
+    expect(screenshotRange({ template: 'spotlight', devices: [] })).toEqual({ min: 1, max: 1 });
+    const p = createProject({ template: 'device-mix' });
+    p.devices = ['tablet', 'mobile'];
+    const msg = analyzeProject(p, FORMAT_PRESETS.linkedin).find((x) => x.id === 'shots-missing')?.message;
+    expect(msg).toContain('at least 2');
+  });
+
+  it('flags a phone screenshot in the desktop frame', () => {
+    const p = createProject({ template: 'device-mix' });
+    p.devices = ['desktop', 'mobile'];
+    p.assets.push({ id: 'a', name: 'phone.png', mime: 'image/png', width: 1170, height: 2532, size: 1 });
+    p.assets.push({ id: 'b', name: 'phone2.png', mime: 'image/png', width: 1170, height: 2532, size: 1 });
+    p.screenshots.push({ id: 's1', assetId: 'a', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0 });
+    p.screenshots.push({ id: 's2', assetId: 'b', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0 });
+    const ids = analyzeProject(p, FORMAT_PRESETS.linkedin).map((s) => s.id);
+    expect(ids).toContain('device-fit-0');
+    expect(ids).not.toContain('device-fit-1');
   });
 });
