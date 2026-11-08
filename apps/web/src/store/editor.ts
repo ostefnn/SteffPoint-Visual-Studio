@@ -15,6 +15,11 @@ interface EditorState {
   future: Project[];
   lastKey: string | null;
   lastAt: number;
+  /**
+   * True from the instant the project changes until it is stored. Set synchronously
+   * so the UI never shows "Saved" for an edit that has not been written yet.
+   */
+  unsaved: boolean;
   /** Object URLs for the current project's assets, keyed by asset id. */
   urls: Record<string, string>;
   selectedShotId: string | null;
@@ -26,6 +31,7 @@ interface EditorState {
   update(mutate: (draft: Project) => void, coalesceKey?: string): void;
   undo(): void;
   redo(): void;
+  markSaved(saved: Project): void;
   addUrl(assetId: string, url: string): void;
   selectShot(id: string | null): void;
   setActiveFormat(id: FormatId): void;
@@ -38,6 +44,7 @@ export const useEditor = create<EditorState>((set, get) => ({
   future: [],
   lastKey: null,
   lastAt: 0,
+  unsaved: false,
   urls: {},
   selectedShotId: null,
   activeFormat: 'linkedin',
@@ -47,6 +54,7 @@ export const useEditor = create<EditorState>((set, get) => ({
     revokeAll(get().urls);
     set({
       project,
+      unsaved: false,
       urls,
       past: [],
       future: [],
@@ -70,6 +78,7 @@ export const useEditor = create<EditorState>((set, get) => ({
     const coalesce = !!coalesceKey && coalesceKey === lastKey && now - lastAt < COALESCE_MS;
     set({
       project: next,
+      unsaved: true,
       past: coalesce ? past : [...past, project].slice(-HISTORY_LIMIT),
       future: [],
       lastKey: coalesceKey ?? null,
@@ -81,16 +90,20 @@ export const useEditor = create<EditorState>((set, get) => ({
     const { project, past, future } = get();
     if (!project || !past.length) return;
     const prev = past[past.length - 1];
-    set({ project: prev, past: past.slice(0, -1), future: [project, ...future], lastKey: null });
+    set({ project: prev, unsaved: true, past: past.slice(0, -1), future: [project, ...future], lastKey: null });
   },
 
   redo() {
     const { project, past, future } = get();
     if (!project || !future.length) return;
     const [next, ...rest] = future;
-    set({ project: next, past: [...past, project], future: rest, lastKey: null });
+    set({ project: next, unsaved: true, past: [...past, project], future: rest, lastKey: null });
   },
 
+  markSaved(saved) {
+    // Only clear the flag if nothing changed since `saved` was written.
+    if (get().project === saved) set({ unsaved: false });
+  },
   addUrl(assetId, url) {
     set({ urls: { ...get().urls, [assetId]: url } });
   },
