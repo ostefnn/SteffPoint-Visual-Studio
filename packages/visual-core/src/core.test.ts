@@ -179,6 +179,27 @@ describe('device mix', () => {
     expect(msg).toContain('at least 2');
   });
 
+  it('keeps tablet and phone orientation, defaulting to portrait', () => {
+    expect(createProject().deviceOrientation).toEqual({ tablet: 'portrait', mobile: 'portrait' });
+    expect(migrateProject({ deviceOrientation: { tablet: 'landscape', mobile: 'sideways' } }).deviceOrientation).toEqual({
+      tablet: 'landscape',
+      mobile: 'portrait',
+    });
+    expect(migrateProject({}).deviceOrientation).toEqual({ tablet: 'portrait', mobile: 'portrait' });
+  });
+
+  it('matches the orientation hint to a turned phone', () => {
+    const p = createProject({ template: 'device-mix' });
+    p.devices = ['tablet', 'mobile'];
+    p.assets.push({ id: 'a', name: 'a.png', mime: 'image/png', width: 1600, height: 1000, size: 1 });
+    p.assets.push({ id: 'b', name: 'wide.png', mime: 'image/png', width: 1600, height: 900, size: 1 });
+    p.screenshots.push({ id: 's1', assetId: 'a', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0 });
+    p.screenshots.push({ id: 's2', assetId: 'b', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0 });
+    expect(analyzeProject(p, FORMAT_PRESETS.linkedin).map((s) => s.id)).toContain('device-fit-1'); // wide shot, upright phone
+    p.deviceOrientation.mobile = 'landscape';
+    expect(analyzeProject(p, FORMAT_PRESETS.linkedin).map((s) => s.id)).not.toContain('device-fit-1');
+  });
+
   it('flags a phone screenshot in the desktop frame', () => {
     const p = createProject({ template: 'device-mix' });
     p.devices = ['desktop', 'mobile'];

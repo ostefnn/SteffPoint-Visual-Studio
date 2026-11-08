@@ -111,11 +111,15 @@ export function analyzeProject(project: Project, format: FormatPreset, exportSca
       if (!a) return;
       const portrait = a.height > a.width * 1.2;
       const landscape = a.width > a.height * 1.2;
-      if ((device === 'desktop' && portrait) || (device === 'mobile' && landscape)) {
+      // Desktop windows and sideways devices are wide; upright devices are tall. Tablets are close to
+      // square, so only the phone and the desktop window are checked.
+      const wideFrame = device === 'desktop' || (device === 'mobile' && project.deviceOrientation?.mobile === 'landscape');
+      if (device === 'tablet') return;
+      if ((wideFrame && portrait) || (!wideFrame && landscape)) {
         out.push({
           id: `device-fit-${i}`,
           level: 'info',
-          message: `Screenshot ${i + 1} looks like a ${portrait ? 'phone' : 'desktop'} screen but sits in the ${DEVICE_LABELS[device].toLowerCase()} frame. Reorder screenshots in the Images tab.`,
+          message: `Screenshot ${i + 1} is ${portrait ? 'portrait' : 'landscape'} but sits in a ${wideFrame ? 'wide' : 'tall'} ${DEVICE_LABELS[device].toLowerCase()} frame. Reorder screenshots${device === 'mobile' ? ' or rotate the phone' : ''}.`,
         });
       }
     });

@@ -28,6 +28,10 @@ export type TemplateCategory =
 export type DeviceKind = 'desktop' | 'tablet' | 'mobile';
 export const DEVICE_KINDS: readonly DeviceKind[] = ['desktop', 'tablet', 'mobile'];
 export const DEVICE_LABELS: Record<DeviceKind, string> = { desktop: 'Desktop', tablet: 'Tablet', mobile: 'Mobile' };
+/** Tablet and phone frames can be held upright or turned sideways. */
+export type DeviceOrientation = 'portrait' | 'landscape';
+export type RotatableDevice = Exclude<DeviceKind, 'desktop'>;
+
 /** Device Mix needs at least this many devices; with fewer, a dedicated template fits better. */
 export const MIN_DEVICES = 2;
 

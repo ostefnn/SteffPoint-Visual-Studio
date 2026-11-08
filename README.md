@@ -74,7 +74,7 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 | Template | Best for | Screenshots |
 |---|---|---|
 | **Browser Hero** | Web app launch, one key screen | 1 |
-| **Device Mix** | Responsive apps: pick 2 or 3 devices among desktop, tablet and mobile | 2–3 (one per device, in that order) |
+| **Device Mix** | Responsive apps: pick 2 or 3 devices among desktop, tablet and mobile; tablet and phone can be portrait or landscape | 2–3 (one per device, in that order) |
 | **Browser Duo** | Showing two related screens | 2 |
 | **Mobile Trio** | Mobile apps | 1–3 |
 | **Bento** | Feature overview | 1–3 |
