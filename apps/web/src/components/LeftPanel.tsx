@@ -29,18 +29,42 @@ const TABS: { id: Tab; label: string }[] = [
 
 export function LeftPanel({ className }: { className?: string }) {
   const [tab, setTab] = useState<Tab>('templates');
+  const tabRefs = useRef<Partial<Record<Tab, HTMLButtonElement | null>>>({});
+
+  // WAI-ARIA tabs pattern: arrows / Home / End move focus and select (automatic activation).
+  const onTabKeyDown = (e: React.KeyboardEvent) => {
+    const i = TABS.findIndex((t) => t.id === tab);
+    const next = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: TABS.length - 1 }[e.key];
+    if (next === undefined) return;
+    e.preventDefault();
+    const id = TABS[(next + TABS.length) % TABS.length].id;
+    setTab(id);
+    tabRefs.current[id]?.focus();
+  };
+
   return (
     <aside className={className}>
-      <div role="tablist" aria-label="Editor panels" className="sticky top-0 z-10 flex gap-1 border-b border-zinc-200 bg-zinc-50 p-2">
+      <div
+        role="tablist"
+        aria-label="Editor panels"
+        onKeyDown={onTabKeyDown}
+        className="sticky top-0 z-10 flex gap-1 border-b border-zinc-200 bg-zinc-50 p-2"
+      >
         {TABS.map((t) => (
           <button
             key={t.id}
+            ref={(el) => {
+              tabRefs.current[t.id] = el;
+            }}
+            id={`tab-${t.id}`}
             role="tab"
             type="button"
             aria-selected={tab === t.id}
+            aria-controls="editor-tabpanel"
+            tabIndex={tab === t.id ? 0 : -1}
             onClick={() => setTab(t.id)}
             className={cx(
-              'flex-1 rounded-md px-1.5 py-1.5 text-xs font-medium',
+              'flex-1 rounded-md px-1.5 py-1.5 text-xs font-medium transition-transform duration-100 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 motion-safe:active:scale-[0.97]',
               tab === t.id ? 'bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200' : 'text-zinc-600 hover:text-zinc-900',
             )}
           >
@@ -48,7 +72,7 @@ export function LeftPanel({ className }: { className?: string }) {
           </button>
         ))}
       </div>
-      <div role="tabpanel">
+      <div role="tabpanel" id="editor-tabpanel" aria-labelledby={`tab-${tab}`}>
         {tab === 'templates' && <TemplatesTab />}
         {tab === 'images' && <ImagesTab />}
         {tab === 'brand' && <BrandTab />}
@@ -105,7 +129,7 @@ function ImagesTab() {
         className="flex w-full flex-col items-center gap-1 rounded-lg border-2 border-dashed border-zinc-300 bg-white px-3 py-5 text-center text-sm text-zinc-600 hover:border-blue-500 hover:text-blue-700 disabled:opacity-50"
       >
         <Icon name="upload" className="size-5" />
-        <span className="font-medium">Add screenshots</span>
+        <span className="font-medium">Add Screenshots</span>
         <span className="text-xs text-zinc-400">Click, drop anywhere, or paste (Ctrl/Cmd+V)</span>
       </button>
       <input
@@ -252,7 +276,7 @@ function BrandTab() {
           </div>
         ) : (
           <Button onClick={() => logoInput.current?.click()}>
-            <Icon name="upload" /> Upload logo
+            <Icon name="upload" /> Upload Logo
           </Button>
         )}
         <p className="text-xs text-zinc-500">A transparent PNG or WebP works best.</p>

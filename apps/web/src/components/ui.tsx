@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react';
 
 export function cx(...c: (string | false | null | undefined)[]) {
   return c.filter(Boolean).join(' ');
@@ -11,13 +11,13 @@ export function Button({
   size = 'md',
   className,
   ...rest
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: 'sm' | 'md' }) {
+}: ComponentProps<'button'> & { variant?: Variant; size?: 'sm' | 'md' }) {
   return (
     <button
       type="button"
       {...rest}
       className={cx(
-        'inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-40 disabled:pointer-events-none',
+        'inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition-[color,background-color,box-shadow,transform] duration-100 ease-out motion-safe:active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-40 disabled:pointer-events-none',
         size === 'sm' ? 'h-8 px-2.5 text-xs' : 'h-9 px-3.5 text-sm',
         variant === 'primary' && 'bg-blue-600 text-white hover:bg-blue-700',
         variant === 'secondary' && 'bg-white text-zinc-800 ring-1 ring-zinc-200 hover:bg-zinc-50',
@@ -105,7 +105,7 @@ export function Segmented<T extends string>({
           aria-checked={value === o.value}
           onClick={() => onChange(o.value)}
           className={cx(
-            'flex-1 rounded-md px-2 py-1 text-xs font-medium transition-colors',
+            'flex-1 rounded-md px-2 py-1 text-xs font-medium transition-[color,background-color,box-shadow,transform] duration-100 ease-out motion-safe:active:scale-[0.97]',
             value === o.value ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900',
           )}
         >

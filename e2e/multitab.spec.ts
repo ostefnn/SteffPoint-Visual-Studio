@@ -16,7 +16,7 @@ test('closing a stale tab does not delete images added in another tab', async ({
   await expect(a.locator('[role=tabpanel] li')).toHaveCount(1);
 
   // Leave A (triggers its exit save + garbage collection), then check B's image is intact.
-  await a.getByRole('button', { name: 'Back to projects' }).click();
+  await a.getByRole('button', { name: 'Back to Projects' }).click();
   await a.waitForTimeout(500);
   await b.reload();
   await b.getByRole('tab', { name: 'Images' }).click();
@@ -41,7 +41,7 @@ test('concurrent edits raise a conflict instead of overwriting', async ({ contex
   const loserTitle = await titleBox(loser).inputValue();
 
   // Nothing was silently overwritten: the stored version is the winner's.
-  await loser.getByRole('button', { name: 'Keep my version' }).click();
+  await loser.getByRole('button', { name: 'Keep My Version' }).click();
   await expect(loser.getByTestId('save-state')).toHaveText('Saved');
   // The other tab follows the explicit choice.
   await expect(titleBox(winner)).toHaveValue(loserTitle);

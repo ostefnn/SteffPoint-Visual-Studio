@@ -12,6 +12,39 @@ body,
 
 body {
   @apply bg-zinc-100 text-zinc-900 antialiased;
+  /* Subtle, intentional tap highlight (press feedback comes from :active styles). */
+  -webkit-tap-highlight-color: rgb(37 99 235 / 0.12);
+}
+
+@layer base {
+  /* No double-tap-to-zoom delay on controls; pinch-zoom stays available. Layered so utilities like touch-none still win. */
+  a,
+  button,
+  input,
+  label,
+  select,
+  summary,
+  textarea {
+    touch-action: manipulation;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+}
+
+/* Reduced motion: keep instant state changes, drop movement. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 input[type='range'] {

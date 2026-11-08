@@ -35,7 +35,7 @@ export function StorageStatus({ projectCount }: { projectCount: number }) {
         <span className="flex flex-wrap items-center gap-2">
           <span className="text-amber-700">Your browser may clear this data. Export important projects as JSON.</span>
           <Button size="sm" variant="ghost" onClick={() => requestPersistence().then(refresh)}>
-            Ask to keep data
+            Ask to Keep Data
           </Button>
         </span>
       )}

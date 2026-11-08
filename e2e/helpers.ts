@@ -9,7 +9,7 @@ export const CYAN = [0, 170, 255] as const;
 
 export async function newProject(page: Page) {
   await page.goto('/');
-  await page.getByRole('button', { name: 'New project' }).first().click();
+  await page.getByRole('button', { name: 'New Project' }).first().click();
   await expect(page.getByTestId('save-state')).toHaveText('Saved');
 }
 
