@@ -324,19 +324,41 @@ function BrowserFrame({ ctx, index, style }: { ctx: Ctx; index: number; style: C
 }
 
 /** Laptop: dark screen bezel with a camera, on a wider aluminium base, fitted inside `style`'s box. */
+/** Laptop screens are 16:10 (MacBook Air and Pro are about 1.54, most Windows laptops 1.6). */
+export const LAPTOP_SCREEN_RATIO = 1.6;
+const LAPTOP = { lid: 0.88, bezel: 0.016, base: 0.032 } as const;
+/** Height of the whole laptop (lid with bezels + base) for a given total width. */
+export const laptopHeight = (w: number) =>
+  ((LAPTOP.lid - 2 * LAPTOP.bezel) * w) / LAPTOP_SCREEN_RATIO + LAPTOP.bezel * 2.4 * w + LAPTOP.base * w;
+
+/**
+ * A laptop that keeps a real 16:10 screen whatever box the template gives it:
+ * as wide as the box when that fits (top-aligned, so bleeding layouts keep their top edge),
+ * otherwise as tall as the box, centred horizontally.
+ */
 function LaptopFrame({ ctx, index, style }: { ctx: Ctx; index: number; style: CSSProperties }) {
-  const W = Number(style.width);
-  const base = W * 0.032;
-  const lid = W * 0.88;
-  const bezel = W * 0.016;
+  const boxW = Number(style.width);
+  const top = Number(style.top ?? 0);
+  // Templates let frames bleed past the bottom edge; a laptop must keep its base in view.
+  const boxH = Math.min(Number(style.height), ctx.h - top - ctx.u * 2);
+  const W = laptopHeight(boxW) <= boxH ? boxW : boxH / laptopHeight(1);
+  // In tall formats, centre the laptop in its box instead of leaving the space below empty.
+  const offsetY = ctx.o === 'portrait' ? Math.max(0, (boxH - laptopHeight(W)) / 2) : 0;
+  const base = W * LAPTOP.base;
+  const lid = W * LAPTOP.lid;
+  const bezel = W * LAPTOP.bezel;
+  const screenH = (lid - 2 * bezel) / LAPTOP_SCREEN_RATIO;
   return (
-    <div style={{ ...style, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+    <div style={{ ...style, display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
+      <div style={{ width: W, marginTop: offsetY, display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 'none' }}>
       <div
+        data-laptop-screen-ratio={LAPTOP_SCREEN_RATIO}
         style={{
           position: 'relative',
           width: lid,
-          flex: 1,
-          minHeight: 0,
+          height: screenH + bezel * 2.4,
+          boxSizing: 'border-box',
+          flex: 'none',
           padding: `${bezel * 1.4}px ${bezel}px ${bezel}px`,
           borderRadius: `${W * 0.022}px ${W * 0.022}px 0 0`,
           background: HW.bezel,
@@ -383,6 +405,7 @@ function LaptopFrame({ ctx, index, style }: { ctx: Ctx; index: number; style: CS
             background: HW.hinge,
           }}
         />
+      </div>
       </div>
     </div>
   );
