@@ -29,6 +29,16 @@ export const LIMITS = {
   codeFile: 40,
   code: 1500,
   codeLines: 20,
+  /** Testimonial template. */
+  quote: 280,
+  person: 50,
+  /** Key Figures template. */
+  statItems: 4,
+  statValue: 12,
+  statLabel: 40,
+  /** Event template. */
+  eventField: 50,
+  cta: 30,
   screenshots: 4,
   fileBytes: 20 * 1024 * 1024,
 } as const;
@@ -103,6 +113,22 @@ export interface Content {
   code: string;
   /** File name shown in the code window tab. */
   codeFile: string;
+  /** Testimonial template. */
+  quote: string;
+  author: string;
+  authorRole: string;
+  /** Key Figures template (max LIMITS.statItems). */
+  stats: Stat[];
+  /** Event template. */
+  eventDate: string;
+  eventTime: string;
+  eventPlace: string;
+  cta: string;
+}
+
+export interface Stat {
+  value: string;
+  label: string;
 }
 
 export interface Project {
@@ -168,6 +194,18 @@ export function createProject(init: Partial<Pick<Project, 'name' | 'template'>> 
         'await pack.export();',
       ].join('\n'),
       codeFile: 'launch.ts',
+      quote: 'We replaced three tools with this one. Our launch visuals now take ten minutes instead of a day.',
+      author: 'Alex Martin',
+      authorRole: 'Head of Marketing, Northwind',
+      stats: [
+        { value: '10k+', label: 'Visuals exported' },
+        { value: '4.9★', label: 'Average rating' },
+        { value: '9', label: 'Formats in one click' },
+      ],
+      eventDate: 'Thu 12 Dec',
+      eventTime: '14:00 – 15:00 CET',
+      eventPlace: 'Online · Microsoft Teams',
+      cta: 'Register now',
     },
     brand: { primary: '#2563eb', theme: 'light', headingFont: 'sans', radius: 0.5, shadow: 0.5, logoAssetId: null, logoSize: 'medium' },
     background: { type: 'glow', intensity: 0.6, angle: 135 },
@@ -309,6 +347,22 @@ export function migrateProject(raw: unknown): Project {
         : d.content.features,
       code: typeof content.code === 'string' ? clampCode(sanitizeText(content.code)) : d.content.code,
       codeFile: str(content.codeFile, d.content.codeFile, LIMITS.codeFile).replace(/\n/g, ' '),
+      quote: str(content.quote, d.content.quote, LIMITS.quote),
+      author: str(content.author, d.content.author, LIMITS.person).replace(/\n/g, ' '),
+      authorRole: str(content.authorRole, d.content.authorRole, LIMITS.person).replace(/\n/g, ' '),
+      stats: Array.isArray(content.stats)
+        ? content.stats
+            .map(obj)
+            .slice(0, LIMITS.statItems)
+            .map((s) => ({
+              value: str(s.value, '', LIMITS.statValue).replace(/\n/g, ' '),
+              label: str(s.label, '', LIMITS.statLabel).replace(/\n/g, ' '),
+            }))
+        : d.content.stats,
+      eventDate: str(content.eventDate, d.content.eventDate, LIMITS.eventField).replace(/\n/g, ' '),
+      eventTime: str(content.eventTime, d.content.eventTime, LIMITS.eventField).replace(/\n/g, ' '),
+      eventPlace: str(content.eventPlace, d.content.eventPlace, LIMITS.eventField).replace(/\n/g, ' '),
+      cta: str(content.cta, d.content.cta, LIMITS.cta).replace(/\n/g, ' '),
     },
     brand: {
       primary: isHexColor(brand.primary) ? brand.primary : d.brand.primary,

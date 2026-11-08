@@ -141,6 +141,48 @@ test('Export shadows fade out instead of leaving a grey block (Safari)', async (
   expectColor(near, far, 12);
 });
 
+test('App Store exports the exact iPhone screenshot size', async ({ page }) => {
+  await newProject(page);
+  await addScreenshot(page, 'desktop-magenta.png');
+  await useTemplate(page, 'App Store');
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  for (const box of await dialog.getByRole('checkbox').all()) {
+    const label = (await box.locator('xpath=..').innerText()).trim();
+    const want = label.startsWith('App Store iPhone');
+    if ((await box.isChecked()) !== want && !label.startsWith('Include')) await box.click();
+  }
+  await dialog.getByRole('radio', { name: '1×' }).click();
+  const [download] = await Promise.all([page.waitForEvent('download'), dialog.getByRole('button', { name: /Export ZIP/ }).click()]);
+  const png = await (await readZip(download)).file('appstore-iphone.png')!.async('uint8array');
+  const res = await probePng(page, png, [0.5, 0.7]); // inside the phone
+  expect([res.width, res.height]).toEqual([1320, 2868]);
+  expectColor(res.rgb, MAGENTA);
+});
+
+test('Testimonial, Key Figures and Event render their own fields', async ({ page }) => {
+  await newProject(page);
+  const canvas = page.getByTestId('canvas');
+  await useTemplate(page, 'Testimonial');
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveCount(0);
+  await page.getByRole('textbox', { name: 'Quote', exact: true }).fill('Best tool we bought this year.');
+  await page.getByRole('textbox', { name: 'Name', exact: true }).fill('Dana Smith');
+  await expect(canvas).toContainText('Best tool we bought this year.');
+  await expect(canvas).toContainText('DS'); // initials without a photo
+
+  await useTemplate(page, 'Key Figures');
+  await page.getByRole('textbox', { name: 'Figure 4 value' }).fill('99%');
+  await page.getByRole('textbox', { name: 'Figure 4 label' }).fill('Uptime');
+  await expect(canvas).toContainText('99%');
+  await expect(canvas).toContainText('Uptime');
+
+  await useTemplate(page, 'Event');
+  await page.getByRole('textbox', { name: 'Date', exact: true }).fill('Fri 6 June');
+  await page.getByRole('textbox', { name: 'Call to action' }).fill('Save your seat');
+  await expect(canvas).toContainText('Fri 6 June');
+  await expect(canvas).toContainText('Save your seat');
+});
+
 test('Features lists the edited items', async ({ page }) => {
   await newProject(page);
   await useTemplate(page, 'Features');

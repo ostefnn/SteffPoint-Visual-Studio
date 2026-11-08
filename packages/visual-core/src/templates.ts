@@ -3,6 +3,10 @@
 export type TemplateId =
   | 'browser-hero'
   | 'device-mix'
+  | 'app-store'
+  | 'testimonial'
+  | 'stats'
+  | 'event'
   | 'features'
   | 'code'
   | 'browser-duo'
@@ -22,6 +26,8 @@ export type TemplateCategory =
   | 'editorial'
   | 'announcement'
   | 'documentation'
+  | 'social-proof'
+  | 'event'
   | 'minimal';
 
 /** Devices the Device Mix template can show, always drawn in this order (back to front). */
@@ -32,7 +38,7 @@ export const DEVICE_LABELS: Record<DeviceKind, string> = { desktop: 'Desktop', t
 export type DesktopFrame = 'browser' | 'window' | 'plain' | 'laptop';
 export const DESKTOP_FRAMES: readonly DesktopFrame[] = ['browser', 'window', 'plain', 'laptop'];
 /** Templates that draw desktop screenshots in a desktop frame. */
-export const DESKTOP_FRAME_TEMPLATES: readonly TemplateId[] = ['browser-hero', 'browser-duo', 'device-mix'];
+export const DESKTOP_FRAME_TEMPLATES: readonly TemplateId[] = ['browser-hero', 'browser-duo', 'device-mix', 'app-store'];
 
 /** Tablet and phone frames can be held upright or turned sideways. */
 export type DeviceOrientation = 'portrait' | 'landscape';
@@ -77,6 +83,14 @@ export const TEMPLATES: TemplateDefinition[] = [
     description: 'Pick two or three devices (desktop, tablet, mobile) to show your app on every screen.',
     shotKind: 'any',
     slots: { ...text, screenshots: { min: 2, max: 3 } },
+  },
+  {
+    id: 'app-store',
+    name: 'App Store',
+    category: 'mobile',
+    description: 'Store screenshots: a big caption over a device that bleeds off the bottom.',
+    shotKind: 'any',
+    slots: { ...text, screenshots: { min: 1, max: 1 } },
   },
   {
     id: 'browser-duo',
@@ -127,6 +141,30 @@ export const TEMPLATES: TemplateDefinition[] = [
     slots: { ...text, screenshots: { min: 0, max: 1 } },
   },
   {
+    id: 'testimonial',
+    name: 'Testimonial',
+    category: 'social-proof',
+    description: 'A customer quote with their photo, name and role.',
+    shotKind: 'any',
+    slots: { title: false, subtitle: false, kicker: true, logo: true, screenshots: { min: 0, max: 1 } },
+  },
+  {
+    id: 'stats',
+    name: 'Key Figures',
+    category: 'social-proof',
+    description: 'Two to four big numbers with labels: users, ratings, time saved.',
+    shotKind: 'any',
+    slots: { ...text, screenshots: { min: 0, max: 0 } },
+  },
+  {
+    id: 'event',
+    name: 'Event',
+    category: 'event',
+    description: 'Webinar, meetup or launch: date, time, place, speakers and a call to action.',
+    shotKind: 'any',
+    slots: { ...text, screenshots: { min: 0, max: 3 } },
+  },
+  {
     id: 'features',
     name: 'Features',
     category: 'announcement',
@@ -160,6 +198,8 @@ export const TEMPLATE_CATEGORIES: { id: TemplateCategory; label: string }[] = [
   { id: 'before-after', label: 'Before / After' },
   { id: 'announcement', label: 'Announcement' },
   { id: 'documentation', label: 'Documentation' },
+  { id: 'social-proof', label: 'Social Proof' },
+  { id: 'event', label: 'Event' },
   { id: 'editorial', label: 'Editorial' },
   { id: 'minimal', label: 'Minimal' },
 ];

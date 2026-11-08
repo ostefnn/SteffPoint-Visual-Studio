@@ -6,6 +6,7 @@ import {
   DESKTOP_FRAME_TEMPLATES,
   DEVICE_KINDS,
   DEVICE_LABELS,
+  getTemplate,
   LIMITS,
   MIN_DEVICES,
   NO_CROP,
@@ -45,7 +46,20 @@ function ContentSection() {
   const showsDesktop =
     DESKTOP_FRAME_TEMPLATES.includes(template) && (template !== 'device-mix' || normalizeDevices(devices).includes('desktop'));
 
-  type TextKey = 'kicker' | 'title' | 'subtitle' | 'beforeLabel' | 'afterLabel' | 'codeFile';
+  type TextKey =
+    | 'kicker'
+    | 'title'
+    | 'subtitle'
+    | 'beforeLabel'
+    | 'afterLabel'
+    | 'codeFile'
+    | 'quote'
+    | 'author'
+    | 'authorRole'
+    | 'eventDate'
+    | 'eventTime'
+    | 'eventPlace'
+    | 'cta';
   const maxLen: Record<TextKey, number> = {
     kicker: LIMITS.kicker,
     title: LIMITS.title,
@@ -53,9 +67,30 @@ function ContentSection() {
     beforeLabel: LIMITS.label,
     afterLabel: LIMITS.label,
     codeFile: LIMITS.codeFile,
+    quote: LIMITS.quote,
+    author: LIMITS.person,
+    authorRole: LIMITS.person,
+    eventDate: LIMITS.eventField,
+    eventTime: LIMITS.eventField,
+    eventPlace: LIMITS.eventField,
+    cta: LIMITS.cta,
   };
+  // Single-line fields drop newlines; the quote keeps them.
   const set = (key: TextKey) => (e: { target: { value: string } }) =>
-    update((d) => void (d.content[key] = e.target.value.slice(0, maxLen[key])), `content-${key}`);
+    update((d) => {
+      const v = key === 'quote' || key === 'title' || key === 'subtitle' ? e.target.value : e.target.value.replace(/\n/g, ' ');
+      d.content[key] = v.slice(0, maxLen[key]);
+    }, `content-${key}`);
+  const slots = getTemplate(template).slots;
+  const stats = Array.from({ length: LIMITS.statItems }, (_, i) => content.stats[i] ?? { value: '', label: '' });
+  const setStat = (i: number, key: 'value' | 'label', value: string) =>
+    update((d) => {
+      const list = Array.from({ length: LIMITS.statItems }, (_, j) => (d.content.stats[j] ? { ...d.content.stats[j] } : { value: '', label: '' }));
+      list[i] = { ...list[i], [key]: value.replace(/\n/g, ' ').slice(0, key === 'value' ? LIMITS.statValue : LIMITS.statLabel) };
+      // Keep trailing empty rows out of the project.
+      while (list.length && !list[list.length - 1].value && !list[list.length - 1].label) list.pop();
+      d.content.stats = list;
+    }, `stat-${i}-${key}`);
   const setFeature = (i: number, value: string) =>
     update((d) => {
       const list = [...d.content.features];
@@ -76,12 +111,72 @@ function ContentSection() {
       <Field label="Kicker" hint={count(content.kicker, LIMITS.kicker)}>
         <input value={content.kicker} onChange={set('kicker')} className={inputCls} placeholder="e.g. New release…" />
       </Field>
-      <Field label="Title" hint={count(content.title, LIMITS.title)}>
-        <textarea value={content.title} onChange={set('title')} rows={2} className={cx(inputCls, 'resize-y')} />
-      </Field>
-      <Field label="Subtitle" hint={count(content.subtitle, LIMITS.subtitle)}>
-        <textarea value={content.subtitle} onChange={set('subtitle')} rows={3} className={cx(inputCls, 'resize-y')} />
-      </Field>
+      {slots.title && (
+        <Field label="Title" hint={count(content.title, LIMITS.title)}>
+          <textarea value={content.title} onChange={set('title')} rows={2} className={cx(inputCls, 'resize-y')} />
+        </Field>
+      )}
+      {slots.subtitle && (
+        <Field label="Subtitle" hint={count(content.subtitle, LIMITS.subtitle)}>
+          <textarea value={content.subtitle} onChange={set('subtitle')} rows={3} className={cx(inputCls, 'resize-y')} />
+        </Field>
+      )}
+      {template === 'testimonial' && (
+        <>
+          <Field label="Quote" hint={count(content.quote, LIMITS.quote)}>
+            <textarea value={content.quote} onChange={set('quote')} rows={4} className={cx(inputCls, 'resize-y')} />
+          </Field>
+          <Field label="Name">
+            <input value={content.author} onChange={set('author')} className={inputCls} placeholder="e.g. Alex Martin…" />
+          </Field>
+          <Field label="Role">
+            <input value={content.authorRole} onChange={set('authorRole')} className={inputCls} placeholder="e.g. Head of Marketing, Northwind…" />
+          </Field>
+          <p className="text-[11px] text-zinc-500">The first screenshot is used as the photo; without one, the initials are shown.</p>
+        </>
+      )}
+      {template === 'stats' && (
+        <fieldset className="space-y-2">
+          <legend className="mb-1 text-xs font-medium text-zinc-600">Figures (up to {LIMITS.statItems})</legend>
+          {stats.map((st, i) => (
+            <div key={i} className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-2">
+              <input
+                value={st.value}
+                aria-label={`Figure ${i + 1} value`}
+                placeholder={i === 0 ? '10k+…' : 'Value…'}
+                onChange={(e) => setStat(i, 'value', e.target.value)}
+                className={cx(inputCls, 'font-semibold tabular-nums')}
+              />
+              <input
+                value={st.label}
+                aria-label={`Figure ${i + 1} label`}
+                placeholder={i === 0 ? 'e.g. Visuals exported…' : 'Label…'}
+                onChange={(e) => setStat(i, 'label', e.target.value)}
+                className={inputCls}
+              />
+            </div>
+          ))}
+        </fieldset>
+      )}
+      {template === 'event' && (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Date">
+              <input value={content.eventDate} onChange={set('eventDate')} className={inputCls} placeholder="e.g. Thu 12 Dec…" />
+            </Field>
+            <Field label="Time">
+              <input value={content.eventTime} onChange={set('eventTime')} className={inputCls} placeholder="e.g. 14:00 CET…" />
+            </Field>
+          </div>
+          <Field label="Place">
+            <input value={content.eventPlace} onChange={set('eventPlace')} className={inputCls} placeholder="e.g. Online · Microsoft Teams…" />
+          </Field>
+          <Field label="Call to action">
+            <input value={content.cta} onChange={set('cta')} className={inputCls} placeholder="e.g. Register now…" />
+          </Field>
+          <p className="text-[11px] text-zinc-500">Screenshots 1–3 are shown as speaker photos.</p>
+        </>
+      )}
       {showsDesktop && (
         <div>
           <p className="mb-1 text-xs font-medium text-zinc-600">Desktop frame</p>
