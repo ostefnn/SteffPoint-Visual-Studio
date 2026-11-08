@@ -761,35 +761,6 @@ function Minimal(ctx: Ctx) {
 }
 
 
-function BrowserMobile(ctx: Ctx) {
-  const { w, h, o, wide } = ctx;
-  let text: ReactNode;
-  let browser: CSSProperties;
-  let phoneH: number, phoneX: number, phoneY: number;
-  if (o === 'landscape') {
-    text = <TextBlock ctx={ctx} style={leftColumn(ctx, wide ? 0.32 : 0.36)} scale={0.92} />;
-    browser = abs(w * (wide ? 0.38 : 0.42), h * 0.12, w * (wide ? 0.48 : 0.5), h * 0.74);
-    phoneH = h * (wide ? 0.84 : 0.72);
-    phoneX = w * (wide ? 0.83 : 0.8);
-    phoneY = h * (wide ? 0.12 : 0.24);
-  } else {
-    const portrait = o === 'portrait';
-    text = <TextBlock ctx={ctx} align="center" style={topBlock(ctx)} scale={0.92} />;
-    browser = abs(w * 0.05, h * (portrait ? 0.44 : 0.46), w * 0.76, h * (portrait ? 0.3 : 0.42));
-    phoneH = h * (portrait ? 0.3 : 0.42);
-    phoneX = w * 0.68;
-    phoneY = h * 0.52;
-  }
-  const phoneW = phoneH * 0.48;
-  return (
-    <>
-      {text}
-      <BrowserFrame ctx={ctx} index={0} style={browser} />
-      <PhoneFrame ctx={ctx} index={1} width={phoneW} style={abs(phoneX, phoneY, phoneW, phoneH, { zIndex: 2 })} />
-    </>
-  );
-}
-
 /** Width / height of the device frames, used to keep their proportions whatever the format. */
 const DEVICE_RATIO = { tablet: 0.75, mobile: 0.48 } as const;
 
@@ -1101,7 +1072,6 @@ function Code(ctx: Ctx) {
 const TEMPLATE_COMPONENTS: Record<string, (ctx: Ctx) => ReactNode> = {
   'browser-hero': BrowserHero,
   'browser-duo': BrowserDuo,
-  'browser-mobile': BrowserMobile,
   'device-mix': DeviceMix,
   features: Features,
   code: Code,

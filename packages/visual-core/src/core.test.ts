@@ -163,6 +163,12 @@ describe('device mix', () => {
     expect(migrateProject({}).devices).toEqual(['desktop', 'tablet', 'mobile']); // older files
   });
 
+  it('turns the retired Desktop + Mobile template into Device Mix', () => {
+    const p = migrateProject({ template: 'browser-mobile', devices: ['tablet', 'mobile'] });
+    expect(p.template).toBe('device-mix');
+    expect(p.devices).toEqual(['desktop', 'mobile']);
+  });
+
   it('expects one screenshot per selected device', () => {
     expect(screenshotRange({ template: 'device-mix', devices: ['desktop', 'mobile'] })).toEqual({ min: 2, max: 2 });
     expect(screenshotRange({ template: 'device-mix', devices: ['desktop', 'tablet', 'mobile'] })).toEqual({ min: 3, max: 3 });

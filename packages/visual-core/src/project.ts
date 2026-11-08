@@ -238,6 +238,9 @@ export function migrateProject(raw: unknown): Project {
         }))
     : [];
 
+  // "Desktop + Mobile" (browser-mobile) was replaced by Device Mix with the same two devices.
+  const legacyDesktopMobile = r.template === 'browser-mobile';
+
   const logo = typeof brand.logoAssetId === 'string' && assetIds.has(brand.logoAssetId) ? brand.logoAssetId : null;
 
   const presets = Array.isArray(r.exportPresets)
@@ -252,7 +255,7 @@ export function migrateProject(raw: unknown): Project {
     updatedAt: num(r.updatedAt, d.updatedAt, 0, Number.MAX_SAFE_INTEGER),
     revision: Math.floor(num(r.revision, 0, 0, Number.MAX_SAFE_INTEGER)),
     favorite: r.favorite === true,
-    template: isTemplateId(r.template) ? r.template : d.template,
+    template: legacyDesktopMobile ? 'device-mix' : isTemplateId(r.template) ? r.template : d.template,
     content: {
       kicker: str(content.kicker, d.content.kicker, LIMITS.kicker),
       title: str(content.title, d.content.title, LIMITS.title),
@@ -288,6 +291,6 @@ export function migrateProject(raw: unknown): Project {
       width: clampCustomSize(num(custom.width, d.customFormat.width, 1, 100_000)),
       height: clampCustomSize(num(custom.height, d.customFormat.height, 1, 100_000)),
     },
-    devices: normalizeDevices(r.devices),
+    devices: legacyDesktopMobile ? ['desktop', 'mobile'] : normalizeDevices(r.devices),
   };
 }

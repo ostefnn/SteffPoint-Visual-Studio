@@ -22,11 +22,12 @@ async function exportLinkedIn(page: Page) {
   return zip.file('linkedin.png')!.async('uint8array');
 }
 
-test('Desktop + Mobile renders both screenshots', async ({ page }) => {
+test('Device Mix desktop + mobile renders both screenshots', async ({ page }) => {
   await newProject(page);
   await addScreenshot(page, 'desktop-magenta.png');
   await addScreenshot(page, 'desktop-cyan.png');
-  await useTemplate(page, 'Desktop + Mobile');
+  await useTemplate(page, 'Device Mix');
+  await page.getByRole('group', { name: 'Devices' }).getByRole('checkbox', { name: 'Tablet' }).uncheck({ force: true });
   const png = await exportLinkedIn(page);
   expectColor((await probePng(page, png, [0.55, 0.5])).rgb, MAGENTA); // browser
   expectColor((await probePng(page, png, [0.89, 0.6])).rgb, CYAN); // phone
