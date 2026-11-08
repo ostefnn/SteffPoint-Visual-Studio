@@ -49,7 +49,7 @@ function ContentSection() {
   return (
     <Section title="Content">
       <Field label="Kicker" hint={count(content.kicker, LIMITS.kicker)}>
-        <input value={content.kicker} onChange={set('kicker')} className={inputCls} placeholder="e.g. New release" />
+        <input value={content.kicker} onChange={set('kicker')} className={inputCls} placeholder="e.g. New release…" />
       </Field>
       <Field label="Title" hint={count(content.title, LIMITS.title)}>
         <textarea value={content.title} onChange={set('title')} rows={2} className={cx(inputCls, 'resize-y')} />
@@ -75,7 +75,7 @@ function ContentSection() {
               key={i}
               value={f}
               aria-label={`Feature ${i + 1}`}
-              placeholder={i === 0 ? 'e.g. Works offline' : 'Optional'}
+              placeholder={i === 0 ? 'e.g. Works offline…' : 'Optional…'}
               onChange={(e) => setFeature(i, e.target.value)}
               className={inputCls}
             />
@@ -119,6 +119,7 @@ function ImageSection() {
   const shots = useEditor((s) => s.project?.screenshots);
   const selectedId = useEditor((s) => s.selectedShotId);
   const urls = useEditor((s) => s.urls);
+  const assets = useEditor((s) => s.project?.assets);
   const template = useEditor((s) => s.project?.template);
   const { update } = useEditor.getState();
   const index = shots?.findIndex((s) => s.id === selectedId) ?? -1;
@@ -156,6 +157,7 @@ function ImageSection() {
       {index >= max && <p className="rounded-md bg-amber-50 px-2 py-1.5 text-xs text-amber-800">This template shows {max} screenshot(s); this one is hidden.</p>}
       <FocalPicker
         url={urls[shot.assetId]}
+        asset={assets?.find((a) => a.id === shot.assetId)}
         x={shot.focalX}
         y={shot.focalY}
         onChange={(x, y) =>
@@ -184,7 +186,21 @@ function ImageSection() {
 }
 
 /** Click or drag on the image to set the point that must stay visible in every format. */
-function FocalPicker({ url, x, y, onChange }: { url?: string; x: number; y: number; onChange: (x: number, y: number) => void }) {
+const FOCAL_MAX_HEIGHT = 192; // matches max-h-48
+
+function FocalPicker({
+  url,
+  asset,
+  x,
+  y,
+  onChange,
+}: {
+  url?: string;
+  asset?: { width: number; height: number };
+  x: number;
+  y: number;
+  onChange: (x: number, y: number) => void;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const pick = (e: React.PointerEvent) => {
     const r = ref.current!.getBoundingClientRect();
@@ -216,7 +232,21 @@ function FocalPicker({ url, x, y, onChange }: { url?: string; x: number; y: numb
           onPointerMove={(e) => e.buttons === 1 && pick(e)}
           className="relative cursor-crosshair touch-none select-none focus-visible:outline-2 focus-visible:outline-blue-600"
         >
-          {url && <img src={url} alt="" draggable={false} className="block max-h-48 max-w-full" />}
+          {url &&
+            (asset && asset.width > 0 && asset.height > 0 ? (
+              // Known dimensions reserve the box before decode (no layout shift); max-w-full + h-auto keep the ratio on narrow panels.
+              <img
+                src={url}
+                alt=""
+                draggable={false}
+                width={asset.width}
+                height={asset.height}
+                style={{ width: Math.min(asset.width, (FOCAL_MAX_HEIGHT * asset.width) / asset.height) }}
+                className="block h-auto max-w-full"
+              />
+            ) : (
+              <img src={url} alt="" draggable={false} className="block max-h-48 max-w-full" />
+            ))}
           <span
             className="pointer-events-none absolute size-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-blue-600/60 shadow-[0_0_0_1px_rgba(0,0,0,0.4)]"
             style={{ left: `${x * 100}%`, top: `${y * 100}%` }}

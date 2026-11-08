@@ -62,12 +62,12 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
         e.preventDefault();
         if (!busy) onClose();
       }}
-      className="m-auto w-[min(560px,calc(100vw-32px))] rounded-2xl bg-white p-0 shadow-2xl backdrop:bg-zinc-900/40"
+      className="m-auto w-[min(560px,calc(100vw-32px))] overscroll-contain rounded-2xl bg-white p-0 shadow-2xl backdrop:bg-zinc-900/40"
       aria-labelledby="export-title"
     >
       <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-4">
         <h2 id="export-title" className="font-semibold">
-          Export pack
+          Export Pack
         </h2>
         <Button variant="ghost" onClick={onClose} disabled={busy} aria-label="Close">
           <Icon name="x" />
@@ -147,7 +147,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
           {busy
             ? `Rendering ${progress.done}/${progress.total}…`
             : formats.length === 1 && !includeProject
-              ? 'Export image'
+              ? 'Export Image'
               : `Export ZIP (${formats.length})`}
         </Button>
       </div>

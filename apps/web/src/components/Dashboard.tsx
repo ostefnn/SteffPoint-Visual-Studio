@@ -100,11 +100,11 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
           </div>
           <PrivacyBadge />
           <Button onClick={() => fileInput.current?.click()}>
-            <Icon name="upload" /> Import project
+            <Icon name="upload" /> Import Project
           </Button>
           <input ref={fileInput} type="file" accept="application/json,.json" className="hidden" onChange={(e) => onImport(e.target.files)} />
           <Button variant="primary" onClick={() => create()}>
-            <Icon name="plus" /> New project
+            <Icon name="plus" /> New Project
           </Button>
         </div>
       </header>
@@ -125,7 +125,9 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
               <Icon name="search" className="absolute left-2.5 top-2.5 size-4 text-zinc-400" />
               <input
                 type="search"
-                placeholder="Search projects"
+                name="q"
+                autoComplete="off"
+                placeholder="Search projects…"
                 aria-label="Search projects"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -146,7 +148,7 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
                 <>
                   <p className="mt-1 text-sm text-zinc-500">Start from a template below or create a blank project. Everything stays on this device.</p>
                   <Button variant="primary" className="mt-4" onClick={() => create()}>
-                    <Icon name="plus" /> New project
+                    <Icon name="plus" /> New Project
                   </Button>
                 </>
               )}
@@ -162,14 +164,14 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
 
         <section>
           <div className="mb-4 flex flex-wrap items-center gap-2">
-            <h2 className="mr-3 text-base font-semibold">Start from a template</h2>
+            <h2 className="mr-3 text-base font-semibold">Start from a Template</h2>
             {[{ id: 'all' as const, label: 'All' }, ...TEMPLATE_CATEGORIES].map((c) => (
               <button
                 key={c.id}
                 type="button"
                 onClick={() => setCategory(c.id)}
                 className={cx(
-                  'rounded-full px-3 py-1 text-xs font-medium ring-1',
+                  'rounded-full px-3 py-1 text-xs font-medium ring-1 transition-transform duration-100 ease-out motion-safe:active:scale-[0.97]',
                   category === c.id ? 'bg-zinc-900 text-white ring-zinc-900' : 'bg-white text-zinc-700 ring-zinc-200 hover:bg-zinc-50',
                 )}
               >
@@ -213,7 +215,7 @@ function ProjectCard({ project, onOpen, actions }: { project: Project; onOpen: (
     <li className="group overflow-hidden rounded-xl bg-white ring-1 ring-zinc-200">
       <button type="button" onClick={onOpen} className="block aspect-[1200/627] w-full overflow-hidden bg-zinc-100" aria-label={`Open ${project.name}`}>
         {url ? (
-          <img src={url} alt="" className="size-full object-cover transition group-hover:scale-[1.02]" />
+          <img src={url} alt="" className="size-full object-cover transition-transform motion-safe:group-hover:scale-[1.02]" />
         ) : (
           <span className="flex size-full items-center justify-center text-zinc-400">
             <Icon name="image" className="size-8" />

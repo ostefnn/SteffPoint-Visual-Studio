@@ -60,11 +60,41 @@ test('project JSON round trip through import', async ({ page }) => {
   await addScreenshot(page, 'desktop-magenta.png');
   await titleBox(page).fill('Round trip');
   await expect(page.getByTestId('save-state')).toHaveText('Saved');
-  await page.getByRole('button', { name: 'Back to projects' }).click();
+  await page.getByRole('button', { name: 'Back to Projects' }).click();
 
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'JSON' }).first().click()]);
   await page.locator('input[type=file][accept*=json]').setInputFiles(await download.path());
   await expect(titleBox(page)).toHaveValue('Round trip');
   await page.getByRole('tab', { name: 'Images' }).click();
   await expect.poll(() => page.locator('[role=tabpanel] li img').evaluate((i: HTMLImageElement) => i.naturalWidth)).toBe(1600);
+});
+
+test('editor tabs follow the ARIA tabs keyboard pattern', async ({ page }) => {
+  await newProject(page);
+  const tab = (name: string) => page.getByRole('tab', { name });
+  await tab('Templates').focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(tab('Images')).toBeFocused();
+  await expect(tab('Images')).toHaveAttribute('aria-selected', 'true');
+  await page.keyboard.press('End');
+  await expect(tab('Background')).toBeFocused();
+  await page.keyboard.press('ArrowRight'); // wraps around
+  await expect(tab('Templates')).toBeFocused();
+  await page.keyboard.press('ArrowLeft');
+  await expect(tab('Background')).toBeFocused();
+  // Roving tabindex: only the selected tab is in the tab order.
+  await expect(page.locator('[role=tab][tabindex="0"]')).toHaveCount(1);
+  await expect(page.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', 'tab-background');
+});
+
+test('focal point image reserves its size before decoding', async ({ page }) => {
+  await newProject(page);
+  await addScreenshot(page, 'desktop-magenta.png');
+  await page.locator('[role=tabpanel] li button').first().click();
+  const img = page.getByRole('slider', { name: 'Focal point' }).locator('img');
+  await expect(img).toHaveAttribute('width', '1600');
+  const box = (await img.boundingBox())!;
+  const ratio = await img.evaluate((i: HTMLImageElement) => i.naturalWidth / i.naturalHeight);
+  expect(box.height).toBeLessThanOrEqual(192.5);
+  expect(Math.abs(box.width / box.height - ratio)).toBeLessThan(0.02);
 });
