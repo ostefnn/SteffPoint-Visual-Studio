@@ -12,7 +12,7 @@ export function FormatStrip() {
   if (!project) return null;
 
   return (
-    <div className="border-t border-zinc-200 bg-white">
+    <div className="border-t border-line bg-surface">
       <ul className="flex gap-3 overflow-x-auto px-4 py-3" aria-label="Formats">
         {FORMAT_ORDER.map((id) => {
           const f = resolveFormat(id, project.customFormat);
@@ -25,8 +25,8 @@ export function FormatStrip() {
                 aria-pressed={active === id}
                 aria-label={`Preview ${f.label}`}
                 className={cx(
-                  'flex h-[76px] w-[124px] items-center justify-center rounded-lg bg-zinc-100 ring-1 transition',
-                  active === id ? 'ring-2 ring-blue-600' : 'ring-zinc-200 hover:ring-zinc-400',
+                  'flex h-[76px] w-[124px] items-center justify-center rounded-lg bg-subtle ring-1 transition',
+                  active === id ? 'ring-2 ring-accent' : 'ring-line hover:ring-field',
                 )}
               >
                 <Stage project={project} format={f} urls={urls} maxWidth={116} maxHeight={68} className="rounded-sm shadow-sm" />

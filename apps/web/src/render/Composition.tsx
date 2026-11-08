@@ -5,6 +5,9 @@
  */
 import type { CSSProperties, ReactNode } from 'react';
 import {
+  BOLD_INK,
+  getStyle,
+  type StyleSpec,
   backgroundPeak,
   CODE_LINE_HEIGHT,
   fitCodeFontSize,
@@ -29,6 +32,17 @@ import {
   type ScreenshotSlot,
 } from '@svs/visual-core';
 
+/** Colours of the drawn device hardware: the token block for everything that is not brand-derived. */
+const HW = {
+  bezel: '#0d0f14',
+  screenOff: '#2a2e38',
+  lid: '#d9dce1',
+  hinge: '#a3a8b0',
+  onDark: '#ffffff',
+  codeTab: '#c9cdd8',
+  lidGradient: 'linear-gradient(#d9dce1, #b4b8bf 60%, #8e939b)',
+} as const;
+
 interface Ctx {
   p: Project;
   w: number;
@@ -41,6 +55,10 @@ interface Ctx {
   pal: Palette;
   urls: Record<string, string>;
   heading: string;
+  /** Style preset in use (typefaces, kicker, frames, shadows). */
+  style: StyleSpec;
+  /** Outline of screenshots, cards and frames for the style. */
+  edge: string;
   radius: number;
   shadow: string;
   /** Builds a box-shadow from soft layers. */
@@ -67,7 +85,8 @@ export interface CompositionProps {
 }
 
 export function Composition({ project, width, height, urls }: CompositionProps) {
-  const pal = derivePalette(project.brand.primary, project.brand.theme);
+  const spec = getStyle(project.brand.style);
+  const pal = derivePalette(project.brand.primary, project.brand.theme, spec.id);
   const u = Math.min(width, height) / 100;
   const s = project.brand.shadow;
   const dark = project.brand.theme === 'dark';
@@ -80,10 +99,16 @@ export function Composition({ project, width, height, urls }: CompositionProps) 
     wide: width / height > 2.2,
     pal,
     urls,
-    heading: FONT_STACKS[project.brand.headingFont],
-    radius: u * (0.4 + project.brand.radius * 3.6),
+    heading: spec.heading ?? FONT_STACKS[project.brand.headingFont],
+    style: spec,
+    edge: spec.edge === 'thick' ? `${Math.max(2, u * 0.45)}px solid ${BOLD_INK}` : `${Math.max(1, u * 0.12)}px solid ${pal.border}`,
+    radius: u * (0.4 + project.brand.radius * 3.6) * spec.radiusScale,
     shadow:
-      s <= 0.01
+      spec.shadow === 'none'
+        ? 'none'
+        : spec.shadow === 'hard'
+          ? `${u * 1.1}px ${u * 1.1}px 0 ${BOLD_INK}`
+          : s <= 0.01
         ? 'none'
         : boxShadow([
             { y: u * 0.4, blur: u * 1.2, alpha: (dark ? 0.25 : 0.06) + 0.1 * s },
@@ -100,7 +125,7 @@ export function Composition({ project, width, height, urls }: CompositionProps) 
         height,
         position: 'relative',
         overflow: 'hidden',
-        fontFamily: BODY_STACK,
+        fontFamily: spec.body ?? BODY_STACK,
         color: pal.text,
         ...backgroundStyle(ctx),
       }}
@@ -114,7 +139,8 @@ export function Composition({ project, width, height, urls }: CompositionProps) 
 // Backgrounds
 // ---------------------------------------------------------------------------
 
-function backgroundStyle({ p, pal, u }: Ctx): CSSProperties {
+function backgroundStyle({ p, pal, u, style }: Ctx): CSSProperties {
+  if (style.brandBackground) return { background: pal.bg };
   const { type, intensity: i, angle } = p.background;
   const peak = backgroundPeak(pal, type, i);
   switch (type) {
@@ -258,7 +284,7 @@ function BrowserFrame({ ctx, index, style }: { ctx: Ctx; index: number; style: C
         overflow: 'hidden',
         background: pal.surface,
         boxShadow: shadow,
-        border: `${Math.max(1, u * 0.12)}px solid ${pal.border}`,
+        border: ctx.edge,
       }}
     >
       {kind !== 'plain' && (
@@ -313,7 +339,7 @@ function LaptopFrame({ ctx, index, style }: { ctx: Ctx; index: number; style: CS
           minHeight: 0,
           padding: `${bezel * 1.4}px ${bezel}px ${bezel}px`,
           borderRadius: `${W * 0.022}px ${W * 0.022}px 0 0`,
-          background: '#0d0f14',
+          background: HW.bezel,
           boxShadow: ctx.shadow === 'none' ? undefined : ctx.shadow,
         }}
       >
@@ -330,7 +356,7 @@ function LaptopFrame({ ctx, index, style }: { ctx: Ctx; index: number; style: CS
             marginLeft: -bezel * 0.16,
             marginTop: -bezel * 0.16,
             borderRadius: '50%',
-            background: '#2a2e38',
+            background: HW.screenOff,
           }}
         />
       </div>
@@ -341,7 +367,7 @@ function LaptopFrame({ ctx, index, style }: { ctx: Ctx; index: number; style: CS
           height: base,
           flex: 'none',
           borderRadius: `${base * 0.15}px ${base * 0.15}px ${base * 0.9}px ${base * 0.9}px / ${base * 0.15}px ${base * 0.15}px ${base * 0.6}px ${base * 0.6}px`,
-          background: 'linear-gradient(#d9dce1, #b4b8bf 60%, #8e939b)',
+          background: HW.lidGradient,
           boxShadow: ctx.shadow === 'none' ? undefined : ctx.softShadow([{ y: base * 0.4, blur: base * 1.2, alpha: 0.25 }]),
         }}
       >
@@ -354,7 +380,7 @@ function LaptopFrame({ ctx, index, style }: { ctx: Ctx; index: number; style: CS
             height: base * 0.35,
             marginLeft: -W * 0.07,
             borderRadius: `0 0 ${base * 0.3}px ${base * 0.3}px`,
-            background: '#a3a8b0',
+            background: HW.hinge,
           }}
         />
       </div>
@@ -386,13 +412,13 @@ function PhoneFrame({
         ...style,
         borderRadius: width * 0.16,
         padding: bezel,
-        background: '#0d0f14',
+        background: HW.bezel,
         boxShadow: ctx.shadow === 'none' ? `0 0 0 ${Math.max(1, ctx.u * 0.15)}px rgba(255,255,255,0.08)` : ctx.shadow,
       }}
     >
       <div style={{ position: 'relative', width: '100%', height: '100%', borderRadius: width * 0.13, overflow: 'hidden' }}>
         <ImageBox ctx={ctx} slot={ctx.shots[index]} index={index} />
-        <div style={{ position: 'absolute', ...island, borderRadius: width, background: '#0d0f14' }} />
+        <div style={{ position: 'absolute', ...island, borderRadius: width, background: HW.bezel }} />
       </div>
     </div>
   );
@@ -420,7 +446,7 @@ function TabletFrame({
         ...style,
         borderRadius: width * 0.07,
         padding: bezel,
-        background: '#0d0f14',
+        background: HW.bezel,
         boxShadow: ctx.shadow === 'none' ? `0 0 0 ${Math.max(1, ctx.u * 0.15)}px rgba(255,255,255,0.08)` : ctx.shadow,
       }}
     >
@@ -436,7 +462,7 @@ function TabletFrame({
           marginLeft: -bezel * 0.18,
           marginTop: -bezel * 0.18,
           borderRadius: '50%',
-          background: '#2a2e38',
+          background: HW.screenOff,
         }}
       />
     </div>
@@ -453,7 +479,7 @@ function Card({ ctx, index, style }: { ctx: Ctx; index: number; style: CSSProper
         overflow: 'hidden',
         background: ctx.pal.surface,
         boxShadow: ctx.shadow,
-        border: `${Math.max(1, ctx.u * 0.12)}px solid ${ctx.pal.border}`,
+        border: ctx.edge,
       }}
     >
       <ImageBox ctx={ctx} slot={ctx.shots[index]} index={index} />
@@ -473,6 +499,56 @@ interface TextColors {
   muted: string;
   kickerBg: string;
   kickerText: string;
+}
+
+/**
+ * The short line above the title. Minimal, Editorial and Bold never use tracked capitals:
+ * plain text a step smaller (Minimal), over a hairline (Editorial), or a black label (Bold).
+ * Soft keeps its original pill (or the capitals some templates asked for).
+ */
+function Kicker({ ctx, text, legacy, scale, colors }: { ctx: Ctx; text: string; legacy: 'pill' | 'caps'; scale: number; colors: TextColors }) {
+  const { u, pal, style } = ctx;
+  const size = kickerSize(u, scale) * (style.kicker === 'pill' ? 1 : 1.15);
+  if (style.kicker === 'plain') {
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: size * 0.6, fontSize: size, fontWeight: 500, color: colors.muted }}>
+        <span aria-hidden="true" style={{ width: size * 0.62, height: size * 0.62, background: pal.primary, flex: 'none' }} />
+        {text}
+      </span>
+    );
+  }
+  if (style.kicker === 'rule') {
+    return (
+      <span style={{ alignSelf: 'stretch', fontSize: size, fontWeight: 500, color: colors.muted, paddingBottom: size * 0.7, borderBottom: `${Math.max(1, u * 0.1)}px solid ${colors.text}` }}>
+        {text}
+      </span>
+    );
+  }
+  if (style.kicker === 'label') {
+    return (
+      <span style={{ fontSize: size, fontWeight: 600, padding: `${size * 0.4}px ${size * 0.6}px`, background: BOLD_INK, color: HW.onDark, whiteSpace: 'nowrap' }}>
+        {text}
+      </span>
+    );
+  }
+  return legacy === 'pill' ? (
+    <span
+      style={{
+        fontSize: kickerSize(u, scale),
+        fontWeight: 650,
+        padding: `${u * 0.7 * scale}px ${u * 1.6 * scale}px`,
+        borderRadius: u * 10,
+        background: colors.kickerBg,
+        color: colors.kickerText,
+        letterSpacing: '0.01em',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {text}
+    </span>
+  ) : (
+    <span style={{ fontSize: kickerSize(u, scale), fontWeight: 700, color: pal.primary, letterSpacing: '0.16em', textTransform: 'uppercase' }}>{text}</span>
+  );
 }
 
 function TextBlock({
@@ -502,7 +578,11 @@ function TextBlock({
   const { u, o, pal, p } = ctx;
   const c: TextColors = { text: pal.text, muted: pal.textMuted, kickerBg: pal.primarySoft, kickerText: pal.primaryStrong, ...colors };
   const { kicker, title, subtitle: sub } = p.content;
-  const tSize = titleSize(u, o, title.length, scale);
+  const spec = ctx.style;
+  const headingFont = font ?? ctx.heading;
+  // Instrument Serif has a single (regular) weight: never synthesise a faux bold.
+  const serifHeading = headingFont === FONT_STACKS.serif;
+  const tSize = titleSize(u, o, title.length, scale) * spec.titleScale;
   const center = align === 'center';
   return (
     <div
@@ -516,39 +596,21 @@ function TextBlock({
       }}
     >
       <Logo ctx={ctx} height={logoHeight(u, p.brand.logoSize ?? 'medium', scale)} />
-      {kicker.trim() &&
-        (kickerStyle === 'pill' ? (
-          <span
-            style={{
-              fontSize: kickerSize(u, scale),
-              fontWeight: 650,
-              padding: `${u * 0.7 * scale}px ${u * 1.6 * scale}px`,
-              borderRadius: u * 10,
-              background: c.kickerBg,
-              color: c.kickerText,
-              letterSpacing: '0.01em',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {kicker}
-          </span>
-        ) : (
-          <span style={{ fontSize: kickerSize(u, scale), fontWeight: 700, color: pal.primary, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
-            {kicker}
-          </span>
-        ))}
+      {kicker.trim() && <Kicker ctx={ctx} text={kicker} legacy={kickerStyle} scale={scale} colors={c} />}
       {showTitle && title.trim() && (
         <h1
           style={{
             margin: 0,
-            fontFamily: font ?? ctx.heading,
+            fontFamily: headingFont,
             fontSize: tSize,
-            lineHeight: 1.06,
-            fontWeight: font === FONT_STACKS.serif || ctx.p.brand.headingFont === 'serif' ? 600 : 760,
-            letterSpacing: ctx.p.brand.headingFont === 'mono' ? '-0.03em' : '-0.022em',
+            lineHeight: spec.heading || font ? spec.titleLeading : 1.06,
+            fontWeight: serifHeading ? 400 : spec.heading ? spec.titleWeight : 760,
+            fontStretch: !font ? spec.titleStretch : undefined,
+            letterSpacing: !spec.heading && ctx.p.brand.headingFont === 'mono' ? '-0.03em' : serifHeading ? '-0.015em' : spec.titleTracking,
             color: c.text,
             whiteSpace: 'pre-wrap',
             overflowWrap: 'break-word',
+            minWidth: 0,
             maxWidth: '100%',
           }}
         >
@@ -560,8 +622,10 @@ function TextBlock({
         <p
           style={{
             margin: 0,
-            fontSize: subtitleSize(u, o, scale),
-            lineHeight: 1.38,
+            fontSize: subtitleSize(u, o, scale) * (spec.italicSubtitle ? 1.2 : 1),
+            fontFamily: spec.italicSubtitle ? spec.heading ?? undefined : undefined,
+            fontStyle: spec.italicSubtitle ? 'italic' : undefined,
+            lineHeight: spec.italicSubtitle ? 1.25 : 1.38,
             color: c.muted,
             whiteSpace: 'pre-wrap',
             overflowWrap: 'break-word',
@@ -714,7 +778,7 @@ function Bento(ctx: Ctx) {
         style={{
           ...areas[0],
           borderRadius: ctx.radius,
-          background: `linear-gradient(140deg, ${pal.primary}, ${mix(pal.primary, pal.accent, 0.45)})`,
+          background: ctx.style.glow ? `linear-gradient(140deg, ${pal.primary}, ${mix(pal.primary, pal.accent, 0.45)})` : ctx.style.brandBackground ? BOLD_INK : pal.primary,
           boxShadow: ctx.shadow,
           padding: u * 3.6,
           display: 'flex',
@@ -762,7 +826,9 @@ function Spotlight(ctx: Ctx) {
     <>
       <div
         style={abs(fx - gw / 2, fy - gh / 2, gw, gh, {
-          background: `radial-gradient(closest-side, ${withAlpha(pal.primary, 0.5)}, ${withAlpha(pal.accent, 0.18)} 55%, transparent)`,
+          background: ctx.style.glow
+            ? `radial-gradient(closest-side, ${withAlpha(pal.primary, 0.5)}, ${withAlpha(pal.accent, 0.18)} 55%, transparent)`
+            : undefined,
         })}
       />
       <TextBlock ctx={ctx} align={align} style={text} scale={o === 'landscape' && !wide ? 0.82 : 1} />
@@ -805,7 +871,7 @@ function BeforeAfter(ctx: Ctx) {
         fontSize: u * 2,
         fontWeight: 700,
         background: after ? pal.primary : 'rgba(17,19,26,0.78)',
-        color: after ? pal.onPrimary : '#fff',
+        color: after ? pal.onPrimary : HW.onDark,
       }}
     >
       {txt}
@@ -829,7 +895,7 @@ function BeforeAfter(ctx: Ctx) {
           borderRadius: '50%',
           background: pal.surface,
           boxShadow: ctx.shadow,
-          border: `${Math.max(1, u * 0.15)}px solid ${pal.border}`,
+          border: ctx.edge,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -849,7 +915,7 @@ function Editorial(ctx: Ctx) {
   const { w, h, o, u, pal } = ctx;
   const hasShot = !!ctx.shots[0];
   const imageBox = (style: CSSProperties) => (
-    <div style={{ ...style, overflow: 'hidden', background: `linear-gradient(135deg, ${pal.primary}, ${pal.accent})` }}>
+    <div style={{ ...style, overflow: 'hidden', background: ctx.style.glow ? `linear-gradient(135deg, ${pal.primary}, ${pal.accent})` : pal.bgAlt }}>
       {hasShot && <ImageBox ctx={ctx} slot={ctx.shots[0]} index={0} />}
     </div>
   );
@@ -1115,7 +1181,9 @@ function Testimonial(ctx: Ctx) {
           fontSize: u * (wide ? 30 : 40),
           lineHeight: 1,
           color: withAlpha(pal.primary, 0.14),
-          fontWeight: 700,
+          fontWeight: 400,
+          // The oversized pale quote mark is part of the Soft look only.
+          display: ctx.style.glow ? undefined : 'none',
         }}
       >
         “
@@ -1127,7 +1195,8 @@ function Testimonial(ctx: Ctx) {
             fontFamily: ctx.heading,
             fontSize: qSize,
             lineHeight: 1.22,
-            fontWeight: p.brand.headingFont === 'serif' ? 500 : 650,
+            fontWeight: ctx.heading === FONT_STACKS.serif ? 400 : ctx.style.heading ? Math.min(ctx.style.titleWeight, 650) : 650,
+            fontStretch: ctx.style.titleStretch,
             letterSpacing: '-0.015em',
             color: pal.text,
             whiteSpace: 'pre-wrap',
@@ -1167,7 +1236,7 @@ function Stats(ctx: Ctx) {
         padding: `${u * 2}px ${u * 2.4}px`,
         borderRadius: ctx.radius,
         background: pal.surface,
-        border: `${Math.max(1, u * 0.12)}px solid ${pal.border}`,
+        border: ctx.edge,
         boxShadow: ctx.shadow === 'none' ? undefined : ctx.softShadow([{ y: u * 0.3, blur: u * 1.4, alpha: 0.04 + 0.08 * p.brand.shadow }]),
         minWidth: 0,
       }}
@@ -1177,9 +1246,10 @@ function Stats(ctx: Ctx) {
           fontFamily: ctx.heading,
           fontSize: vSize,
           lineHeight: 1,
-          fontWeight: 800,
+          fontWeight: ctx.heading === FONT_STACKS.serif ? 400 : 800,
+          fontStretch: ctx.style.titleStretch,
           letterSpacing: '-0.03em',
-          color: pal.primary,
+          color: ctx.style.brandBackground ? pal.text : pal.primary,
           fontVariantNumeric: 'tabular-nums',
           whiteSpace: 'nowrap',
         }}
@@ -1259,7 +1329,7 @@ function EventTemplate(ctx: Ctx) {
         padding: fs * 1.4,
         borderRadius: ctx.radius * 1.4,
         background: pal.surface,
-        border: `${Math.max(1, u * 0.12)}px solid ${pal.border}`,
+        border: ctx.edge,
         boxShadow: ctx.shadow,
         ...style,
       }}
@@ -1279,7 +1349,7 @@ function EventTemplate(ctx: Ctx) {
               justifyContent: 'center',
             }}
           >
-            <svg viewBox="0 0 24 24" width={fs * 1.1} height={fs * 1.1} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <svg aria-hidden="true" viewBox="0 0 24 24" width={fs * 1.1} height={fs * 1.1} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
               <path d={EVENT_ICONS[icon]} />
             </svg>
           </span>
@@ -1342,7 +1412,7 @@ function EventTemplate(ctx: Ctx) {
 function CheckBadge({ size, bg, fg }: { size: number; bg: string; fg: string }) {
   return (
     <span style={{ flex: 'none', width: size, height: size, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <svg viewBox="0 0 24 24" width={size * 0.58} height={size * 0.58} fill="none" stroke={fg} strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round">
+      <svg aria-hidden="true" viewBox="0 0 24 24" width={size * 0.58} height={size * 0.58} fill="none" stroke={fg} strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round">
         <path d="M5 12.5 10 17.5 19 7" />
       </svg>
     </span>
@@ -1363,7 +1433,7 @@ function Features(ctx: Ctx) {
         padding: `${u * 1.5}px ${u * 2}px`,
         borderRadius: ctx.radius,
         background: pal.surface,
-        border: `${Math.max(1, u * 0.12)}px solid ${pal.border}`,
+        border: ctx.edge,
         boxShadow: ctx.shadow === 'none' ? undefined : ctx.softShadow([{ y: u * 0.3, blur: u * 1.4, alpha: 0.04 + 0.08 * p.brand.shadow }]),
         minWidth: 0,
       }}
@@ -1499,7 +1569,7 @@ function CodeWindow({
               padding: `${u * 0.5}px ${u * 1.4}px`,
               borderRadius: u * 0.8,
               background: theme.bg,
-              color: '#c9cdd8',
+              color: HW.codeTab,
               fontFamily: FONT_STACKS.mono,
               fontSize: u * 1.6,
               whiteSpace: 'nowrap',

@@ -92,10 +92,10 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
         e.preventDefault();
         if (!busy) onClose();
       }}
-      className="m-auto w-[min(560px,calc(100vw-32px))] overscroll-contain rounded-2xl bg-white p-0 shadow-2xl backdrop:bg-zinc-900/40"
+      className="m-auto w-[min(560px,calc(100vw-32px))] overscroll-contain rounded-2xl bg-surface p-0 shadow-2xl backdrop:bg-ink/40"
       aria-labelledby="export-title"
     >
-      <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-4">
+      <div className="flex items-center justify-between border-b border-line px-5 py-4">
         <h2 id="export-title" className="font-semibold">
           Export Pack
         </h2>
@@ -105,17 +105,17 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
       </div>
       <div className="space-y-5 px-5 py-4">
         <fieldset>
-          <legend className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Formats</legend>
+          <legend className="mb-2 text-sm font-semibold text-ink">Formats</legend>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {FORMAT_ORDER.map((id) => {
               const f = resolveFormat(id, project.customFormat);
               const on = formats.includes(id);
               return (
-                <label key={id} className={cx('flex cursor-pointer items-start gap-2 rounded-lg p-2 ring-1', on ? 'bg-blue-50 ring-blue-300' : 'ring-zinc-200')}>
+                <label key={id} className={cx('flex cursor-pointer items-start gap-2 rounded-lg p-2 ring-1', on ? 'bg-accent-soft ring-accent-line' : 'ring-line')}>
                   <input type="checkbox" className="mt-0.5" checked={on} onChange={() => toggle(id)} />
                   <span>
                     <span className="block text-sm font-medium">{f.label}</span>
-                    <span className="text-xs tabular-nums text-zinc-500">
+                    <span className="text-xs tabular-nums text-muted">
                       {f.width}×{f.height}
                     </span>
                   </span>
@@ -126,7 +126,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
         </fieldset>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <p className="mb-1 text-xs font-medium text-zinc-600">File type</p>
+            <p className="mb-1 text-xs font-medium text-muted">File type</p>
             <Segmented
               label="File type"
               value={type}
@@ -139,7 +139,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
             />
           </div>
           <div>
-            <p className="mb-1 text-xs font-medium text-zinc-600">Resolution</p>
+            <p className="mb-1 text-xs font-medium text-muted">Resolution</p>
             <Segmented
               label="Resolution"
               value={String(scale) as '1' | '2' | '3'}
@@ -151,9 +151,9 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
               onChange={(v) => setScale(Number(v))}
             />
             {blocked ? (
-              <p className="mt-1 text-xs text-red-600">Too large for this device (iPhone/iPad limit). Choose a lower resolution.</p>
+              <p className="mt-1 text-xs text-danger">Too large for this device (iPhone/iPad limit). Choose a lower resolution.</p>
             ) : (
-              tooBig(scale) && <p className="mt-1 text-xs text-amber-700">Very large output: export may be slow or fail on some devices.</p>
+              tooBig(scale) && <p className="mt-1 text-xs text-warn">Very large output: export may be slow or fail on some devices.</p>
             )}
           </div>
         </div>
@@ -162,28 +162,28 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
         )}
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={includeProject} onChange={(e) => setIncludeProject(e.target.checked)} />
-          Include <code className="rounded bg-zinc-100 px-1 text-xs">project.json</code> (re-importable, images embedded)
+          Include <code className="rounded bg-subtle px-1 text-xs">project.json</code> (re-importable, images embedded)
         </label>
-        <section aria-labelledby="carousel-title" className="rounded-xl bg-zinc-50 p-3 ring-1 ring-zinc-200">
+        <section aria-labelledby="carousel-title" className="rounded-xl bg-panel p-3 ring-1 ring-line">
           <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-            <h3 id="carousel-title" className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            <h3 id="carousel-title" className="text-sm font-semibold text-ink">
               LinkedIn Carousel (PDF)
             </h3>
-            <span className="text-xs tabular-nums text-zinc-500">
-              {slides.length} {slides.length === 1 ? 'page' : 'pages'} · {carouselFormat.width}×{carouselFormat.height}
+            <span className="text-xs tabular-nums text-muted">
+              {slides.length} {slides.length === 1 ? 'page' : 'pages'} of {carouselFormat.width} × {carouselFormat.height}
             </span>
           </div>
           <ol className="flex gap-2 overflow-x-auto pb-1" aria-label="Carousel slides">
             {slides.map((s, i) => (
               <li key={i} className="flex-none">
-                <Stage project={s.project} format={carouselFormat} urls={urls} maxWidth={72} maxHeight={90} className="rounded shadow-sm ring-1 ring-black/5" />
-                <span className="mt-1 block w-[72px] truncate text-[11px] text-zinc-600" title={s.label}>
+                <Stage project={s.project} format={carouselFormat} urls={urls} maxWidth={72} maxHeight={90} className="rounded shadow-sm ring-1 ring-ink/5" />
+                <span className="mt-1 block w-[72px] truncate text-[11px] text-muted" title={s.label}>
                   {i + 1}. {s.label}
                 </span>
               </li>
             ))}
           </ol>
-          <p className="mt-2 text-xs text-zinc-500">
+          <p className="mt-2 text-xs text-muted">
             {slides[0]?.auto
               ? 'Automatic pages: cover, one page per screenshot (titled with its caption), then your features.'
               : 'Your custom pages.'}{' '}
@@ -194,13 +194,13 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
           </Button>
         </section>
         {error && (
-          <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p role="alert" className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">
             {error}
           </p>
         )}
       </div>
-      <div className="flex items-center justify-between gap-3 border-t border-zinc-200 px-5 py-4">
-        <p className="text-xs text-zinc-500">Rendered in your browser. Nothing is uploaded.</p>
+      <div className="flex items-center justify-between gap-3 border-t border-line px-5 py-4">
+        <p className="text-xs text-muted">Rendered in your browser. Nothing is uploaded.</p>
         <Button variant="primary" onClick={run} disabled={busy || formats.length === 0 || blocked}>
           <Icon name="download" />
           {busy

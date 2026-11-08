@@ -7,7 +7,7 @@ import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
 import { domToBlob } from 'modern-screenshot';
 import JSZip from 'jszip';
-import { resolveFormat, type FormatId, type Project } from '@svs/visual-core';
+import { BUNDLED_FONT_FACES, resolveFormat, type FormatId, type Project } from '@svs/visual-core';
 import { Composition } from '../render/Composition';
 import { buildProjectFile } from './projectFile';
 import { slugify } from './download';
@@ -20,7 +20,15 @@ export type ImageType = 'png' | 'jpeg' | 'webp';
 
 export const MIME: Record<ImageType, string> = { png: 'image/png', jpeg: 'image/jpeg', webp: 'image/webp' };
 
+let fontsLoaded: Promise<unknown> | null = null;
+/** Load the bundled faces once, so the first export never rasterises a fallback font. */
+function loadBundledFonts() {
+  fontsLoaded ??= Promise.all(BUNDLED_FONT_FACES.map((f) => document.fonts?.load(f).catch(() => undefined)));
+  return fontsLoaded;
+}
+
 async function waitForImages(node: HTMLElement) {
+  await loadBundledFonts();
   await Promise.all([...node.querySelectorAll('img')].map((img) => img.decode().catch(() => undefined)));
   await document.fonts?.ready;
 }

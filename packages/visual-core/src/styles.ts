@@ -1,0 +1,132 @@
+/**
+ * Style presets: one choice that sets the typefaces, type scale, kicker, frames,
+ * shadows and background treatment of every template together.
+ *
+ * Minimal, Editorial and Bold use typefaces bundled with the app (open licence),
+ * so exports render the same on every computer. Soft is the original look,
+ * kept as an option; it uses the project's heading font and system faces.
+ */
+import type { BackgroundType } from './project';
+import type { DesktopFrame } from './templates';
+import { BUNDLED_FONTS } from './typography';
+
+export type StyleId = 'minimal' | 'editorial' | 'bold' | 'soft';
+export const STYLE_IDS: StyleId[] = ['minimal', 'editorial', 'bold', 'soft'];
+
+/** How the kicker (the short line above the title) is drawn. None uses tracked capitals. */
+export type KickerTreatment = 'plain' | 'rule' | 'label' | 'pill';
+
+export interface StyleSpec {
+  id: StyleId;
+  name: string;
+  description: string;
+  /** Heading stack, or null to use the project's own heading font (Soft). */
+  heading: string | null;
+  body: string;
+  /** Multiplier on the shared title size. */
+  titleScale: number;
+  titleWeight: number;
+  titleTracking: string;
+  titleLeading: number;
+  /** CSS font-stretch for the heading (Bold uses a condensed width). */
+  titleStretch?: string;
+  /** Subtitle in the heading face, italic (Editorial). */
+  italicSubtitle: boolean;
+  kicker: KickerTreatment;
+  /** Shadow under screenshots and cards. */
+  shadow: 'soft' | 'none' | 'hard';
+  /** Multiplier on the project's corner radius. */
+  radiusScale: number;
+  /** Outline of screenshots and cards. */
+  edge: 'hairline' | 'thick';
+  /** Glows and gradient blobs behind screenshots (Spotlight halo…). */
+  glow: boolean;
+  /** Bold paints the brand colour as the background, whatever the background setting. */
+  brandBackground: boolean;
+  /** Applied when the user picks the style; both stay editable afterwards. */
+  defaults: { background: BackgroundType; desktopFrame: DesktopFrame };
+}
+
+export const STYLES: Record<StyleId, StyleSpec> = {
+  minimal: {
+    id: 'minimal',
+    name: 'Minimal',
+    description: 'Neutral ground, large tight titles, thin outlines and no shadows.',
+    heading: BUNDLED_FONTS.geist,
+    body: BUNDLED_FONTS.geist,
+    titleScale: 1.3,
+    titleWeight: 700,
+    titleTracking: '-0.045em',
+    titleLeading: 0.98,
+    italicSubtitle: false,
+    kicker: 'plain',
+    shadow: 'none',
+    radiusScale: 0.35,
+    edge: 'hairline',
+    glow: false,
+    brandBackground: false,
+    defaults: { background: 'solid', desktopFrame: 'plain' },
+  },
+  editorial: {
+    id: 'editorial',
+    name: 'Editorial',
+    description: 'Serif titles, white ground, square corners. For articles and launches.',
+    heading: BUNDLED_FONTS.serif,
+    body: BUNDLED_FONTS.geist,
+    titleScale: 1.5,
+    titleWeight: 400,
+    titleTracking: '-0.015em',
+    titleLeading: 1,
+    italicSubtitle: true,
+    kicker: 'rule',
+    shadow: 'none',
+    radiusScale: 0,
+    edge: 'hairline',
+    glow: false,
+    brandBackground: false,
+    defaults: { background: 'solid', desktopFrame: 'plain' },
+  },
+  bold: {
+    id: 'bold',
+    name: 'Bold',
+    description: 'Your brand colour as the ground, a big condensed title, hard outlines.',
+    heading: BUNDLED_FONTS.condensed,
+    body: BUNDLED_FONTS.geist,
+    titleScale: 1.55,
+    titleWeight: 800,
+    titleTracking: '-0.02em',
+    titleLeading: 0.95,
+    titleStretch: '78%',
+    italicSubtitle: false,
+    kicker: 'label',
+    shadow: 'hard',
+    radiusScale: 0.5,
+    edge: 'thick',
+    glow: false,
+    brandBackground: true,
+    defaults: { background: 'solid', desktopFrame: 'plain' },
+  },
+  soft: {
+    id: 'soft',
+    name: 'Soft',
+    description: 'The original look: tinted ground with glows, rounded pills, soft shadows.',
+    heading: null,
+    body: "Inter, 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif",
+    titleScale: 1,
+    titleWeight: 760,
+    titleTracking: '-0.022em',
+    titleLeading: 1.06,
+    italicSubtitle: false,
+    kicker: 'pill',
+    shadow: 'soft',
+    radiusScale: 1,
+    edge: 'hairline',
+    glow: true,
+    brandBackground: false,
+    defaults: { background: 'glow', desktopFrame: 'browser' },
+  },
+};
+
+export function getStyle(id: string | undefined): StyleSpec {
+  return STYLES[id as StyleId] ?? STYLES.minimal;
+}

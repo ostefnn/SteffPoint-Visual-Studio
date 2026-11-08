@@ -34,9 +34,25 @@ export const LOGO_ADVICE = { iconPx: 512, wordmarkWidthPx: 800 } as const;
 
 export type HeadingFont = 'sans' | 'serif' | 'rounded' | 'mono';
 
+/** Faces bundled with the app (open licence, loaded from the app itself, never from a CDN). */
+export const BUNDLED_FONTS = {
+  geist: "'Geist Variable', 'Geist', 'Segoe UI', system-ui, -apple-system, sans-serif",
+  serif: "'Instrument Serif', Georgia, 'Iowan Old Style', 'Times New Roman', serif",
+  condensed: "'Bricolage Grotesque Variable', 'Bricolage Grotesque', 'Arial Narrow', 'Segoe UI', sans-serif",
+} as const;
+
+/** Faces the exporter waits for before rasterising, so the first export never falls back. */
+export const BUNDLED_FONT_FACES = [
+  "400 16px 'Geist Variable'",
+  "700 16px 'Geist Variable'",
+  "400 16px 'Instrument Serif'",
+  "italic 400 16px 'Instrument Serif'",
+  "800 16px 'Bricolage Grotesque Variable'",
+] as const;
+
 export const FONT_STACKS: Record<HeadingFont, string> = {
   sans: "Inter, 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif",
-  serif: "Georgia, 'Iowan Old Style', 'Times New Roman', serif",
+  serif: BUNDLED_FONTS.serif,
   rounded: "'SF Pro Rounded', 'Segoe UI', Nunito, system-ui, sans-serif",
   mono: "'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace",
 };

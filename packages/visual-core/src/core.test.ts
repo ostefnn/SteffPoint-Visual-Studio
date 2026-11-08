@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getStyle,
   analyzeCarousel,
   buildCarouselSlides,
   createVariant,
@@ -49,8 +50,10 @@ describe('color', () => {
   it('derives readable palettes for both themes', () => {
     for (const theme of ['light', 'dark'] as const) {
       for (const c of ['#2563eb', '#facc15', '#111827', '#ffffff']) {
-        const p = derivePalette(c, theme);
-        expect(contrastRatio(p.text, p.bg)).toBeGreaterThan(4.5);
+        for (const style of ['soft', 'minimal', 'editorial', 'bold'] as const) {
+          const p = derivePalette(c, theme, style);
+          expect(contrastRatio(p.text, p.bg), `${style} ${theme} ${c}`).toBeGreaterThan(4.5);
+        }
       }
     }
   });
@@ -78,7 +81,7 @@ describe('project migration', () => {
       background: { intensity: 7 },
     });
     expect(p.template).toBe('browser-hero');
-    expect(p.brand.primary).toBe('#2563eb');
+    expect(p.brand.primary).toBe(createProject().brand.primary);
     expect(p.brand.logoAssetId).toBeNull();
     expect(p.screenshots).toHaveLength(0);
     expect(p.exportPresets).toEqual(['linkedin']);
@@ -248,10 +251,11 @@ describe('screenshot crop and logo size', () => {
 });
 
 describe('desktop frame', () => {
-  it('defaults to browser and keeps a valid style', () => {
-    expect(createProject().desktopFrame).toBe('browser');
+  it('defaults to the style frame and keeps a valid choice', () => {
+    expect(createProject().desktopFrame).toBe('plain'); // Minimal
     expect(migrateProject({ desktopFrame: 'laptop' }).desktopFrame).toBe('laptop');
-    expect(migrateProject({ desktopFrame: 'tv' }).desktopFrame).toBe('browser');
+    expect(migrateProject({ desktopFrame: 'tv' }).desktopFrame).toBe('browser'); // legacy project: Soft default
+    expect(migrateProject({ brand: { style: 'minimal' }, desktopFrame: 'tv' }).desktopFrame).toBe('plain');
   });
 });
 
@@ -379,5 +383,51 @@ describe('LinkedIn carousel', () => {
     expect(p.carousel.slides[0]).toMatchObject({ template: 'minimal', content: { title: 'T' }, screenshotIds: ['s1'] });
     expect(p.carousel.slides[1]).toMatchObject({ template: 'device-mix', screenshotIds: null });
     expect(migrateProject({}).carousel).toEqual({ slides: [], pageNumbers: true });
+  });
+});
+
+describe('style presets', () => {
+  it('new projects use Minimal with honest placeholders', () => {
+    const p = createProject();
+    expect(p.brand.style).toBe('minimal');
+    expect(p.background.type).toBe('solid');
+    expect(p.content.kicker).toBe('');
+    expect(p.content.stats.every((s) => !/\d[1-9]/.test(s.value))).toBe(true); // no invented figures
+    expect(p.content.quote).toMatch(/real quote/);
+  });
+
+  it('projects saved before styles keep their original look', () => {
+    const p = migrateProject({ brand: { primary: '#123456' } });
+    expect(p.brand.style).toBe('soft');
+    expect(p.background.type).toBe('glow');
+    expect(p.desktopFrame).toBe('browser');
+  });
+
+  it('rejects unknown styles', () => {
+    expect(migrateProject({ brand: { style: 'neon' } }).brand.style).toBe('minimal');
+    expect(getStyle('nope').id).toBe('minimal');
+  });
+
+  it('only Soft drifts the accent toward another hue', () => {
+    const blue = '#2563eb';
+    const hue = (hex: string) => {
+      const n = parseInt(hex.slice(1), 16);
+      const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => v / 255);
+      const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+      if (!d) return 0;
+      const h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+      return (h * 60 + 360) % 360;
+    };
+    expect(Math.abs(hue(derivePalette(blue, 'light', 'minimal').accent) - hue(blue))).toBeLessThan(3);
+    expect(Math.abs(hue(derivePalette(blue, 'light', 'soft').accent) - hue(blue))).toBeGreaterThan(30);
+  });
+
+  it('Bold paints the brand as ground and checks its contrast', () => {
+    const p = createProject();
+    p.brand.style = 'bold';
+    p.brand.primary = '#facc15'; // light yellow: text must switch to dark ink
+    const pal = derivePalette(p.brand.primary, 'light', 'bold');
+    expect(pal.bg).toBe('#facc15');
+    expect(contrastRatio(pal.text, pal.bg)).toBeGreaterThan(4.5);
   });
 });

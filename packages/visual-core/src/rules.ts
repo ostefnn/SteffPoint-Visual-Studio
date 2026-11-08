@@ -29,7 +29,7 @@ export function analyzeProject(project: Project, format: FormatPreset, exportSca
   const { content, brand } = project;
   const tpl = getTemplate(project.template);
   const orientation = getOrientation(format.width, format.height);
-  const pal = derivePalette(brand.primary, brand.theme);
+  const pal = derivePalette(brand.primary, brand.theme, brand.style);
   const assets = new Map(project.assets.map((a) => [a.id, a]));
   const shots = project.screenshots.map((s) => assets.get(s.assetId)).filter((a) => !!a);
 
@@ -49,7 +49,7 @@ export function analyzeProject(project: Project, format: FormatPreset, exportSca
 
   // --- Contrast (WCAG AA) ----------------------------------------------------
   // Test against the most tinted part of the background (worst case).
-  const peak = backgroundPeak(pal, project.background.type, project.background.intensity);
+  const peak = backgroundPeak(pal, brand.style === 'bold' ? 'solid' : project.background.type, project.background.intensity);
   const worst = (fg: string) => Math.min(contrastRatio(fg, pal.bg), contrastRatio(fg, peak));
   const titleContrast = worst(pal.text);
   if (titleContrast < 4.5) {

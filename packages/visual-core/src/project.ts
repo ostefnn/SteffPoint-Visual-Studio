@@ -13,6 +13,7 @@ import {
   type TemplateId,
 } from './templates';
 import { LOGO_SIZES, type HeadingFont, type LogoSize } from './typography';
+import { STYLE_IDS, STYLES, type StyleId } from './styles';
 
 export const PROJECT_SCHEMA_VERSION = '1.0';
 
@@ -97,6 +98,8 @@ export interface Brand {
   shadow: number; // 0 – 1
   logoAssetId: string | null;
   logoSize: LogoSize;
+  /** Style preset (see styles.ts). Projects created before styles existed open as Soft. */
+  style: StyleId;
 }
 
 export interface Background {
@@ -223,12 +226,12 @@ export function createProject(init: Partial<Pick<Project, 'name' | 'template'>> 
     favorite: false,
     template: init.template ?? 'browser-hero',
     content: {
-      kicker: 'New release',
-      title: 'Your product, beautifully presented',
-      subtitle: 'Drop screenshots, pick a template and export every format at once.',
+      kicker: '',
+      title: 'Name of your product',
+      subtitle: 'One sentence on what it does for the people who use it.',
       beforeLabel: 'Before',
       afterLabel: 'After',
-      features: ['Everything stays on your device', 'Every format in one export', 'Your brand applied automatically'],
+      features: ['First thing people can do', 'Second thing people can do', 'Third thing people can do'],
       code: [
         "import { createPack } from '@steffpoint/visual';",
         '',
@@ -241,28 +244,29 @@ export function createProject(init: Partial<Pick<Project, 'name' | 'template'>> 
         'await pack.export();',
       ].join('\n'),
       codeFile: 'launch.ts',
-      quote: 'We replaced three tools with this one. Our launch visuals now take ten minutes instead of a day.',
-      author: 'Alex Martin',
-      authorRole: 'Head of Marketing, Northwind',
+      // Placeholders, never invented proof: replace with a real quote and real figures.
+      quote: 'Paste a real quote from someone who uses your product.',
+      author: 'Their name',
+      authorRole: 'Their role, their company',
       stats: [
-        { value: '10k+', label: 'Visuals exported' },
-        { value: '4.9★', label: 'Average rating' },
-        { value: '9', label: 'Formats in one click' },
+        { value: '00', label: 'Replace with a real figure' },
+        { value: '00', label: 'Replace with a real figure' },
+        { value: '00', label: 'Replace with a real figure' },
       ],
-      eventDate: 'Thu 12 Dec',
-      eventTime: '14:00 – 15:00 CET',
-      eventPlace: 'Online · Microsoft Teams',
-      cta: 'Register now',
+      eventDate: 'Date',
+      eventTime: 'Start to end time',
+      eventPlace: 'Place or link',
+      cta: 'Register',
     },
-    brand: { primary: '#2563eb', theme: 'light', headingFont: 'sans', radius: 0.5, shadow: 0.5, logoAssetId: null, logoSize: 'medium' },
-    background: { type: 'glow', intensity: 0.6, angle: 135 },
+    brand: { primary: '#2b59c3', theme: 'light', headingFont: 'sans', radius: 0.5, shadow: 0.5, logoAssetId: null, logoSize: 'medium', style: 'minimal' },
+    background: { type: STYLES.minimal.defaults.background, intensity: 0.6, angle: 135 },
     assets: [],
     screenshots: [],
     exportPresets: ['linkedin', 'open-graph', 'square', 'story', 'github'],
     customFormat: { width: 1600, height: 900 },
     devices: [...DEVICE_KINDS],
     deviceOrientation: { tablet: 'portrait', mobile: 'portrait' },
-    desktopFrame: 'browser',
+    desktopFrame: STYLES.minimal.defaults.desktopFrame,
     carousel: { slides: [], pageNumbers: true },
   };
 }
@@ -328,6 +332,8 @@ export function migrateProject(raw: unknown): Project {
     : {};
   const content: Record<string, unknown> = { ...legacyContent, ...obj(r.content) };
   const brand = obj(r.brand);
+  // Saved before style presets existed: keep the original look (Soft, glow, browser frame).
+  const legacy = brand.style === undefined;
   const bg = obj(r.background);
   const custom = obj(r.customFormat);
   const orient = obj(r.deviceOrientation);
@@ -421,9 +427,11 @@ export function migrateProject(raw: unknown): Project {
       shadow: num(brand.shadow, d.brand.shadow, 0, 1),
       logoAssetId: logo,
       logoSize: oneOf(brand.logoSize, LOGO_SIZES, d.brand.logoSize),
+      // Projects saved before styles existed keep their original (Soft) look.
+      style: legacy ? 'soft' : oneOf(brand.style, STYLE_IDS, d.brand.style),
     },
     background: {
-      type: oneOf(bg.type, ['solid', 'gradient', 'glow', 'grid', 'mesh'] as const, d.background.type),
+      type: oneOf(bg.type, ['solid', 'gradient', 'glow', 'grid', 'mesh'] as const, legacy ? STYLES.soft.defaults.background : d.background.type),
       intensity: num(bg.intensity, d.background.intensity, 0, 1),
       angle: num(bg.angle, d.background.angle, 0, 360),
     },
@@ -439,7 +447,7 @@ export function migrateProject(raw: unknown): Project {
       tablet: oneOf(orient.tablet, ['portrait', 'landscape'] as const, 'portrait'),
       mobile: oneOf(orient.mobile, ['portrait', 'landscape'] as const, 'portrait'),
     },
-    desktopFrame: oneOf(r.desktopFrame, DESKTOP_FRAMES, d.desktopFrame),
+    desktopFrame: oneOf(r.desktopFrame, DESKTOP_FRAMES, legacy ? STYLES.soft.defaults.desktopFrame : d.desktopFrame),
     carousel: migrateCarousel(obj(r.carousel), new Set(screenshots.map((x) => x.id))),
   };
 }

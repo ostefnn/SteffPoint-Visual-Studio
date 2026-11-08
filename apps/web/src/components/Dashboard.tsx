@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   createProject,
+  createScreenshotSlot,
   FORMAT_PRESETS,
-  TEMPLATE_CATEGORIES,
   TEMPLATES,
   uid,
   type Project,
@@ -18,13 +18,45 @@ import { PrivacyBadge } from './PrivacyBadge';
 import { StorageStatus } from './StorageStatus';
 
 /** Project shown in the template gallery cards. */
-const SAMPLE = createProject();
+/**
+ * Gallery previews show real material: screenshots of SteffPoint Visual Studio itself
+ * (public/samples), never invented proof. Phone-first templates get the phone shot first.
+ */
+const SAMPLE_URLS: Record<string, string> = {
+  'sample-editor': `${import.meta.env.BASE_URL}samples/editor.jpg`,
+  'sample-phone': `${import.meta.env.BASE_URL}samples/phone.jpg`,
+  'sample-dashboard': `${import.meta.env.BASE_URL}samples/dashboard.jpg`,
+};
+const SAMPLE: Project = (() => {
+  const p = createProject();
+  p.content = { ...p.content, title: 'SteffPoint Visual Studio', subtitle: 'Screenshots in, launch visuals for every format out.' };
+  p.assets = [
+    { id: 'sample-editor', name: 'editor.jpg', mime: 'image/jpeg', width: 1600, height: 1000, size: 0 },
+    { id: 'sample-phone', name: 'phone.jpg', mime: 'image/jpeg', width: 780, height: 1688, size: 0 },
+    { id: 'sample-dashboard', name: 'dashboard.jpg', mime: 'image/jpeg', width: 1600, height: 1000, size: 0 },
+  ];
+  p.screenshots = p.assets.map((a) => ({ ...createScreenshotSlot(a.id), id: `shot-${a.id}` }));
+  return p;
+})();
+const PHONE_FIRST: TemplateId[] = ['mobile-trio', 'app-store'];
+function sampleFor(template: TemplateId): Project {
+  const shots = PHONE_FIRST.includes(template) ? [SAMPLE.screenshots[1], SAMPLE.screenshots[0], SAMPLE.screenshots[2]] : SAMPLE.screenshots;
+  return { ...SAMPLE, template, screenshots: shots };
+}
+
+/** Four filters instead of one per category: most categories hold one or two templates. */
+const GALLERY_GROUPS: { id: 'all' | 'screens' | 'words' | 'proof'; label: string; categories: TemplateCategory[] }[] = [
+  { id: 'all', label: 'All', categories: [] },
+  { id: 'screens', label: 'Screenshots', categories: ['app-showcase', 'browser', 'mobile', 'product', 'before-after'] },
+  { id: 'words', label: 'Text and announcements', categories: ['announcement', 'documentation', 'editorial', 'minimal'] },
+  { id: 'proof', label: 'Quotes, figures and events', categories: ['social-proof', 'event'] },
+];
 
 export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [query, setQuery] = useState('');
   const [favOnly, setFavOnly] = useState(false);
-  const [category, setCategory] = useState<TemplateCategory | 'all'>('all');
+  const [category, setCategory] = useState<(typeof GALLERY_GROUPS)[number]['id']>('all');
   const [error, setError] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -87,16 +119,17 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
     }
   };
 
-  const templates = TEMPLATES.filter((t) => category === 'all' || t.category === category);
+  const group = GALLERY_GROUPS.find((g) => g.id === category) ?? GALLERY_GROUPS[0];
+  const templates = TEMPLATES.filter((t) => group.id === 'all' || group.categories.includes(t.category));
 
   return (
     <div className="min-h-full">
-      <header className="border-b border-zinc-200 bg-white">
+      <header className="border-b border-line bg-surface">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-4 sm:px-6">
           <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="size-8" />
           <div className="mr-auto">
             <h1 className="text-lg font-semibold leading-tight">SteffPoint Visual Studio</h1>
-            <p className="text-xs text-zinc-500">Create once. Publish everywhere.</p>
+            <p className="text-xs text-muted">Create once. Publish everywhere.</p>
           </div>
           <PrivacyBadge />
           <Button onClick={() => fileInput.current?.click()}>
@@ -111,7 +144,7 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
 
       <main className="mx-auto max-w-6xl space-y-10 px-4 py-8 sm:px-6">
         {error && (
-          <div role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-200">
+          <div role="alert" className="rounded-lg bg-danger-soft px-4 py-3 text-sm text-danger ring-1 ring-danger-line">
             {error}
           </div>
         )}
@@ -122,7 +155,7 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
           <div className="mb-4 flex flex-wrap items-center gap-3">
             <h2 className="mr-auto text-base font-semibold">Projects</h2>
             <div className="relative">
-              <Icon name="search" className="absolute left-2.5 top-2.5 size-4 text-zinc-400" />
+              <Icon name="search" className="absolute left-2.5 top-2.5 size-4 text-faint" />
               <input
                 type="search"
                 name="q"
@@ -140,13 +173,13 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
           </div>
 
           {projects === null ? (
-            <p className="text-sm text-zinc-500">Loading…</p>
+            <p className="text-sm text-muted">Loading…</p>
           ) : filtered.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-zinc-300 bg-white px-6 py-12 text-center">
+            <div className="rounded-xl border border-dashed border-field bg-surface px-6 py-12 text-center">
               <p className="font-medium">{projects.length ? 'No project matches your search.' : 'No projects yet.'}</p>
               {!projects.length && (
                 <>
-                  <p className="mt-1 text-sm text-zinc-500">Start from a template below or create a blank project. Everything stays on this device.</p>
+                  <p className="mt-1 text-sm text-muted">Start from a template below or create a blank project. Everything stays on this device.</p>
                   <Button variant="primary" className="mt-4" onClick={() => create()}>
                     <Icon name="plus" /> New Project
                   </Button>
@@ -165,14 +198,15 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
         <section>
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <h2 className="mr-3 text-base font-semibold">Start from a Template</h2>
-            {[{ id: 'all' as const, label: 'All' }, ...TEMPLATE_CATEGORIES].map((c) => (
+            {GALLERY_GROUPS.map((c) => (
               <button
                 key={c.id}
                 type="button"
                 onClick={() => setCategory(c.id)}
+                aria-pressed={category === c.id}
                 className={cx(
-                  'rounded-full px-3 py-1 text-xs font-medium ring-1 transition-transform duration-100 ease-out motion-safe:active:scale-[0.97]',
-                  category === c.id ? 'bg-zinc-900 text-white ring-zinc-900' : 'bg-white text-zinc-700 ring-zinc-200 hover:bg-zinc-50',
+                  'h-8 rounded-full px-3 text-xs font-medium ring-1 transition-transform duration-100 ease-out motion-safe:active:scale-[0.97]',
+                  category === c.id ? 'bg-ink text-on-accent ring-ink' : 'bg-surface text-ink-soft ring-line hover:bg-panel',
                 )}
               >
                 {c.label}
@@ -185,12 +219,12 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
                 <button
                   type="button"
                   onClick={() => create(t.id)}
-                  className="group block w-full overflow-hidden rounded-xl bg-white text-left ring-1 ring-zinc-200 transition hover:ring-2 hover:ring-blue-600"
+                  className="group block w-full overflow-hidden rounded-xl bg-surface text-left ring-1 ring-line transition hover:ring-2 hover:ring-accent"
                 >
-                  <Stage project={{ ...SAMPLE, template: t.id }} format={FORMAT_PRESETS.linkedin} urls={{}} maxWidth={264} maxHeight={138} className="w-full" />
+                  <Stage project={sampleFor(t.id)} format={FORMAT_PRESETS.linkedin} urls={SAMPLE_URLS} maxWidth={264} maxHeight={138} className="w-full" />
                   <div className="p-3">
                     <p className="text-sm font-medium">{t.name}</p>
-                    <p className="mt-0.5 text-xs text-zinc-500">{t.description}</p>
+                    <p className="mt-0.5 text-xs text-muted">{t.description}</p>
                   </div>
                 </button>
               </li>
@@ -232,12 +266,12 @@ function ProjectCard({ project, onOpen, actions }: { project: Project; onOpen: (
   };
 
   return (
-    <li className="group overflow-hidden rounded-xl bg-white ring-1 ring-zinc-200">
-      <button type="button" onClick={onOpen} className="block aspect-[1200/627] w-full overflow-hidden bg-zinc-100" aria-label={`Open ${project.name}`}>
+    <li className="group overflow-hidden rounded-xl bg-surface ring-1 ring-line">
+      <button type="button" onClick={onOpen} className="block aspect-[1200/627] w-full overflow-hidden bg-subtle" aria-label={`Open ${project.name}`}>
         {url ? (
-          <img src={url} alt="" className="size-full object-cover transition-transform motion-safe:group-hover:scale-[1.02]" />
+          <img src={url} alt="" className="size-full object-cover" />
         ) : (
-          <span className="flex size-full items-center justify-center text-zinc-400">
+          <span className="flex size-full items-center justify-center text-faint">
             <Icon name="image" className="size-8" />
           </span>
         )}
@@ -265,24 +299,24 @@ function ProjectCard({ project, onOpen, actions }: { project: Project; onOpen: (
                   finishRename(false);
                 }
               }}
-              className={cx(inputCls, 'py-0.5 font-medium', !draft.trim() && 'ring-red-400 focus:ring-red-500')}
+              className={cx(inputCls, 'py-0.5 font-medium', !draft.trim() && 'ring-danger-line focus:ring-danger')}
             />
           ) : (
             <p className="truncate text-sm font-medium">{project.name}</p>
           )}
-          <p className="text-xs text-zinc-500">Edited {new Date(project.updatedAt).toLocaleString()}</p>
+          <p className="text-xs text-muted">Edited {new Date(project.updatedAt).toLocaleString()}</p>
         </div>
         <button
           type="button"
           onClick={() => actions.favorite(project)}
-          className={cx('rounded p-1', project.favorite ? 'text-amber-500' : 'text-zinc-400 hover:text-zinc-700')}
+          className={cx('rounded p-1', project.favorite ? 'text-warn' : 'text-faint hover:text-ink-soft')}
           aria-label={project.favorite ? 'Remove from favorites' : 'Add to favorites'}
           aria-pressed={project.favorite}
         >
           <Icon name="star" filled={project.favorite} />
         </button>
       </div>
-      <div className="flex gap-1 border-t border-zinc-100 px-2 py-1.5">
+      <div className="flex gap-1 border-t border-line px-2 py-1.5">
         <Button ref={renameBtn} size="sm" variant="ghost" onClick={startRename} aria-label={`Rename ${project.name}`}>
           <Icon name="edit" className="size-3.5" /> Rename
         </Button>
@@ -292,7 +326,7 @@ function ProjectCard({ project, onOpen, actions }: { project: Project; onOpen: (
         <Button size="sm" variant="ghost" onClick={() => actions.exportJson(project)} title="Export as JSON (images included)">
           <Icon name="download" className="size-3.5" /> JSON
         </Button>
-        <Button size="sm" variant="ghost" className="ml-auto text-red-600 hover:bg-red-50" onClick={() => actions.remove(project)} aria-label="Delete project">
+        <Button size="sm" variant="ghost" className="ml-auto text-danger hover:bg-danger-soft" onClick={() => actions.remove(project)} aria-label="Delete project">
           <Icon name="trash" className="size-3.5" />
         </Button>
       </div>

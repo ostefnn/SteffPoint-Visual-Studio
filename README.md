@@ -56,7 +56,8 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 | 🧩 **15 templates** | Browser Hero, Device Mix, App Store, Browser Duo, Mobile Trio, Bento, Spotlight, Before / After, Testimonial, Key Figures, Event, Features, Code, Editorial, Minimal. |
 | 🖼️ **Screenshots** | Up to 4 per project. Add by click, drag & drop anywhere, or paste (Ctrl/Cmd+V). Desktop screenshots can sit in a browser, a macOS window, no frame, or a laptop. |
 | 🎯 **Crop & focal point** | Crop each edge, cover / contain, zoom in or out (0.5×–3×), and a focal point that stays visible when the layout changes between landscape, square and portrait. |
-| 🎨 **Brand** | One primary colour → derived palette. Light / dark theme, heading font, corner radius, shadow, logo (small / medium / large). |
+| ✒️ **Styles** | One click sets typefaces, title scale, kicker, frames, shadows and background for every template: **Minimal** (default), **Editorial**, **Bold**, or **Soft** (the original look, kept as an option). Fonts are bundled, so exports look the same on every computer. |
+| 🎨 **Brand** | One primary colour → derived palette (accents stay in your brand's hue outside Soft). Light / dark theme, corner radius, logo (small / medium / large); heading font and shadow in Soft. |
 | 🌈 **Backgrounds** | Solid, gradient, soft glow, grid, mesh, with intensity and angle. |
 | 📐 **Multi-format preview** | Every format previewed live, side by side. |
 | 🛟 **Safe zones** | Overlay showing where platform UI may cover your visual (e.g. stories, profile banners). |
@@ -67,6 +68,19 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 | 🔁 **Import / export JSON** | Portable project file with images embedded. Backup, move between browsers, share. |
 
 ![Dashboard](docs/images/dashboard.png)
+
+## Styles
+
+![Editorial, Bold and Minimal exports of the same project](docs/images/styles.png)
+
+| Style | Typefaces | Ground | Kicker | Screenshots |
+|---|---|---|---|---|
+| **Minimal** (default) | Geist | Neutral grey | Plain text with a brand square | Thin outline, no shadow |
+| **Editorial** | Instrument Serif titles, Geist body, italic serif subtitle | White | Plain text over a hairline | Square corners, no shadow |
+| **Bold** | Bricolage Grotesque, condensed | Your brand colour | Black label | Thick outline, hard offset shadow |
+| **Soft** | Inter / system, your heading font | Tinted with glows | Pill | Browser chrome, soft shadow |
+
+Projects created before styles existed open in **Soft**, unchanged. Picking a style also applies its background and screenshot frame; both stay editable. No style uses tracked capitals or invented content: template defaults are placeholders that ask for your real quote, figures and event details.
 
 ## Templates
 
@@ -120,7 +134,7 @@ At 2× and 3× the pixel size is multiplied. Very large exports (> ~33 MP) show 
 2. **Images** tab: add 1 to 4 screenshots (click, drop or paste).
 3. **Content** panel (right): kicker, title, subtitle, plus the fields of the current template (quote and author, figures, event details, devices and their orientation, desktop frame).
 4. **Templates** tab: pick a layout. Previews use your own screenshots.
-5. **Brand** tab: colour, theme, font, radius, shadow, logo and its size. Best logo file: a transparent PNG or WebP cropped tight, at least 512 × 512 px for an icon or 800 px wide for a wordmark.
+5. **Brand** tab: pick a **style** first, then colour, theme, radius, logo and its size (heading font and shadow in Soft). Best logo file: a transparent PNG or WebP cropped tight, at least 512 × 512 px for an icon or 800 px wide for a wordmark.
 6. **Background** tab: style and intensity.
 7. Select a screenshot to **crop** its edges and set **zoom, fit and focal point** (click or drag on the image, or use arrow keys).
 8. Check every format in the **bottom strip**; tick the ones to export. Turn on **Safe zones** if needed.

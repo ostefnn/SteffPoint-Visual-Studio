@@ -51,16 +51,16 @@ function SafeZoneOverlay({ safe }: { safe: FormatPreset['safe'] }) {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
       <div
-        className="absolute border border-dashed border-rose-500"
+        className="absolute border border-dashed border-zone"
         style={{
           top: `${safe.top * 100}%`,
           right: `${safe.right * 100}%`,
           bottom: `${safe.bottom * 100}%`,
           left: `${safe.left * 100}%`,
-          boxShadow: '0 0 0 9999px rgba(244, 63, 94, 0.16)',
+          boxShadow: '0 0 0 9999px var(--color-zone-dim)',
         }}
       >
-        <span className="absolute left-1 top-1 rounded bg-rose-500 px-1 text-[10px] font-semibold text-white">Safe zone</span>
+        <span className="absolute left-1 top-1 rounded bg-zone px-1 text-[10px] font-semibold text-on-accent">Safe zone</span>
       </div>
     </div>
   );

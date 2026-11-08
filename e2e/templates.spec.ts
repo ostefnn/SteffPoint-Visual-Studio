@@ -130,6 +130,8 @@ test('Logo size switches between small, medium and large', async ({ page }) => {
 test('Export shadows fade out instead of leaving a grey block (Safari)', async ({ page }) => {
   await newProject(page);
   await page.getByRole('tab', { name: 'Brand' }).click();
+  // Soft shadows belong to the Soft style (the others use no shadow or a hard one).
+  await page.getByRole('radio', { name: /^Soft/ }).click();
   await page.getByRole('slider', { name: /^Shadow/ }).fill('1');
   await page.getByRole('tab', { name: 'Background' }).click();
   await page.locator('[role=tabpanel] button', { hasText: 'Solid' }).click();

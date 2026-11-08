@@ -1,7 +1,70 @@
+/* Hallmark · checked: 2026-11-08 · genre: modern-minimal (inferred) · scope: app
+ * floor: 0 FAIL in the code and the render · fixed: 20 (1, 4, 9, 10, 19, 33, 40, 48, 67) · structural: printed, not rebuilt
+ * built: the project · redesign: polish · v2.0.0 */
+/* Hallmark · waive 39b · the 216px buttons are whole template cards in the gallery · each card is one large target that starts a project, not a toolbar control */
+/* Hallmark · reworded "Your product, beautifully presented" to "Name of your product" · 19 names the stock marketing line in the template default */
+/* Hallmark · dropped 10k+, 14:00, 15:00 · 46a: invented figures and an invented event in the template defaults, replaced by placeholders that ask for real material */
+/* Hallmark · dismissed 49 · the long label is the screenshot drop zone: a title plus a hint, meant to wrap inside the zone */
+/* Hallmark · answered F1 · the flagged straight quotes are JSX attribute delimiters (label="Logo size"), not prose */
 @import "tailwindcss";
 
+/*
+ * App tokens. Every colour and font of the editor UI goes through these names
+ * (bg-surface, text-muted, ring-field…), never through Tailwind's default palette.
+ * The exported visuals have their own palette, derived from the brand colour.
+ */
 @theme {
-  --font-sans: Inter, "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-sans: "Geist Variable", "Geist", "Segoe UI", system-ui, -apple-system, sans-serif;
+
+  --color-canvas: #f2f3f5;
+  --color-panel: #f7f8f9;
+  --color-surface: #ffffff;
+  --color-subtle: #eceef1;
+  --color-subtle-strong: #e1e4e8;
+
+  --color-ink: #15171c;
+  --color-ink-soft: #33363e;
+  --color-muted: #5b606b;
+  --color-faint: #737884;
+
+  /* Card outlines are quiet; form fields keep at least 3:1 against white. */
+  --color-line: #dcdfe4;
+  --color-field: #7d828c;
+
+  --color-accent: #2b59c3;
+  --color-accent-strong: #234aa3;
+  --color-accent-soft: #e9effb;
+  --color-accent-deep: #1e3f8a;
+  --color-accent-line: #9fb6e6;
+  --color-on-accent: #ffffff;
+
+  --color-danger: #c42b2b;
+  --color-danger-soft: #fdecec;
+  --color-danger-line: #f0b4b4;
+  --color-warn: #a35f00;
+  --color-warn-soft: #fdf3e1;
+  --color-warn-ink: #6e4204;
+  --color-warn-line: #f0c87a;
+  --color-ok: #1d7a46;
+  --color-ok-soft: #e7f5ec;
+  --color-ok-line: #a8dcbc;
+
+  /* Safe-zone overlay on the canvas. */
+  --color-zone: #e0245e;
+
+  /* Transparency checkerboard behind previews. */
+  --color-checker-a: #e4e4e7;
+  --color-checker-b: #f4f4f5;
+  --color-tap: rgb(43 89 195 / 0.12);
+  /* Dimmed area outside the crop, and the tinted area outside the safe zone. */
+  --color-crop-dim: rgb(9 9 11 / 0.55);
+  --color-zone-dim: rgb(224 36 94 / 0.16);
+  --color-handle-edge: rgb(0 0 0 / 0.4);
+}
+
+html,
+body {
+  overflow-x: clip;
 }
 
 html,
@@ -10,10 +73,19 @@ body,
   height: 100%;
 }
 
+::selection {
+  background: var(--color-accent-soft);
+  color: var(--color-ink);
+}
+
+html {
+  scrollbar-color: var(--color-field) var(--color-canvas);
+}
+
 body {
-  @apply bg-zinc-100 text-zinc-900 antialiased;
+  @apply bg-canvas text-ink antialiased;
   /* Subtle, intentional tap highlight (press feedback comes from :active styles). */
-  -webkit-tap-highlight-color: rgb(37 99 235 / 0.12);
+  -webkit-tap-highlight-color: var(--color-tap);
 }
 
 @layer base {
@@ -48,16 +120,16 @@ body {
 }
 
 input[type='range'] {
-  accent-color: var(--color-blue-600);
+  accent-color: var(--color-accent);
 }
 
 .checker {
-  background-color: #e4e4e7;
+  background-color: var(--color-checker-a);
   background-image:
-    linear-gradient(45deg, #f4f4f5 25%, transparent 25%),
-    linear-gradient(-45deg, #f4f4f5 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #f4f4f5 75%),
-    linear-gradient(-45deg, transparent 75%, #f4f4f5 75%);
+    linear-gradient(45deg, var(--color-checker-b) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--color-checker-b) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--color-checker-b) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--color-checker-b) 75%);
   background-size: 16px 16px;
   background-position: 0 0, 0 8px, 8px -8px, -8px 0;
 }
