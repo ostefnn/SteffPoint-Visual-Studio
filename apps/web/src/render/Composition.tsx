@@ -43,7 +43,7 @@ interface Ctx {
   heading: string;
   radius: number;
   shadow: string;
-  /** Builds a box-shadow from soft layers, honouring `steppedShadows`. */
+  /** Builds a box-shadow from soft layers. */
   softShadow: (layers: ShadowLayer[]) => string;
   shots: (ScreenshotSlot | undefined)[];
 }
@@ -54,24 +54,9 @@ interface ShadowLayer {
   alpha: number;
 }
 
-const STEPS = 12;
-
-/**
- * CSS box-shadow for soft layers. With `stepped`, each blurred layer becomes a stack of sharp
- * shadows with growing spread and shared opacity: Safari draws blurred box-shadows inside the
- * SVG foreignObject used for export as flat grey rectangles, but renders sharp ones correctly.
- * The falloff is linear over half the blur radius, close to a Gaussian's visible extent.
- */
-export function boxShadow(layers: ShadowLayer[], stepped: boolean): string {
-  if (!stepped) return layers.map((l) => `0 ${l.y}px ${l.blur}px rgba(0,0,0,${l.alpha})`).join(', ');
-  return layers
-    .flatMap((l) =>
-      Array.from({ length: STEPS }, (_, i) => {
-        const spread = (l.blur / 2) * ((i + 0.5) / STEPS) - l.blur / 4;
-        return `0 ${l.y}px 0 ${+spread.toFixed(2)}px rgba(0,0,0,${+(l.alpha / STEPS).toFixed(4)})`;
-      }),
-    )
-    .join(', ');
+/** CSS box-shadow for soft layers. (WebKit exports replace it, see lib/flattenShadows.) */
+function boxShadow(layers: ShadowLayer[]): string {
+  return layers.map((l) => `0 ${l.y}px ${l.blur}px rgba(0,0,0,${l.alpha})`).join(', ');
 }
 
 export interface CompositionProps {
@@ -79,11 +64,9 @@ export interface CompositionProps {
   width: number;
   height: number;
   urls: Record<string, string>;
-  /** Draw shadows without blur (see `boxShadow`); the exporter sets this on Safari / WebKit. */
-  steppedShadows?: boolean;
 }
 
-export function Composition({ project, width, height, urls, steppedShadows = false }: CompositionProps) {
+export function Composition({ project, width, height, urls }: CompositionProps) {
   const pal = derivePalette(project.brand.primary, project.brand.theme);
   const u = Math.min(width, height) / 100;
   const s = project.brand.shadow;
@@ -102,14 +85,11 @@ export function Composition({ project, width, height, urls, steppedShadows = fal
     shadow:
       s <= 0.01
         ? 'none'
-        : boxShadow(
-            [
-              { y: u * 0.4, blur: u * 1.2, alpha: (dark ? 0.25 : 0.06) + 0.1 * s },
-              { y: u * 2, blur: u * 6, alpha: (dark ? 0.3 : 0.08) + 0.28 * s },
-            ],
-            steppedShadows,
-          ),
-    softShadow: (layers) => boxShadow(layers, steppedShadows),
+        : boxShadow([
+            { y: u * 0.4, blur: u * 1.2, alpha: (dark ? 0.25 : 0.06) + 0.1 * s },
+            { y: u * 2, blur: u * 6, alpha: (dark ? 0.3 : 0.08) + 0.28 * s },
+          ]),
+    softShadow: boxShadow,
     shots: project.screenshots.slice(0, 4),
   };
   const Template = TEMPLATE_COMPONENTS[getTemplate(project.template).id];

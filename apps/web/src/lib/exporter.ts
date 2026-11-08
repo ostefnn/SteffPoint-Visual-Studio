@@ -11,11 +11,9 @@ import { resolveFormat, type FormatId, type Project } from '@svs/visual-core';
 import { Composition } from '../render/Composition';
 import { buildProjectFile } from './projectFile';
 import { slugify } from './download';
+import { flattenShadows } from './flattenShadows';
 
-/**
- * Safari and every iOS browser (all WebKit) rasterise the export through an SVG foreignObject in which
- * blurred box-shadows come out as flat grey rectangles; those exports use stepped shadows instead.
- */
+/** Safari and every iOS browser (all WebKit): their exports need flattened shadows (see flattenShadows). */
 const IS_WEBKIT = /AppleWebKit/.test(navigator.userAgent) && !/(Chrome|Chromium|Edg)\//.test(navigator.userAgent);
 
 export type ImageType = 'png' | 'jpeg' | 'webp';
@@ -32,7 +30,7 @@ export async function renderToBlob(
   project: Project,
   urls: Record<string, string>,
   formatId: FormatId,
-  opts: { scale: number; type: ImageType; quality?: number; targetWidth?: number },
+  opts: { scale: number; type: ImageType; quality?: number; targetWidth?: number; flattenShadows?: boolean },
 ): Promise<Blob> {
   const f = resolveFormat(formatId, project.customFormat);
   const host = document.createElement('div');
@@ -41,9 +39,10 @@ export async function renderToBlob(
   document.body.appendChild(host);
   const root = createRoot(host);
   try {
-    flushSync(() => root.render(createElement(Composition, { project, width: f.width, height: f.height, urls, steppedShadows: IS_WEBKIT })));
+    flushSync(() => root.render(createElement(Composition, { project, width: f.width, height: f.height, urls })));
     const node = host.firstElementChild as HTMLElement;
     await waitForImages(node);
+    if (opts.flattenShadows ?? IS_WEBKIT) flattenShadows(node);
     const scale = opts.targetWidth ? opts.targetWidth / f.width : opts.scale;
     const blob = await domToBlob(node, {
       scale,

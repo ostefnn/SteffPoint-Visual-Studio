@@ -135,10 +135,21 @@ test('Export shadows fade out instead of leaving a grey block (Safari)', async (
   await page.locator('[role=tabpanel] button', { hasText: 'Solid' }).click();
   // Browser Hero on LinkedIn: the window's left edge is at x = 600 px, 1u = 6.27 px.
   const png = await exportLinkedIn(page);
-  const near = (await probePng(page, png, [0.474, 0.9])).rgb; // 5u left of the window
-  const far = (await probePng(page, png, [0.4, 0.9])).rgb; // plain background
-  // A real soft shadow is almost gone 5u out; WebKit's broken blur used to fill it with flat grey.
-  expectColor(near, far, 12);
+  await test.info().attach('linkedin-export.png', { body: Buffer.from(png), contentType: 'image/png' });
+  const u = 6.27 / 1200; // 1u (1% of the 627 px height) as a fraction of the width
+  const lum = async (x: number) => {
+    const [r, g, b] = (await probePng(page, png, [x, 0.9])).rgb;
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  // Walk left from the window edge in 0.5u steps: a soft shadow lightens gradually; WebKit's broken
+  // box-shadow left a flat grey block that ends in a hard edge.
+  const row: number[] = [];
+  for (let i = 1; i <= 16; i++) row.push(await lum(0.5 - (i * u) / 2));
+  const background = await lum(0.4);
+  for (let i = 1; i < row.length; i++) {
+    expect(Math.abs(row[i] - row[i - 1]), `luminance jump between ${(i / 2).toFixed(1)}u and ${((i + 1) / 2).toFixed(1)}u: ${row.map(Math.round)}`).toBeLessThanOrEqual(25);
+  }
+  expect(Math.abs(row[row.length - 1] - background), `8u out should be plain background: ${row.map(Math.round)}`).toBeLessThanOrEqual(6);
 });
 
 test('App Store exports the exact iPhone screenshot size', async ({ page }) => {
