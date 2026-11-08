@@ -9,12 +9,13 @@ import {
   type TemplateCategory,
   type TemplateId,
 } from '@svs/visual-core';
-import { copyBlobs, deleteProject, getThumbnail, listProjects, saveProject } from '../lib/db';
+import { copyBlobs, createProjectRecord, deleteProject, getThumbnail, listProjects, patchProject } from '../lib/db';
 import { buildProjectFile, importProjectFile } from '../lib/projectFile';
 import { downloadBlob, slugify } from '../lib/download';
 import { Button, cx, Icon, inputCls, useObjectUrl } from './ui';
 import { Stage } from './Stage';
 import { PrivacyBadge } from './PrivacyBadge';
+import { StorageStatus } from './StorageStatus';
 
 /** Project shown in the template gallery cards. */
 const SAMPLE = createProject();
@@ -34,7 +35,7 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
 
   const create = async (template: TemplateId = 'browser-hero') => {
     const p = createProject({ template, name: `Untitled ${new Date().toLocaleDateString()}` });
-    await saveProject(p);
+    await createProjectRecord(p);
     onOpen(p.id);
   };
 
@@ -49,13 +50,13 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
     rename: async (p: Project) => {
       const name = prompt('Project name', p.name)?.trim();
       if (!name) return;
-      await saveProject({ ...p, name: name.slice(0, 80), updatedAt: Date.now() });
+      await patchProject(p.id, { name: name.slice(0, 80) });
       refresh();
     },
     duplicate: async (p: Project) => {
       const copy: Project = { ...structuredClone(p), id: uid('prj'), name: `${p.name} (copy)`, favorite: false, createdAt: Date.now(), updatedAt: Date.now() };
       await copyBlobs(p.id, copy.id);
-      await saveProject(copy);
+      await createProjectRecord(copy);
       refresh();
     },
     remove: async (p: Project) => {
@@ -64,7 +65,7 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
       refresh();
     },
     favorite: async (p: Project) => {
-      await saveProject({ ...p, favorite: !p.favorite });
+      await patchProject(p.id, { favorite: !p.favorite }, false);
       refresh();
     },
     exportJson: async (p: Project) => {
@@ -114,6 +115,8 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
             {error}
           </div>
         )}
+
+        <StorageStatus projectCount={projects?.length ?? 0} />
 
         <section>
           <div className="mb-4 flex flex-wrap items-center gap-3">

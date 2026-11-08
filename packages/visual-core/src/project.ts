@@ -67,6 +67,8 @@ export interface Project {
   name: string;
   createdAt: number;
   updatedAt: number;
+  /** Incremented on every stored write. Used for optimistic locking between tabs. */
+  revision: number;
   favorite: boolean;
   template: TemplateId;
   content: Content;
@@ -94,6 +96,7 @@ export function createProject(init: Partial<Pick<Project, 'name' | 'template'>> 
     name: init.name ?? 'Untitled project',
     createdAt: now,
     updatedAt: now,
+    revision: 0,
     favorite: false,
     template: init.template ?? 'browser-hero',
     content: {
@@ -198,6 +201,7 @@ export function migrateProject(raw: unknown): Project {
     name: str(r.name, d.name, LIMITS.name) || d.name,
     createdAt: num(r.createdAt, d.createdAt, 0, Number.MAX_SAFE_INTEGER),
     updatedAt: num(r.updatedAt, d.updatedAt, 0, Number.MAX_SAFE_INTEGER),
+    revision: Math.floor(num(r.revision, 0, 0, Number.MAX_SAFE_INTEGER)),
     favorite: r.favorite === true,
     template: isTemplateId(r.template) ? r.template : d.template,
     content: {

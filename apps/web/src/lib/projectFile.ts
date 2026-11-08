@@ -1,7 +1,7 @@
 /** Portable project file: project JSON plus embedded images as data URLs. */
 import { migrateProject, uid, type Project } from '@svs/visual-core';
 import { blobToDataUrl, dataUrlToBlob, ImportError } from './assets';
-import { getBlob, putBlob, saveProject } from './db';
+import { createProjectRecord, getBlob, putBlob } from './db';
 
 export const PROJECT_FILE_FORMAT = 'steffpoint-visual-studio/project';
 const MAX_IMPORT_BYTES = 150 * 1024 * 1024;
@@ -59,6 +59,6 @@ export async function importProjectFile(file: File): Promise<Project> {
   project.screenshots = project.screenshots.filter((s) => available.has(s.assetId));
   if (project.brand.logoAssetId && !available.has(project.brand.logoAssetId)) project.brand.logoAssetId = null;
 
-  await saveProject(project);
+  await createProjectRecord(project);
   return project;
 }

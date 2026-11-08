@@ -29,7 +29,7 @@ It includes or depends on the third-party software listed below. Each package ke
 
 ## Development tooling (not shipped)
 
-Vite, @vitejs/plugin-react, Tailwind CSS, @tailwindcss/vite, TypeScript, Vitest and @types packages. All MIT or Apache-2.0. Tailwind generates CSS into the build (MIT).
+Vite, @vitejs/plugin-react, Tailwind CSS, @tailwindcss/vite, TypeScript, Vitest, Playwright (Apache-2.0) and @types packages. All MIT or Apache-2.0. Tailwind generates CSS into the build (MIT).
 
 To regenerate the list of runtime licenses:
 

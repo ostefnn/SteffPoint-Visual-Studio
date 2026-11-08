@@ -117,6 +117,21 @@ At 2× and 3× the pixel size is multiplied. Very large exports (> ~33 MP) show 
 Your work is saved automatically in the browser. Use **JSON** on a project card to back it up, and **Import project** to restore it.
 
 > ℹ️ Data lives in the storage of the browser and site you use. Clearing site data deletes your projects; export JSON backups for anything important.
+> The dashboard shows how much storage is used and whether the browser agreed to keep it ("persistent storage"). Browsers can clear non-persistent site data, for example after a long period without visits.
+
+### Devices
+
+| Device | Status |
+|---|---|
+| Desktop (Chrome, Edge, Firefox, Safari) | Full editor. Recommended. |
+| iPad (landscape) | Full three-column editor. |
+| iPad (portrait), iPhone | Stacked layout: preview, formats, then panels. Fine for edits and export; designed for quick changes rather than long sessions. |
+
+On iPhone/iPad, very large exports (> 16.7 MP per image, e.g. Story at 3×) are blocked because Safari cannot render canvases that big. Exported ZIPs go to the Files app.
+
+### Several tabs
+
+The same project can be open in several tabs. A tab without unsaved changes follows the others automatically. If two tabs edit at the same time, the second one to save shows a conflict and lets you **load the latest version** or **keep yours**; nothing is overwritten silently.
 
 ## Keyboard shortcuts
 
@@ -150,6 +165,7 @@ Open http://localhost:5173.
 | `npm run build` | Typecheck and build to `apps/web/dist` |
 | `npm run preview` | Serve the production build locally |
 | `npm test` | Unit tests (`packages/visual-core`, Vitest) |
+| `npm run e2e` | End-to-end tests (Playwright) on Chromium, Firefox, WebKit, iPhone and iPad emulation |
 | `npm run typecheck` | TypeScript check of all workspaces |
 
 ## Deployment
@@ -229,6 +245,8 @@ SteffPoint-Visual-Studio/
 ├── docs/
 │   ├── vision.md                Full product vision (FR)
 │   └── images/                  README screenshots
+├── e2e/                         Playwright end-to-end tests + fixtures
+├── .github/workflows/ci.yml     Tests on every pull request
 ├── .github/workflows/pages.yml  GitHub Pages deployment
 ├── LICENSE
 ├── THIRD_PARTY_NOTICES.md
@@ -239,7 +257,9 @@ SteffPoint-Visual-Studio/
 
 **Why `visual-core` is separate:** it can later power a render API, a batch generator or Microsoft 365 / SharePoint adapters without depending on the web UI.
 
-**Stack:** TypeScript · React 19 · Vite · Tailwind CSS v4 · Zustand · idb (IndexedDB) · modern-screenshot · JSZip · Vitest · Playwright (manual E2E).
+**Stack:** TypeScript · React 19 · Vite · Tailwind CSS v4 · Zustand · idb (IndexedDB) · modern-screenshot · JSZip · Vitest · Playwright.
+
+**CI:** every pull request runs unit tests, type checks and the E2E suite on Chromium, Firefox, WebKit and iPhone/iPad emulation. The export test opens the generated ZIP and checks image sizes and that the screenshot pixels are really present.
 Vite was chosen over Next.js because the app is fully client-side with no server rendering.
 
 ## Privacy & security
@@ -248,7 +268,8 @@ Vite was chosen over Next.js because the app is fully client-side with no server
 - **Strict Content Security Policy** in production builds: no remote origins for scripts, images, fonts or connections.
 - **File validation:** PNG, JPEG, WebP, GIF only, max 20 MB each, and the file must decode as an image.
 - **Import sanitisation:** project files are normalised (types checked, values clamped, control characters removed); text is rendered by React, never as HTML.
-- **Object URLs** are revoked when a project is closed; unused image blobs are garbage-collected.
+- **Object URLs** are revoked when a project is closed. Unused image blobs are garbage-collected only when no tab has the project open (Web Locks).
+- **Optimistic locking:** every save checks the stored `revision`, so a stale tab cannot overwrite newer work.
 
 Found a security issue? Please open a private security advisory on GitHub rather than a public issue.
 
