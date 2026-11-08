@@ -15,6 +15,10 @@ It includes or depends on the third-party software listed below. Each package ke
 | modern-screenshot | 4.7.0 | MIT | https://github.com/qq15725/modern-screenshot |
 | jszip | 3.10.2 | MIT or GPL-3.0-or-later — **used under MIT** | https://github.com/Stuk/jszip |
 | pako | 1.0.11 | MIT and Zlib | https://github.com/nodeca/pako |
+| pdf-lib | 1.17.1 | MIT | https://github.com/Hopding/pdf-lib |
+| @pdf-lib/standard-fonts | 1.0.0 | MIT | https://github.com/Hopding/standard-fonts |
+| @pdf-lib/upng | 1.0.1 | MIT | https://github.com/Hopding/upng |
+| tslib | 1.14.1 | 0BSD | https://github.com/microsoft/tslib |
 | lie | 3.3.0 | MIT | https://github.com/calvinmetcalf/lie |
 | immediate | 3.0.6 | MIT | https://github.com/calvinmetcalf/immediate |
 | readable-stream | 2.3.8 | MIT | https://github.com/nodejs/readable-stream |

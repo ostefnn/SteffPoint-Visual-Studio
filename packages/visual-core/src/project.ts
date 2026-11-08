@@ -22,6 +22,8 @@ export const LIMITS = {
   subtitle: 240,
   kicker: 40,
   label: 24,
+  /** Per-screenshot caption, used as the slide title in LinkedIn carousels. */
+  caption: 90,
   /** Features / changelog template. */
   featureItems: 4,
   feature: 70,
@@ -66,6 +68,8 @@ export interface ScreenshotSlot {
   focalY: number; // 0 – 1, within the cropped area
   /** Fraction of the image trimmed from each edge (0 – CROP_MAX). */
   crop: Crop;
+  /** Optional caption, used as the title of this screenshot's carousel slide. */
+  caption: string;
 }
 
 export interface Crop {
@@ -235,7 +239,7 @@ export function screenshotRange(p: Pick<Project, 'template' | 'devices'>): { min
 }
 
 export function createScreenshotSlot(assetId: string): ScreenshotSlot {
-  return { id: uid('shot'), assetId, fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { ...NO_CROP } };
+  return { id: uid('shot'), assetId, fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { ...NO_CROP }, caption: '' };
 }
 
 // ---------------------------------------------------------------------------
@@ -312,6 +316,7 @@ export function migrateProject(raw: unknown): Project {
           focalX: num(s.focalX, 0.5, 0, 1),
           focalY: num(s.focalY, 0, 0, 1),
           crop: clampCrop(obj(s.crop)),
+          caption: str(s.caption, '', LIMITS.caption).replace(/\n/g, ' '),
         }))
     : [];
 

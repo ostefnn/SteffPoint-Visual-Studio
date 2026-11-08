@@ -300,6 +300,17 @@ function ImageSection() {
       }
     >
       {index >= max && <p className="rounded-md bg-amber-50 px-2 py-1.5 text-xs text-amber-800">This template shows {max} screenshot(s); this one is hidden.</p>}
+      <Field label="Carousel caption" hint={`${(shot.caption ?? '').length}/${LIMITS.caption}`}>
+        <input
+          value={shot.caption ?? ''}
+          maxLength={LIMITS.caption}
+          name="caption"
+          autoComplete="off"
+          placeholder="e.g. Every environment at a glance…"
+          onChange={(e) => set('caption', e.target.value.replace(/\n/g, ' ').slice(0, LIMITS.caption), `caption-${shot.id}`)}
+          className={inputCls}
+        />
+      </Field>
       <FocalPicker
         url={urls[shot.assetId]}
         asset={assets?.find((a) => a.id === shot.assetId)}
