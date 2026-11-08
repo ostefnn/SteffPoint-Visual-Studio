@@ -2,6 +2,7 @@
 
 export type FormatId =
   | 'linkedin'
+  | 'linkedin-carousel'
   | 'open-graph'
   | 'square'
   | 'story'
@@ -37,6 +38,14 @@ const uniform = (v: number): SafeInsets => ({ top: v, right: v, bottom: v, left:
 
 export const FORMAT_PRESETS: Record<FormatId, FormatPreset> = {
   linkedin: { id: 'linkedin', label: 'LinkedIn', width: 1200, height: 627, safe: uniform(0.05) },
+  'linkedin-carousel': {
+    id: 'linkedin-carousel',
+    label: 'LinkedIn 4:5',
+    width: 1080,
+    height: 1350,
+    safe: uniform(0.06),
+    note: 'Portrait post and carousel page size. Export the whole carousel as a PDF from the Export dialog.',
+  },
   'open-graph': {
     id: 'open-graph',
     label: 'Open Graph',
@@ -101,6 +110,7 @@ export const FORMAT_PRESETS: Record<FormatId, FormatPreset> = {
 
 export const FORMAT_ORDER: FormatId[] = [
   'linkedin',
+  'linkedin-carousel',
   'open-graph',
   'square',
   'story',

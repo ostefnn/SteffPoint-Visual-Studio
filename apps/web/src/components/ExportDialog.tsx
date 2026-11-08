@@ -1,11 +1,21 @@
-import { useEffect, useRef, useState } from 'react';
-import { FORMAT_ORDER, IOS_CANVAS_PIXELS, isScaleReasonable, resolveFormat, type FormatId } from '@svs/visual-core';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  buildCarouselSlides,
+  CAROUSEL_FORMAT,
+  FORMAT_ORDER,
+  IOS_CANVAS_PIXELS,
+  isScaleReasonable,
+  resolveFormat,
+  type FormatId,
+} from '@svs/visual-core';
 
 /** iPhone, iPad (iPadOS reports itself as a Mac with touch). */
 const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 import { useEditor } from '../store/editor';
 import { exportPack, type ImageType } from '../lib/exporter';
 import { downloadBlob } from '../lib/download';
+import { exportCarouselPdf } from '../lib/carouselPdf';
+import { Stage } from './Stage';
 import { Button, cx, Icon, Segmented, Slider } from './ui';
 
 export function ExportDialog({ onClose }: { onClose: () => void }) {
@@ -54,6 +64,26 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
   };
 
   const busy = progress !== null;
+
+  // LinkedIn carousel: slides derived from the project (cover, one per screenshot, features).
+  const slides = useMemo(() => buildCarouselSlides(project), [project]);
+  const carouselFormat = resolveFormat(CAROUSEL_FORMAT);
+  const carouselBlocked = IS_IOS && !isScaleReasonable(carouselFormat.width, carouselFormat.height, scale, IOS_CANVAS_PIXELS);
+  const runCarousel = async () => {
+    setError(null);
+    setProgress({ done: 0, total: slides.length + 1 });
+    try {
+      const { blob, filename } = await exportCarouselPdf(project, urls, { scale, quality: type === 'png' ? 0.9 : quality }, (done, total) =>
+        setProgress({ done, total }),
+      );
+      downloadBlob(blob, filename);
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setProgress(null);
+    }
+  };
 
   return (
     <dialog
@@ -134,6 +164,33 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
           <input type="checkbox" checked={includeProject} onChange={(e) => setIncludeProject(e.target.checked)} />
           Include <code className="rounded bg-zinc-100 px-1 text-xs">project.json</code> (re-importable, images embedded)
         </label>
+        <section aria-labelledby="carousel-title" className="rounded-xl bg-zinc-50 p-3 ring-1 ring-zinc-200">
+          <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+            <h3 id="carousel-title" className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              LinkedIn Carousel (PDF)
+            </h3>
+            <span className="text-xs tabular-nums text-zinc-500">
+              {slides.length} {slides.length === 1 ? 'page' : 'pages'} · {carouselFormat.width}×{carouselFormat.height}
+            </span>
+          </div>
+          <ol className="flex gap-2 overflow-x-auto pb-1" aria-label="Carousel slides">
+            {slides.map((s, i) => (
+              <li key={i} className="flex-none">
+                <Stage project={s.project} format={carouselFormat} urls={urls} maxWidth={72} maxHeight={90} className="rounded shadow-sm ring-1 ring-black/5" />
+                <span className="mt-1 block w-[72px] truncate text-[11px] text-zinc-600" title={s.label}>
+                  {i + 1}. {s.label}
+                </span>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-2 text-xs text-zinc-500">
+            Cover, then one page per screenshot (titled with its caption in the Image panel){slides.some((s) => s.kind === 'features') ? ', then your features' : ''}.
+            Post it on LinkedIn as a document.
+          </p>
+          <Button className="mt-3" onClick={runCarousel} disabled={busy || carouselBlocked}>
+            <Icon name="download" /> Export Carousel PDF ({slides.length} {slides.length === 1 ? 'Page' : 'Pages'})
+          </Button>
+        </section>
         {error && (
           <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}

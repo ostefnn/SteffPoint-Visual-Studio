@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildCarouselSlides,
+  CAROUSEL_MAX_SLIDES,
+  createScreenshotSlot,
   analyzeProject,
   contrastRatio,
   clampCode,
@@ -132,7 +135,7 @@ describe('rules', () => {
   it('suggests a phone template for portrait screenshots', () => {
     const p = createProject({ template: 'browser-hero' });
     p.assets.push({ id: 'a', name: 'phone.png', mime: 'image/png', width: 1170, height: 2532, size: 1 });
-    p.screenshots.push({ id: 's', assetId: 'a', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 } });
+    p.screenshots.push({ id: 's', assetId: 'a', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '' });
     const s = analyzeProject(p, FORMAT_PRESETS.linkedin).find((x) => x.id === 'tpl-orientation');
     expect(s?.action?.template).toBe('mobile-trio');
   });
@@ -149,7 +152,7 @@ describe('rules', () => {
   it('warns about small images', () => {
     const p = createProject({ template: 'spotlight' });
     p.assets.push({ id: 'a', name: 'tiny.png', mime: 'image/png', width: 300, height: 200, size: 1 });
-    p.screenshots.push({ id: 's', assetId: 'a', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 } });
+    p.screenshots.push({ id: 's', assetId: 'a', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '' });
     expect(analyzeProject(p, FORMAT_PRESETS.linkedin, 2).map((s) => s.id)).toContain('shot-small');
   });
 });
@@ -193,8 +196,8 @@ describe('device mix', () => {
     p.devices = ['tablet', 'mobile'];
     p.assets.push({ id: 'a', name: 'a.png', mime: 'image/png', width: 1600, height: 1000, size: 1 });
     p.assets.push({ id: 'b', name: 'wide.png', mime: 'image/png', width: 1600, height: 900, size: 1 });
-    p.screenshots.push({ id: 's1', assetId: 'a', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 } });
-    p.screenshots.push({ id: 's2', assetId: 'b', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 } });
+    p.screenshots.push({ id: 's1', assetId: 'a', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '' });
+    p.screenshots.push({ id: 's2', assetId: 'b', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '' });
     expect(analyzeProject(p, FORMAT_PRESETS.linkedin).map((s) => s.id)).toContain('device-fit-1'); // wide shot, upright phone
     p.deviceOrientation.mobile = 'landscape';
     expect(analyzeProject(p, FORMAT_PRESETS.linkedin).map((s) => s.id)).not.toContain('device-fit-1');
@@ -205,8 +208,8 @@ describe('device mix', () => {
     p.devices = ['desktop', 'mobile'];
     p.assets.push({ id: 'a', name: 'phone.png', mime: 'image/png', width: 1170, height: 2532, size: 1 });
     p.assets.push({ id: 'b', name: 'phone2.png', mime: 'image/png', width: 1170, height: 2532, size: 1 });
-    p.screenshots.push({ id: 's1', assetId: 'a', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 } });
-    p.screenshots.push({ id: 's2', assetId: 'b', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 } });
+    p.screenshots.push({ id: 's1', assetId: 'a', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '' });
+    p.screenshots.push({ id: 's2', assetId: 'b', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '' });
     const ids = analyzeProject(p, FORMAT_PRESETS.linkedin).map((s) => s.id);
     expect(ids).toContain('device-fit-0');
     expect(ids).not.toContain('device-fit-1');
@@ -278,5 +281,57 @@ describe('testimonial, key figures and event', () => {
     const kids = analyzeProject(k, FORMAT_PRESETS.linkedin).map((s) => s.id);
     expect(kids).toContain('stats-few');
     expect(kids).toContain('stats-label');
+  });
+});
+
+describe('LinkedIn carousel', () => {
+  const withShots = () => {
+    const p = createProject({ template: 'browser-hero' });
+    p.assets.push(
+      { id: 'd', name: 'desktop.png', mime: 'image/png', width: 1600, height: 1000, size: 1 },
+      { id: 'm', name: 'phone.png', mime: 'image/png', width: 1170, height: 2532, size: 1 },
+    );
+    p.screenshots.push(
+      { ...createScreenshotSlot('d'), caption: 'Dashboard' },
+      { ...createScreenshotSlot('m'), caption: '' },
+    );
+    return p;
+  };
+
+  it('builds cover, one slide per screenshot and a features slide', () => {
+    const slides = buildCarouselSlides(withShots());
+    expect(slides.map((s) => s.kind)).toEqual(['cover', 'screenshot', 'screenshot', 'features']);
+    expect(slides[0].project.template).toBe('browser-hero');
+    expect(slides[1].project.template).toBe('spotlight');
+    expect(slides[1].project.content.title).toBe('Dashboard');
+    expect(slides[1].project.screenshots).toHaveLength(1);
+    expect(slides[2].project.template).toBe('mobile-trio'); // portrait image → phone
+    expect(slides[2].label).toBe('Screenshot 2');
+    expect(slides[3].project.content.kicker).toBe('4 / 4');
+    expect(slides[0].project.content.kicker).toBe(withShots().content.kicker); // cover untouched
+  });
+
+  it('skips the features slide when empty or already the cover', () => {
+    const p = withShots();
+    p.content.features = ['', ' '];
+    expect(buildCarouselSlides(p).map((s) => s.kind)).not.toContain('features');
+    const q = withShots();
+    q.template = 'features';
+    expect(buildCarouselSlides(q).map((s) => s.kind)).not.toContain('features');
+  });
+
+  it('caps the number of slides', () => {
+    const p = withShots();
+    for (let i = 0; i < 20; i++) p.screenshots.push(createScreenshotSlot('d'));
+    expect(buildCarouselSlides(p).length).toBeLessThanOrEqual(CAROUSEL_MAX_SLIDES);
+  });
+
+  it('migrates captions safely', () => {
+    const p = migrateProject({
+      assets: [{ id: 'a', mime: 'image/png' }],
+      screenshots: [{ assetId: 'a', caption: 'x'.repeat(200) + '\nnext' }, { assetId: 'a' }],
+    });
+    expect(p.screenshots[0].caption.length).toBe(90);
+    expect(p.screenshots[1].caption).toBe('');
   });
 });
