@@ -127,6 +127,20 @@ test('Logo size switches between small, medium and large', async ({ page }) => {
   await expect.poll(height).toBeCloseTo(medium / 1.4, 0);
 });
 
+test('Export shadows fade out instead of leaving a grey block (Safari)', async ({ page }) => {
+  await newProject(page);
+  await page.getByRole('tab', { name: 'Brand' }).click();
+  await page.getByRole('slider', { name: /^Shadow/ }).fill('1');
+  await page.getByRole('tab', { name: 'Background' }).click();
+  await page.locator('[role=tabpanel] button', { hasText: 'Solid' }).click();
+  // Browser Hero on LinkedIn: the window's left edge is at x = 600 px, 1u = 6.27 px.
+  const png = await exportLinkedIn(page);
+  const near = (await probePng(page, png, [0.474, 0.9])).rgb; // 5u left of the window
+  const far = (await probePng(page, png, [0.4, 0.9])).rgb; // plain background
+  // A real soft shadow is almost gone 5u out; WebKit's broken blur used to fill it with flat grey.
+  expectColor(near, far, 12);
+});
+
 test('Features lists the edited items', async ({ page }) => {
   await newProject(page);
   await useTemplate(page, 'Features');

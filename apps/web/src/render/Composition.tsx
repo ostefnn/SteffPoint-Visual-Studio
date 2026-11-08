@@ -43,7 +43,35 @@ interface Ctx {
   heading: string;
   radius: number;
   shadow: string;
+  /** Builds a box-shadow from soft layers, honouring `steppedShadows`. */
+  softShadow: (layers: ShadowLayer[]) => string;
   shots: (ScreenshotSlot | undefined)[];
+}
+
+interface ShadowLayer {
+  y: number;
+  blur: number;
+  alpha: number;
+}
+
+const STEPS = 12;
+
+/**
+ * CSS box-shadow for soft layers. With `stepped`, each blurred layer becomes a stack of sharp
+ * shadows with growing spread and shared opacity: Safari draws blurred box-shadows inside the
+ * SVG foreignObject used for export as flat grey rectangles, but renders sharp ones correctly.
+ * The falloff is linear over half the blur radius, close to a Gaussian's visible extent.
+ */
+export function boxShadow(layers: ShadowLayer[], stepped: boolean): string {
+  if (!stepped) return layers.map((l) => `0 ${l.y}px ${l.blur}px rgba(0,0,0,${l.alpha})`).join(', ');
+  return layers
+    .flatMap((l) =>
+      Array.from({ length: STEPS }, (_, i) => {
+        const spread = (l.blur / 2) * ((i + 0.5) / STEPS) - l.blur / 4;
+        return `0 ${l.y}px 0 ${+spread.toFixed(2)}px rgba(0,0,0,${+(l.alpha / STEPS).toFixed(4)})`;
+      }),
+    )
+    .join(', ');
 }
 
 export interface CompositionProps {
@@ -51,9 +79,11 @@ export interface CompositionProps {
   width: number;
   height: number;
   urls: Record<string, string>;
+  /** Draw shadows without blur (see `boxShadow`); the exporter sets this on Safari / WebKit. */
+  steppedShadows?: boolean;
 }
 
-export function Composition({ project, width, height, urls }: CompositionProps) {
+export function Composition({ project, width, height, urls, steppedShadows = false }: CompositionProps) {
   const pal = derivePalette(project.brand.primary, project.brand.theme);
   const u = Math.min(width, height) / 100;
   const s = project.brand.shadow;
@@ -72,7 +102,14 @@ export function Composition({ project, width, height, urls }: CompositionProps) 
     shadow:
       s <= 0.01
         ? 'none'
-        : `0 ${u * 0.4}px ${u * 1.2}px rgba(0,0,0,${(dark ? 0.25 : 0.06) + 0.1 * s}), 0 ${u * 2}px ${u * 6}px rgba(0,0,0,${(dark ? 0.3 : 0.08) + 0.28 * s})`,
+        : boxShadow(
+            [
+              { y: u * 0.4, blur: u * 1.2, alpha: (dark ? 0.25 : 0.06) + 0.1 * s },
+              { y: u * 2, blur: u * 6, alpha: (dark ? 0.3 : 0.08) + 0.28 * s },
+            ],
+            steppedShadows,
+          ),
+    softShadow: (layers) => boxShadow(layers, steppedShadows),
     shots: project.screenshots.slice(0, 4),
   };
   const Template = TEMPLATE_COMPONENTS[getTemplate(project.template).id];
@@ -224,9 +261,12 @@ function ImageBox({ ctx, slot, index }: { ctx: Ctx; slot?: ScreenshotSlot; index
   );
 }
 
+/** Frame for desktop screenshots; its look follows `project.desktopFrame`. */
 function BrowserFrame({ ctx, index, style }: { ctx: Ctx; index: number; style: CSSProperties }) {
   const { pal, u, radius, shadow } = ctx;
-  const bar = u * 3.6;
+  const kind = ctx.p.desktopFrame ?? 'browser';
+  if (kind === 'laptop') return <LaptopFrame ctx={ctx} index={index} style={style} />;
+  const bar = u * (kind === 'window' ? 2.8 : 3.6);
   const dot = u * 1.05;
   return (
     <div
@@ -241,33 +281,102 @@ function BrowserFrame({ ctx, index, style }: { ctx: Ctx; index: number; style: C
         border: `${Math.max(1, u * 0.12)}px solid ${pal.border}`,
       }}
     >
+      {kind !== 'plain' && (
+        <div
+          style={{
+            height: bar,
+            flex: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: dot * 0.7,
+            padding: `0 ${u * 1.6}px`,
+            background: mix(pal.surface, pal.text, 0.04),
+            borderBottom: `${Math.max(1, u * 0.1)}px solid ${pal.border}`,
+          }}
+        >
+          {['#ff5f57', '#febc2e', '#28c840'].map((c) => (
+            <span key={c} style={{ width: dot, height: dot, borderRadius: '50%', background: c, flex: 'none' }} />
+          ))}
+          {kind === 'browser' && (
+            <span
+              style={{
+                marginLeft: u * 2,
+                height: bar * 0.52,
+                width: '38%',
+                borderRadius: bar,
+                background: mix(pal.surface, pal.text, 0.08),
+              }}
+            />
+          )}
+        </div>
+      )}
+      <div style={{ position: 'relative', flex: 1 }}>
+        <ImageBox ctx={ctx} slot={ctx.shots[index]} index={index} />
+      </div>
+    </div>
+  );
+}
+
+/** Laptop: dark screen bezel with a camera, on a wider aluminium base, fitted inside `style`'s box. */
+function LaptopFrame({ ctx, index, style }: { ctx: Ctx; index: number; style: CSSProperties }) {
+  const W = Number(style.width);
+  const base = W * 0.032;
+  const lid = W * 0.88;
+  const bezel = W * 0.016;
+  return (
+    <div style={{ ...style, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <div
         style={{
-          height: bar,
-          flex: 'none',
-          display: 'flex',
-          alignItems: 'center',
-          gap: dot * 0.7,
-          padding: `0 ${u * 1.6}px`,
-          background: mix(pal.surface, pal.text, 0.04),
-          borderBottom: `${Math.max(1, u * 0.1)}px solid ${pal.border}`,
+          position: 'relative',
+          width: lid,
+          flex: 1,
+          minHeight: 0,
+          padding: `${bezel * 1.4}px ${bezel}px ${bezel}px`,
+          borderRadius: `${W * 0.022}px ${W * 0.022}px 0 0`,
+          background: '#0d0f14',
+          boxShadow: ctx.shadow === 'none' ? undefined : ctx.shadow,
         }}
       >
-        {['#ff5f57', '#febc2e', '#28c840'].map((c) => (
-          <span key={c} style={{ width: dot, height: dot, borderRadius: '50%', background: c, flex: 'none' }} />
-        ))}
+        <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', borderRadius: W * 0.004 }}>
+          <ImageBox ctx={ctx} slot={ctx.shots[index]} index={index} />
+        </div>
         <span
           style={{
-            marginLeft: u * 2,
-            height: bar * 0.52,
-            width: '38%',
-            borderRadius: bar,
-            background: mix(pal.surface, pal.text, 0.08),
+            position: 'absolute',
+            top: bezel * 0.7,
+            left: '50%',
+            width: bezel * 0.32,
+            height: bezel * 0.32,
+            marginLeft: -bezel * 0.16,
+            marginTop: -bezel * 0.16,
+            borderRadius: '50%',
+            background: '#2a2e38',
           }}
         />
       </div>
-      <div style={{ position: 'relative', flex: 1 }}>
-        <ImageBox ctx={ctx} slot={ctx.shots[index]} index={index} />
+      <div
+        style={{
+          position: 'relative',
+          width: '100%',
+          height: base,
+          flex: 'none',
+          borderRadius: `${base * 0.15}px ${base * 0.15}px ${base * 0.9}px ${base * 0.9}px / ${base * 0.15}px ${base * 0.15}px ${base * 0.6}px ${base * 0.6}px`,
+          background: 'linear-gradient(#d9dce1, #b4b8bf 60%, #8e939b)',
+          boxShadow: ctx.shadow === 'none' ? undefined : ctx.softShadow([{ y: base * 0.4, blur: base * 1.2, alpha: 0.25 }]),
+        }}
+      >
+        <span
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: '50%',
+            width: W * 0.14,
+            height: base * 0.35,
+            marginLeft: -W * 0.07,
+            borderRadius: `0 0 ${base * 0.3}px ${base * 0.3}px`,
+            background: '#a3a8b0',
+          }}
+        />
       </div>
     </div>
   );
@@ -949,7 +1058,7 @@ function Features(ctx: Ctx) {
         borderRadius: ctx.radius,
         background: pal.surface,
         border: `${Math.max(1, u * 0.12)}px solid ${pal.border}`,
-        boxShadow: ctx.shadow === 'none' ? undefined : `0 ${u * 0.3}px ${u * 1.4}px rgba(0,0,0,${0.04 + 0.08 * p.brand.shadow})`,
+        boxShadow: ctx.shadow === 'none' ? undefined : ctx.softShadow([{ y: u * 0.3, blur: u * 1.4, alpha: 0.04 + 0.08 * p.brand.shadow }]),
         minWidth: 0,
       }}
     >

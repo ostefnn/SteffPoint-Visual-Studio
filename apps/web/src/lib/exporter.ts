@@ -12,6 +12,12 @@ import { Composition } from '../render/Composition';
 import { buildProjectFile } from './projectFile';
 import { slugify } from './download';
 
+/**
+ * Safari and every iOS browser (all WebKit) rasterise the export through an SVG foreignObject in which
+ * blurred box-shadows come out as flat grey rectangles; those exports use stepped shadows instead.
+ */
+const IS_WEBKIT = /AppleWebKit/.test(navigator.userAgent) && !/(Chrome|Chromium|Edg)\//.test(navigator.userAgent);
+
 export type ImageType = 'png' | 'jpeg' | 'webp';
 
 export const MIME: Record<ImageType, string> = { png: 'image/png', jpeg: 'image/jpeg', webp: 'image/webp' };
@@ -35,7 +41,7 @@ export async function renderToBlob(
   document.body.appendChild(host);
   const root = createRoot(host);
   try {
-    flushSync(() => root.render(createElement(Composition, { project, width: f.width, height: f.height, urls })));
+    flushSync(() => root.render(createElement(Composition, { project, width: f.width, height: f.height, urls, steppedShadows: IS_WEBKIT })));
     const node = host.firstElementChild as HTMLElement;
     await waitForImages(node);
     const scale = opts.targetWidth ? opts.targetWidth / f.width : opts.scale;

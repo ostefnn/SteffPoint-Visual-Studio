@@ -1,10 +1,12 @@
 import { clampCustomSize, FORMAT_ORDER, type FormatId } from './formats';
 import { isHexColor, type Theme } from './color';
 import {
+  DESKTOP_FRAMES,
   DEVICE_KINDS,
   getTemplate,
   isTemplateId,
   MIN_DEVICES,
+  type DesktopFrame,
   type DeviceKind,
   type DeviceOrientation,
   type RotatableDevice,
@@ -124,6 +126,8 @@ export interface Project {
   devices: DeviceKind[];
   /** Orientation of the tablet and phone frames in Device Mix. */
   deviceOrientation: Record<RotatableDevice, DeviceOrientation>;
+  /** Frame drawn around desktop screenshots (Browser Hero, Browser Duo, Device Mix). */
+  desktopFrame: DesktopFrame;
 }
 
 export function uid(prefix = ''): string {
@@ -173,6 +177,7 @@ export function createProject(init: Partial<Pick<Project, 'name' | 'template'>> 
     customFormat: { width: 1600, height: 900 },
     devices: [...DEVICE_KINDS],
     deviceOrientation: { tablet: 'portrait', mobile: 'portrait' },
+    desktopFrame: 'browser',
   };
 }
 
@@ -331,5 +336,6 @@ export function migrateProject(raw: unknown): Project {
       tablet: oneOf(orient.tablet, ['portrait', 'landscape'] as const, 'portrait'),
       mobile: oneOf(orient.mobile, ['portrait', 'landscape'] as const, 'portrait'),
     },
+    desktopFrame: oneOf(r.desktopFrame, DESKTOP_FRAMES, d.desktopFrame),
   };
 }

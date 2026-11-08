@@ -241,3 +241,11 @@ describe('screenshot crop and logo size', () => {
     expect(analyzeProject(p, FORMAT_PRESETS.square, 3).map((s) => s.id)).not.toContain('logo-small');
   });
 });
+
+describe('desktop frame', () => {
+  it('defaults to browser and keeps a valid style', () => {
+    expect(createProject().desktopFrame).toBe('browser');
+    expect(migrateProject({ desktopFrame: 'laptop' }).desktopFrame).toBe('laptop');
+    expect(migrateProject({ desktopFrame: 'tv' }).desktopFrame).toBe('browser');
+  });
+});
