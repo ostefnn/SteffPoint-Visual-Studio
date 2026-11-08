@@ -10,7 +10,7 @@ import {
   type RotatableDevice,
   type TemplateId,
 } from './templates';
-import type { HeadingFont } from './typography';
+import { LOGO_SIZES, type HeadingFont, type LogoSize } from './typography';
 
 export const PROJECT_SCHEMA_VERSION = '1.0';
 
@@ -49,9 +49,28 @@ export interface ScreenshotSlot {
   id: string;
   assetId: string;
   fit: 'cover' | 'contain';
-  zoom: number; // 1 – 3
-  focalX: number; // 0 – 1
-  focalY: number; // 0 – 1
+  zoom: number; // ZOOM_RANGE: below 1 shrinks the image inside its frame
+  focalX: number; // 0 – 1, within the cropped area
+  focalY: number; // 0 – 1, within the cropped area
+  /** Fraction of the image trimmed from each edge (0 – CROP_MAX). */
+  crop: Crop;
+}
+
+export interface Crop {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+export const NO_CROP: Crop = { top: 0, right: 0, bottom: 0, left: 0 };
+/** Each edge can trim up to this fraction, so at least 10% of the image always remains. */
+export const CROP_MAX = 0.45;
+export const ZOOM_RANGE = { min: 0.5, max: 3 } as const;
+
+export function clampCrop(c: Partial<Record<keyof Crop, unknown>> | undefined): Crop {
+  const f = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? Math.min(CROP_MAX, Math.max(0, v)) : 0);
+  return { top: f(c?.top), right: f(c?.right), bottom: f(c?.bottom), left: f(c?.left) };
 }
 
 export interface Brand {
@@ -61,6 +80,7 @@ export interface Brand {
   radius: number; // 0 – 1
   shadow: number; // 0 – 1
   logoAssetId: string | null;
+  logoSize: LogoSize;
 }
 
 export interface Background {
@@ -145,7 +165,7 @@ export function createProject(init: Partial<Pick<Project, 'name' | 'template'>> 
       ].join('\n'),
       codeFile: 'launch.ts',
     },
-    brand: { primary: '#2563eb', theme: 'light', headingFont: 'sans', radius: 0.5, shadow: 0.5, logoAssetId: null },
+    brand: { primary: '#2563eb', theme: 'light', headingFont: 'sans', radius: 0.5, shadow: 0.5, logoAssetId: null, logoSize: 'medium' },
     background: { type: 'glow', intensity: 0.6, angle: 135 },
     assets: [],
     screenshots: [],
@@ -172,7 +192,7 @@ export function screenshotRange(p: Pick<Project, 'template' | 'devices'>): { min
 }
 
 export function createScreenshotSlot(assetId: string): ScreenshotSlot {
-  return { id: uid('shot'), assetId, fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0 };
+  return { id: uid('shot'), assetId, fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { ...NO_CROP } };
 }
 
 // ---------------------------------------------------------------------------
@@ -245,9 +265,10 @@ export function migrateProject(raw: unknown): Project {
           id: typeof s.id === 'string' && s.id ? s.id : uid('shot'),
           assetId: s.assetId as string,
           fit: oneOf(s.fit, ['cover', 'contain'] as const, 'cover'),
-          zoom: num(s.zoom, 1, 1, 3),
+          zoom: num(s.zoom, 1, ZOOM_RANGE.min, ZOOM_RANGE.max),
           focalX: num(s.focalX, 0.5, 0, 1),
           focalY: num(s.focalY, 0, 0, 1),
+          crop: clampCrop(obj(s.crop)),
         }))
     : [];
 
@@ -291,6 +312,7 @@ export function migrateProject(raw: unknown): Project {
       radius: num(brand.radius, d.brand.radius, 0, 1),
       shadow: num(brand.shadow, d.brand.shadow, 0, 1),
       logoAssetId: logo,
+      logoSize: oneOf(brand.logoSize, LOGO_SIZES, d.brand.logoSize),
     },
     background: {
       type: oneOf(bg.type, ['solid', 'gradient', 'glow', 'grid', 'mesh'] as const, d.background.type),

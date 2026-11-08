@@ -20,6 +20,18 @@ export function kickerSize(u: number, scale = 1): number {
   return u * 2.2 * scale;
 }
 
+export type LogoSize = 'small' | 'medium' | 'large';
+export const LOGO_SIZES: readonly LogoSize[] = ['small', 'medium', 'large'];
+const LOGO_FACTOR: Record<LogoSize, number> = { small: 1, medium: 1.4, large: 2 };
+
+/** Rendered logo height in pixels (at 1×), shared by the renderer and the blur check. */
+export function logoHeight(u: number, size: LogoSize, scale = 1): number {
+  return u * 4.6 * Math.max(0.8, scale) * LOGO_FACTOR[size];
+}
+
+/** Recommended minimum logo file sizes, shown in the UI. */
+export const LOGO_ADVICE = { iconPx: 512, wordmarkWidthPx: 800 } as const;
+
 export type HeadingFont = 'sans' | 'serif' | 'rounded' | 'mono';
 
 export const FONT_STACKS: Record<HeadingFont, string> = {

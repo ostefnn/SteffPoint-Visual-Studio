@@ -14,7 +14,9 @@ import {
   getOrientation,
   getTemplate,
   kickerSize,
+  logoHeight,
   mix,
+  NO_CROP,
   normalizeDevices,
   shiftHue,
   subtitleSize,
@@ -167,21 +169,55 @@ function ImageBox({ ctx, slot, index }: { ctx: Ctx; slot?: ScreenshotSlot; index
       </div>
     );
   }
-  const pos = `${slot.focalX * 100}% ${slot.focalY * 100}%`;
+  const asset = ctx.p.assets.find((a) => a.id === slot.assetId);
+  const crop = slot.crop ?? NO_CROP;
+  const background = slot.fit === 'contain' || slot.zoom < 1 ? ctx.pal.surface : undefined;
+  if (!asset || asset.width <= 0 || asset.height <= 0) {
+    // Unknown dimensions (should not happen for imported files): plain object-fit, no crop.
+    const pos = `${slot.focalX * 100}% ${slot.focalY * 100}%`;
+    return (
+      <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', background }}>
+        <img
+          src={url}
+          alt=""
+          draggable={false}
+          style={{
+            display: 'block',
+            width: '100%',
+            height: '100%',
+            objectFit: slot.fit,
+            objectPosition: pos,
+            transform: slot.zoom !== 1 ? `scale(${slot.zoom})` : undefined,
+            transformOrigin: pos,
+          }}
+        />
+      </div>
+    );
+  }
+  // Crop, fit, zoom and focal point in one placement, with container query units so it works at any
+  // frame size without measuring: S is the on-screen size of one source pixel.
+  //   cover: the cropped area fills the frame; contain: it fits inside. Zoom scales S.
+  //   The focal point (within the cropped area) stays at the same relative spot of the frame.
+  const n = (v: number) => +v.toFixed(6);
+  const W = asset.width;
+  const H = asset.height;
+  const cw = W * (1 - crop.left - crop.right);
+  const ch = H * (1 - crop.top - crop.bottom);
+  const S = `${slot.fit === 'cover' ? 'max' : 'min'}(100cqw / ${n(cw)}, 100cqh / ${n(ch)}) * ${n(slot.zoom)}`;
   return (
-    <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', background: slot.fit === 'contain' ? ctx.pal.surface : undefined }}>
+    <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', background, containerType: 'size' }}>
       <img
         src={url}
         alt=""
         draggable={false}
         style={{
+          position: 'absolute',
           display: 'block',
-          width: '100%',
-          height: '100%',
-          objectFit: slot.fit,
-          objectPosition: pos,
-          transform: slot.zoom !== 1 ? `scale(${slot.zoom})` : undefined,
-          transformOrigin: pos,
+          maxWidth: 'none',
+          width: `calc(${S} * ${W})`,
+          height: `calc(${S} * ${H})`,
+          left: `calc((100cqw - ${S} * ${n(cw)}) * ${n(slot.focalX)} - ${S} * ${n(W * crop.left)})`,
+          top: `calc((100cqh - ${S} * ${n(ch)}) * ${n(slot.focalY)} - ${S} * ${n(H * crop.top)})`,
         }}
       />
     </div>
@@ -340,7 +376,7 @@ function Logo({ ctx, height }: { ctx: Ctx; height: number }) {
   const id = ctx.p.brand.logoAssetId;
   const url = id ? ctx.urls[id] : undefined;
   if (!url) return null;
-  return <img src={url} alt="" draggable={false} style={{ height, width: 'auto', maxWidth: height * 5, objectFit: 'contain', display: 'block' }} />;
+  return <img src={url} alt="" draggable={false} style={{ height, width: 'auto', maxWidth: `min(${height * 5}px, 100%)`, objectFit: 'contain', display: 'block' }} />;
 }
 
 interface TextColors {
@@ -387,7 +423,7 @@ function TextBlock({
         ...style,
       }}
     >
-      <Logo ctx={ctx} height={u * 4.6 * Math.max(0.8, scale)} />
+      <Logo ctx={ctx} height={logoHeight(u, p.brand.logoSize ?? 'medium', scale)} />
       {kicker.trim() &&
         (kickerStyle === 'pill' ? (
           <span

@@ -2,13 +2,17 @@ import { useMemo, useRef } from 'react';
 import {
   analyzeProject,
   clampCode,
+  CROP_MAX,
   DEVICE_KINDS,
   DEVICE_LABELS,
   LIMITS,
   MIN_DEVICES,
+  NO_CROP,
   normalizeDevices,
   resolveFormat,
   screenshotRange,
+  ZOOM_RANGE,
+  type Crop,
   type DeviceKind,
   type DeviceOrientation,
   type RotatableDevice,
@@ -154,6 +158,8 @@ function ImageSection() {
   }
 
   const { max } = screenshotRange({ template: template ?? 'browser-hero', devices: devices ?? [] });
+  const crop: Crop = shot.crop ?? NO_CROP;
+  const cropped = crop.top + crop.right + crop.bottom + crop.left > 0;
   const set = <K extends keyof ScreenshotSlot>(key: K, value: ScreenshotSlot[K], coalesce?: string) =>
     update((d) => {
       const s = d.screenshots.find((x) => x.id === shot.id);
@@ -178,6 +184,7 @@ function ImageSection() {
       <FocalPicker
         url={urls[shot.assetId]}
         asset={assets?.find((a) => a.id === shot.assetId)}
+        crop={crop}
         x={shot.focalX}
         y={shot.focalY}
         onChange={(x, y) =>
@@ -196,7 +203,39 @@ function ImageSection() {
         ]}
         onChange={(v) => set('fit', v)}
       />
-      <Slider label="Zoom" min={1} max={3} step={0.05} value={shot.zoom} format={(v) => `${v.toFixed(2)}×`} onChange={(v) => set('zoom', v, `zoom-${shot.id}`)} />
+      <Slider
+        label="Zoom"
+        min={ZOOM_RANGE.min}
+        max={ZOOM_RANGE.max}
+        step={0.05}
+        value={shot.zoom}
+        format={(v) => `${v.toFixed(2)}×`}
+        onChange={(v) => set('zoom', v, `zoom-${shot.id}`)}
+      />
+      <fieldset className="space-y-2">
+        <legend className="flex w-full items-center justify-between text-xs font-medium text-zinc-600">
+          Crop
+          {cropped && (
+            <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[11px]" onClick={() => set('crop', { ...NO_CROP })}>
+              Reset Crop
+            </Button>
+          )}
+        </legend>
+        <div className="grid grid-cols-2 gap-3">
+          {(['top', 'bottom', 'left', 'right'] as const).map((edge) => (
+            <Slider
+              key={edge}
+              label={`Crop ${edge}`}
+              min={0}
+              max={CROP_MAX}
+              step={0.01}
+              value={crop[edge]}
+              format={(v) => `${Math.round(v * 100)}%`}
+              onChange={(v) => set('crop', { ...crop, [edge]: v }, `crop-${edge}-${shot.id}`)}
+            />
+          ))}
+        </div>
+      </fieldset>
       <div className="grid grid-cols-2 gap-3">
         <Slider label="Focal X" min={0} max={1} step={0.01} value={shot.focalX} format={(v) => `${Math.round(v * 100)}%`} onChange={(v) => set('focalX', v, `focal-${shot.id}`)} />
         <Slider label="Focal Y" min={0} max={1} step={0.01} value={shot.focalY} format={(v) => `${Math.round(v * 100)}%`} onChange={(v) => set('focalY', v, `focal-${shot.id}`)} />
@@ -271,12 +310,14 @@ const FOCAL_MAX_HEIGHT = 192; // matches max-h-48
 function FocalPicker({
   url,
   asset,
+  crop,
   x,
   y,
   onChange,
 }: {
   url?: string;
   asset?: { width: number; height: number };
+  crop: Crop;
   x: number;
   y: number;
   onChange: (x: number, y: number) => void;
@@ -285,8 +326,14 @@ function FocalPicker({
   const pick = (e: React.PointerEvent) => {
     const r = ref.current!.getBoundingClientRect();
     const clamp = (v: number) => Math.round(Math.min(1, Math.max(0, v)) * 100) / 100;
-    onChange(clamp((e.clientX - r.left) / r.width), clamp((e.clientY - r.top) / r.height));
+    // The preview shows the whole image; the focal point is relative to the cropped area.
+    const fx = ((e.clientX - r.left) / r.width - crop.left) / cw;
+    const fy = ((e.clientY - r.top) / r.height - crop.top) / ch;
+    onChange(clamp(fx), clamp(fy));
   };
+  const cw = 1 - crop.left - crop.right;
+  const ch = 1 - crop.top - crop.bottom;
+  const hasCrop = cw < 1 || ch < 1;
   const nudge = (e: React.KeyboardEvent) => {
     const step = e.shiftKey ? 0.1 : 0.02;
     const d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
@@ -310,7 +357,7 @@ function FocalPicker({
             pick(e);
           }}
           onPointerMove={(e) => e.buttons === 1 && pick(e)}
-          className="relative cursor-crosshair touch-none select-none focus-visible:outline-2 focus-visible:outline-blue-600"
+          className="relative cursor-crosshair touch-none select-none overflow-hidden focus-visible:outline-2 focus-visible:outline-blue-600"
         >
           {url &&
             (asset && asset.width > 0 && asset.height > 0 ? (
@@ -327,9 +374,23 @@ function FocalPicker({
             ) : (
               <img src={url} alt="" draggable={false} className="block max-h-48 max-w-full" />
             ))}
+          {hasCrop && (
+            // Dim what the crop removes.
+            <span
+              data-testid="crop-area"
+              className="pointer-events-none absolute border border-white/80"
+              style={{
+                left: `${crop.left * 100}%`,
+                top: `${crop.top * 100}%`,
+                width: `${cw * 100}%`,
+                height: `${ch * 100}%`,
+                boxShadow: '0 0 0 9999px rgba(9, 9, 11, 0.55)',
+              }}
+            />
+          )}
           <span
             className="pointer-events-none absolute size-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-blue-600/60 shadow-[0_0_0_1px_rgba(0,0,0,0.4)]"
-            style={{ left: `${x * 100}%`, top: `${y * 100}%` }}
+            style={{ left: `${(crop.left + x * cw) * 100}%`, top: `${(crop.top + y * ch) * 100}%` }}
           />
         </div>
       </div>
