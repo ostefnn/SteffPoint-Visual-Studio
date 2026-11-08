@@ -2,8 +2,8 @@
 import { createScreenshotSlot, LIMITS, uid } from '@svs/visual-core';
 import { useEditor } from '../store/editor';
 import { notify } from '../store/toasts';
-import { readImageFile } from './assets';
-import { putBlob } from './db';
+import { ImportError, readImageFile } from './assets';
+import { describeStorageError, putBlob, requestPersistence } from './db';
 
 export function imageFilesFrom(list: FileList | File[] | null | undefined): File[] {
   return [...(list ?? [])].filter((f) => f.type.startsWith('image/'));
@@ -29,8 +29,10 @@ export async function importImages(files: File[], target: 'screenshot' | 'logo')
         else d.screenshots.push(slot);
       });
       if (target === 'screenshot') ed().selectShot(slot.id);
+      // The user now has content worth keeping: ask the browser not to evict it.
+      void requestPersistence();
     } catch (e) {
-      notify(e instanceof Error ? e.message : String(e), 'error');
+      notify(e instanceof ImportError ? e.message : describeStorageError(e), 'error');
     }
   }
 }

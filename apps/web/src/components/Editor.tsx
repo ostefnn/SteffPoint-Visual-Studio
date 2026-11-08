@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { resolveFormat, type Project } from '@svs/visual-core';
+import { resolveFormat } from '@svs/visual-core';
 import { useEditor } from '../store/editor';
 import { notify, useToasts } from '../store/toasts';
-import { collectGarbage, getBlob, getProject, putThumbnail, saveProject } from '../lib/db';
-import { renderThumbnail } from '../lib/exporter';
+import { useProjectSession, type SaveState } from '../lib/useProjectSession';
 import { duplicateScreenshot, imageFilesFrom, importImages, removeScreenshot } from '../lib/actions';
 import { Button, cx, Icon, inputCls, useElementSize } from './ui';
 import { Stage } from './Stage';
@@ -13,9 +12,6 @@ import { PropertiesPanel } from './PropertiesPanel';
 import { FormatStrip } from './FormatStrip';
 import { ExportDialog } from './ExportDialog';
 
-const SAVE_DELAY = 400;
-const THUMB_DELAY = 2000;
-
 function isTextField(t: EventTarget | null) {
   const el = t as HTMLElement | null;
   return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
@@ -23,82 +19,19 @@ function isTextField(t: EventTarget | null) {
 
 export function Editor({ projectId, onExit }: { projectId: string; onExit: () => void }) {
   const project = useEditor((s) => s.project);
-  const [status, setStatus] = useState<'loading' | 'missing' | 'ready'>('loading');
-  const [saveState, setSaveState] = useState<'saved' | 'saving'>('saved');
+  const session = useProjectSession(projectId);
+  const { status, saveState } = session;
   const [exportOpen, setExportOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
-  const loaded = useRef<Project | null>(null);
-  const dirty = useRef(false);
 
-  // ---- Load project and its images; save + clean up on exit ----------------
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const p = await getProject(projectId);
-      if (!p) return !cancelled && setStatus('missing');
-      const urls: Record<string, string> = {};
-      for (const a of p.assets) {
-        const b = await getBlob(p.id, a.id);
-        if (b) urls[a.id] = URL.createObjectURL(b);
-      }
-      if (cancelled) return Object.values(urls).forEach((u) => URL.revokeObjectURL(u));
-      loaded.current = p;
-      useEditor.getState().open(p, urls);
-      setStatus('ready');
-    })();
-    return () => {
-      cancelled = true;
-      const p = useEditor.getState().project;
-      if (p && p.id === projectId) {
-        const final = dirty.current ? { ...p, updatedAt: Date.now() } : p;
-        saveProject(final).then(() => collectGarbage(final));
-      }
-      dirty.current = false;
-      useEditor.getState().close();
-    };
-  }, [projectId]);
-
-  // ---- Autosave + thumbnail ---------------------------------------------------
-  const saveNow = async () => {
-    const p = useEditor.getState().project;
-    if (!p) return;
-    setSaveState('saving');
-    await saveProject({ ...p, updatedAt: Date.now() });
-    dirty.current = false;
-    setSaveState('saved');
+  const exit = () => {
+    if (session.hasUnsavedConflict() && !confirm('Your changes conflict with another tab and are not saved. Leave anyway?')) return;
+    onExit();
   };
 
-  useEffect(() => {
-    if (!project || status !== 'ready') return;
-    const changed = project !== loaded.current;
-    if (changed) {
-      dirty.current = true;
-      setSaveState('saving');
-    }
-    const t1 = changed ? setTimeout(saveNow, SAVE_DELAY) : undefined;
-    const t2 = setTimeout(async () => {
-      try {
-        await putThumbnail(project.id, await renderThumbnail(project, useEditor.getState().urls));
-      } catch {
-        /* thumbnails are best effort */
-      }
-    }, THUMB_DELAY);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
-  }, [project, status]);
-
-  useEffect(() => {
-    const flush = () => {
-      const p = useEditor.getState().project;
-      if (p && dirty.current) saveProject({ ...p, updatedAt: Date.now() });
-    };
-    window.addEventListener('pagehide', flush);
-    return () => window.removeEventListener('pagehide', flush);
-  }, []);
-
   // ---- Keyboard shortcuts and paste ------------------------------------------
+  const saveRef = useRef(session.saveNow);
+  saveRef.current = session.saveNow;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey;
@@ -113,7 +46,7 @@ export function Editor({ projectId, onExit }: { projectId: string; onExit: () =>
         ed.redo();
       } else if (mod && key === 's') {
         e.preventDefault();
-        saveNow().then(() => notify('Project saved locally.'));
+        saveRef.current().then((ok) => ok && notify('Project saved locally.'));
       } else if (mod && key === 'd' && !isTextField(e.target)) {
         e.preventDefault();
         if (ed.selectedShotId) duplicateScreenshot(ed.selectedShotId);
@@ -167,7 +100,20 @@ export function Editor({ projectId, onExit }: { projectId: string; onExit: () =>
         importImages(imageFilesFrom(e.dataTransfer.files), 'screenshot');
       }}
     >
-      <TopBar saveState={saveState} onExit={onExit} onExport={() => setExportOpen(true)} />
+      <TopBar saveState={saveState} onExit={exit} onExport={() => setExportOpen(true)} />
+      {saveState === 'conflict' && (
+        <div role="alert" className="flex flex-wrap items-center gap-3 border-b border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+          <span className="mr-auto">
+            This project was changed in another tab. Your latest edits are <strong>not saved</strong>.
+          </span>
+          <Button size="sm" onClick={session.loadLatest}>
+            Load latest version
+          </Button>
+          <Button size="sm" variant="primary" onClick={session.keepMine}>
+            Keep my version
+          </Button>
+        </div>
+      )}
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[288px_minmax(0,1fr)_320px]">
         <LeftPanel className="order-2 border-zinc-200 bg-zinc-50 lg:order-1 lg:overflow-y-auto lg:border-r" />
         <main className="order-1 flex min-h-0 flex-col lg:order-2">
@@ -187,7 +133,14 @@ export function Editor({ projectId, onExit }: { projectId: string; onExit: () =>
   );
 }
 
-function TopBar({ saveState, onExit, onExport }: { saveState: 'saved' | 'saving'; onExit: () => void; onExport: () => void }) {
+const SAVE_LABEL: Record<SaveState, { text: string; cls: string }> = {
+  saved: { text: 'Saved', cls: 'text-zinc-500' },
+  saving: { text: 'Saving…', cls: 'text-zinc-500' },
+  error: { text: 'Not saved', cls: 'font-medium text-red-600' },
+  conflict: { text: 'Not saved (conflict)', cls: 'font-medium text-amber-700' },
+};
+
+function TopBar({ saveState, onExit, onExport }: { saveState: SaveState; onExit: () => void; onExport: () => void }) {
   const name = useEditor((s) => s.project?.name ?? '');
   const canUndo = useEditor((s) => s.past.length > 0);
   const canRedo = useEditor((s) => s.future.length > 0);
@@ -212,8 +165,8 @@ function TopBar({ saveState, onExit, onExport }: { saveState: 'saved' | 'saving'
           <Icon name="redo" />
         </Button>
       </div>
-      <span className="text-xs text-zinc-500" aria-live="polite">
-        {saveState === 'saving' ? 'Saving…' : 'Saved'}
+      <span className={cx('text-xs', SAVE_LABEL[saveState].cls)} aria-live="polite" data-testid="save-state">
+        {SAVE_LABEL[saveState].text}
       </span>
       <div className="ml-auto flex items-center gap-2">
         <span className="hidden md:inline">
@@ -264,7 +217,7 @@ function Canvas() {
           <input type="checkbox" checked={showSafe} onChange={toggleSafeZones} /> Safe zones
         </label>
       </div>
-      <div ref={ref} className="checker relative flex h-[56vh] min-h-0 flex-1 items-center justify-center overflow-hidden lg:h-auto">
+      <div ref={ref} className="checker relative flex h-[56vh] max-h-[640px] flex-none items-center justify-center overflow-hidden lg:h-auto lg:max-h-none lg:min-h-0 lg:flex-1" data-testid="canvas">
         {size.width > 0 && (
           <Stage
             project={project}

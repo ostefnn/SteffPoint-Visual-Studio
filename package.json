@@ -14,9 +14,11 @@
     "build": "npm run build -w @svs/web",
     "preview": "npm run preview -w @svs/web",
     "test": "npm run test -w @svs/visual-core",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "e2e": "playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "^4.3.5",
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",

@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { FORMAT_ORDER, isScaleReasonable, resolveFormat, type FormatId } from '@svs/visual-core';
+import { FORMAT_ORDER, IOS_CANVAS_PIXELS, isScaleReasonable, resolveFormat, type FormatId } from '@svs/visual-core';
+
+/** iPhone, iPad (iPadOS reports itself as a Mac with touch). */
+const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 import { useEditor } from '../store/editor';
 import { exportPack, type ImageType } from '../lib/exporter';
 import { downloadBlob } from '../lib/download';
@@ -21,10 +24,13 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
     dialog.current?.showModal();
   }, []);
 
-  const tooBig = (s: number) => formats.some((id) => {
-    const f = resolveFormat(id, project.customFormat);
-    return !isScaleReasonable(f.width, f.height, s);
-  });
+  const tooBig = (s: number, limit?: number) =>
+    formats.some((id) => {
+      const f = resolveFormat(id, project.customFormat);
+      return !isScaleReasonable(f.width, f.height, s, limit);
+    });
+  // Hard limit on iOS: canvases above ~16.7 MP fail to render.
+  const blocked = IS_IOS && tooBig(scale, IOS_CANVAS_PIXELS);
 
   const toggle = (id: FormatId) =>
     setFormats((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : FORMAT_ORDER.filter((x) => x === id || cur.includes(x))));
@@ -114,7 +120,11 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
               ]}
               onChange={(v) => setScale(Number(v))}
             />
-            {tooBig(scale) && <p className="mt-1 text-xs text-amber-700">Very large output: export may be slow or fail on some devices.</p>}
+            {blocked ? (
+              <p className="mt-1 text-xs text-red-600">Too large for this device (iPhone/iPad limit). Choose a lower resolution.</p>
+            ) : (
+              tooBig(scale) && <p className="mt-1 text-xs text-amber-700">Very large output: export may be slow or fail on some devices.</p>
+            )}
           </div>
         </div>
         {type !== 'png' && (
@@ -132,7 +142,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
       </div>
       <div className="flex items-center justify-between gap-3 border-t border-zinc-200 px-5 py-4">
         <p className="text-xs text-zinc-500">Rendered in your browser. Nothing is uploaded.</p>
-        <Button variant="primary" onClick={run} disabled={busy || formats.length === 0}>
+        <Button variant="primary" onClick={run} disabled={busy || formats.length === 0 || blocked}>
           <Icon name="download" />
           {busy
             ? `Rendering ${progress.done}/${progress.total}…`

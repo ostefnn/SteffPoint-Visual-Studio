@@ -111,6 +111,12 @@ export function getOrientation(width: number, height: number): Orientation {
 /** Max pixel count we consider reasonable for a single export (about 33 MP). */
 export const MAX_EXPORT_PIXELS = 33_000_000;
 
-export function isScaleReasonable(width: number, height: number, scale: number): boolean {
-  return width * height * scale * scale <= MAX_EXPORT_PIXELS;
+/**
+ * Canvas area limit commonly reported for Safari on iOS / iPadOS (4096 × 4096).
+ * Larger canvases fail to render there. Verify against current WebKit behaviour.
+ */
+export const IOS_CANVAS_PIXELS = 16_777_216;
+
+export function isScaleReasonable(width: number, height: number, scale: number, limit = MAX_EXPORT_PIXELS): boolean {
+  return width * height * scale * scale <= limit;
 }
