@@ -11,6 +11,13 @@ export const LIMITS = {
   subtitle: 240,
   kicker: 40,
   label: 24,
+  /** Features / changelog template. */
+  featureItems: 4,
+  feature: 70,
+  /** Code template. */
+  codeFile: 40,
+  code: 1500,
+  codeLines: 20,
   screenshots: 4,
   fileBytes: 20 * 1024 * 1024,
 } as const;
@@ -59,6 +66,12 @@ export interface Content {
   subtitle: string;
   beforeLabel: string;
   afterLabel: string;
+  /** Bullet points for the Features template (max LIMITS.featureItems). */
+  features: string[];
+  /** Snippet for the Code template. */
+  code: string;
+  /** File name shown in the code window tab. */
+  codeFile: string;
 }
 
 export interface Project {
@@ -105,6 +118,19 @@ export function createProject(init: Partial<Pick<Project, 'name' | 'template'>> 
       subtitle: 'Drop screenshots, pick a template and export every format at once.',
       beforeLabel: 'Before',
       afterLabel: 'After',
+      features: ['Everything stays on your device', 'Every format in one export', 'Your brand applied automatically'],
+      code: [
+        "import { createPack } from '@steffpoint/visual';",
+        '',
+        'const pack = await createPack({',
+        "  title: 'Cockpit SteffPoint',",
+        "  formats: ['linkedin', 'open-graph', 'story'],",
+        '});',
+        '',
+        '// One composition, every format.',
+        'await pack.export();',
+      ].join('\n'),
+      codeFile: 'launch.ts',
     },
     brand: { primary: '#2563eb', theme: 'light', headingFont: 'sans', radius: 0.5, shadow: 0.5, logoAssetId: null },
     background: { type: 'glow', intensity: 0.6, angle: 135 },
@@ -136,6 +162,11 @@ const obj = (v: unknown): Record<string, unknown> =>
 export function sanitizeText(v: string): string {
   // eslint-disable-next-line no-control-regex
   return v.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '');
+}
+
+/** Limit a code snippet to LIMITS.code characters and LIMITS.codeLines lines; tabs become 2 spaces. */
+export function clampCode(code: string): string {
+  return code.replace(/\t/g, '  ').replace(/\r\n?/g, '\n').split('\n').slice(0, LIMITS.codeLines).join('\n').slice(0, LIMITS.code);
 }
 
 /**
@@ -210,6 +241,14 @@ export function migrateProject(raw: unknown): Project {
       subtitle: str(content.subtitle, d.content.subtitle, LIMITS.subtitle),
       beforeLabel: str(content.beforeLabel, d.content.beforeLabel, LIMITS.label),
       afterLabel: str(content.afterLabel, d.content.afterLabel, LIMITS.label),
+      features: Array.isArray(content.features)
+        ? content.features
+            .filter((f): f is string => typeof f === 'string')
+            .slice(0, LIMITS.featureItems)
+            .map((f) => sanitizeText(f).replace(/\n/g, ' ').slice(0, LIMITS.feature))
+        : d.content.features,
+      code: typeof content.code === 'string' ? clampCode(sanitizeText(content.code)) : d.content.code,
+      codeFile: str(content.codeFile, d.content.codeFile, LIMITS.codeFile).replace(/\n/g, ' '),
     },
     brand: {
       primary: isHexColor(brand.primary) ? brand.primary : d.brand.primary,

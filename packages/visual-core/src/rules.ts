@@ -7,6 +7,7 @@ import { getOrientation, type FormatPreset } from './formats';
 import type { Project } from './project';
 import { getTemplate, TEMPLATES, type TemplateId } from './templates';
 import { subtitleSize } from './typography';
+import { LIMITS } from './project';
 
 export type SuggestionLevel = 'info' | 'warning';
 
@@ -112,6 +113,26 @@ export function analyzeProject(project: Project, format: FormatPreset, exportSca
         message: 'This template does not show screenshots.',
         action: { label: `Use ${better.name}`, template: better.id },
       });
+    }
+  }
+
+  // --- Template specific ---------------------------------------------------------
+  if (tpl.id === 'features') {
+    const items = content.features.filter((f) => f.trim());
+    if (!items.length) out.push({ id: 'features-empty', level: 'warning', message: 'Add at least one feature to the list.' });
+    if (items.some((f) => f.length > 48)) {
+      out.push({ id: 'features-long', level: 'info', message: 'Keep each feature under about 48 characters so it stays on one line.' });
+    }
+  }
+  if (tpl.id === 'code') {
+    const lines = content.code.split('\n');
+    if (!content.code.trim()) out.push({ id: 'code-empty', level: 'warning', message: 'Paste a code snippet.' });
+    const longest = Math.max(0, ...lines.map((l) => l.length));
+    if (longest > 60) {
+      out.push({ id: 'code-wide', level: 'info', message: `Longest line has ${longest} characters: the code is shrunk to fit. Aim for 60 or fewer.` });
+    }
+    if (lines.length > 14) {
+      out.push({ id: 'code-tall', level: 'info', message: `${lines.length} lines of code (max ${LIMITS.codeLines}). Shorter snippets read better in a feed.` });
     }
   }
 

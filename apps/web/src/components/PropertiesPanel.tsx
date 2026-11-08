@@ -1,5 +1,5 @@
 import { useMemo, useRef } from 'react';
-import { analyzeProject, getTemplate, LIMITS, resolveFormat, type Content, type ScreenshotSlot } from '@svs/visual-core';
+import { analyzeProject, clampCode, getTemplate, LIMITS, resolveFormat, type ScreenshotSlot } from '@svs/visual-core';
 import { useEditor } from '../store/editor';
 import { duplicateScreenshot, removeScreenshot } from '../lib/actions';
 import { Button, cx, Field, Icon, inputCls, Section, Segmented, Slider } from './ui';
@@ -20,8 +20,26 @@ function ContentSection() {
   const { update } = useEditor.getState();
   if (!content || !template) return null;
 
-  const set = (key: keyof Content) => (e: { target: { value: string } }) =>
-    update((d) => void (d.content[key] = e.target.value.slice(0, LIMITS[key === 'beforeLabel' || key === 'afterLabel' ? 'label' : key])), `content-${key}`);
+  type TextKey = 'kicker' | 'title' | 'subtitle' | 'beforeLabel' | 'afterLabel' | 'codeFile';
+  const maxLen: Record<TextKey, number> = {
+    kicker: LIMITS.kicker,
+    title: LIMITS.title,
+    subtitle: LIMITS.subtitle,
+    beforeLabel: LIMITS.label,
+    afterLabel: LIMITS.label,
+    codeFile: LIMITS.codeFile,
+  };
+  const set = (key: TextKey) => (e: { target: { value: string } }) =>
+    update((d) => void (d.content[key] = e.target.value.slice(0, maxLen[key])), `content-${key}`);
+  const setFeature = (i: number, value: string) =>
+    update((d) => {
+      const list = [...d.content.features];
+      while (list.length <= i) list.push('');
+      list[i] = value.replace(/\n/g, ' ').slice(0, LIMITS.feature);
+      d.content.features = list.slice(0, LIMITS.featureItems);
+    }, `feature-${i}`);
+  const features = Array.from({ length: LIMITS.featureItems }, (_, i) => content.features[i] ?? '');
+  const codeLines = content.code.split('\n').length;
   const count = (v: string, max: number) => (
     <span className={cx(v.length > max * 0.8 && 'text-amber-600')}>
       {v.length}/{max}
@@ -48,6 +66,50 @@ function ContentSection() {
             <input value={content.afterLabel} onChange={set('afterLabel')} className={inputCls} />
           </Field>
         </div>
+      )}
+      {template === 'features' && (
+        <fieldset className="space-y-2">
+          <legend className="mb-1 text-xs font-medium text-zinc-600">Features (up to {LIMITS.featureItems})</legend>
+          {features.map((f, i) => (
+            <input
+              key={i}
+              value={f}
+              aria-label={`Feature ${i + 1}`}
+              placeholder={i === 0 ? 'e.g. Works offline' : 'Optional'}
+              onChange={(e) => setFeature(i, e.target.value)}
+              className={inputCls}
+            />
+          ))}
+        </fieldset>
+      )}
+      {template === 'code' && (
+        <>
+          <Field label="File name">
+            <input value={content.codeFile} onChange={set('codeFile')} className={cx(inputCls, 'font-mono')} placeholder="e.g. index.ts" />
+          </Field>
+          <Field label="Code" hint={
+              <span className={cx(codeLines >= LIMITS.codeLines && 'text-amber-600')}>
+                {codeLines}/{LIMITS.codeLines} lines
+              </span>
+            }>
+            <textarea
+              value={content.code}
+              spellCheck={false}
+              rows={10}
+              onChange={(e) => update((d) => void (d.content.code = clampCode(e.target.value)), 'content-code')}
+              onKeyDown={(e) => {
+                // Tab inserts two spaces instead of leaving the field.
+                if (e.key !== 'Tab' || e.shiftKey) return;
+                e.preventDefault();
+                const el = e.currentTarget;
+                const { selectionStart: a, selectionEnd: b, value } = el;
+                update((d) => void (d.content.code = clampCode(value.slice(0, a) + '  ' + value.slice(b))), 'content-code');
+                requestAnimationFrame(() => el.setSelectionRange(a + 2, a + 2));
+              }}
+              className={cx(inputCls, 'resize-y font-mono text-xs leading-relaxed')}
+            />
+          </Field>
+        </>
       )}
     </Section>
   );

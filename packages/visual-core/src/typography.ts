@@ -30,3 +30,20 @@ export const FONT_STACKS: Record<HeadingFont, string> = {
 };
 
 export const BODY_STACK = FONT_STACKS.sans;
+
+/** Monospace glyph width as a fraction of the font size (conservative for common mono fonts). */
+export const MONO_CHAR_WIDTH = 0.62;
+export const CODE_LINE_HEIGHT = 1.55;
+
+/**
+ * Largest font size (px) at which `code` fits a box of `width` × `height`,
+ * capped at `max` so short snippets do not become huge.
+ * Reserves room for a line-number gutter of `gutterChars` characters.
+ */
+export function fitCodeFontSize(code: string, width: number, height: number, max: number, gutterChars = 3): number {
+  const lines = code.split('\n');
+  const longest = Math.max(1, ...lines.map((l) => l.length));
+  const byWidth = width / ((longest + gutterChars + 1) * MONO_CHAR_WIDTH);
+  const byHeight = height / (Math.max(1, lines.length) * CODE_LINE_HEIGHT);
+  return Math.max(1, Math.min(max, byWidth, byHeight));
+}
