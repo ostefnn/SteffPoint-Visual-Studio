@@ -62,6 +62,31 @@ test('Device Mix lets you pick the devices and renders each screenshot', async (
   await expect(page.getByText('Screenshots fill the devices in order: desktop, mobile.')).toBeVisible();
 });
 
+test('Device Mix turns the tablet and phone to landscape', async ({ page }) => {
+  await newProject(page);
+  await addScreenshot(page, 'desktop-magenta.png');
+  await addScreenshot(page, 'desktop-cyan.png');
+  await useTemplate(page, 'Device Mix');
+  await page.getByRole('group', { name: 'Devices' }).getByRole('checkbox', { name: 'Desktop' }).uncheck({ force: true });
+  const images = page.getByTestId('canvas').locator('img');
+  await expect(images).toHaveCount(2);
+  const isWide = async (i: number) => {
+    const box = (await images.nth(i).boundingBox())!;
+    return box.width > box.height;
+  };
+  expect([await isWide(0), await isWide(1)]).toEqual([false, false]);
+
+  for (const device of ['Tablet', 'Mobile']) {
+    await page.getByRole('radiogroup', { name: `${device} orientation` }).getByRole('radio', { name: 'Landscape' }).click();
+  }
+  await expect.poll(async () => [await isWide(0), await isWide(1)]).toEqual([true, true]);
+
+  // The choice is saved with the project.
+  await expect(page.getByTestId('save-state')).toHaveText('Saved');
+  await page.reload();
+  await expect(page.getByRole('radiogroup', { name: 'Mobile orientation' }).getByRole('radio', { name: 'Landscape' })).toBeChecked();
+});
+
 test('Features lists the edited items', async ({ page }) => {
   await newProject(page);
   await useTemplate(page, 'Features');

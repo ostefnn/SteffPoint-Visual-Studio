@@ -10,6 +10,8 @@ import {
   resolveFormat,
   screenshotRange,
   type DeviceKind,
+  type DeviceOrientation,
+  type RotatableDevice,
   type ScreenshotSlot,
 } from '@svs/visual-core';
 import { useEditor } from '../store/editor';
@@ -30,6 +32,7 @@ function ContentSection() {
   const content = useEditor((s) => s.project?.content);
   const template = useEditor((s) => s.project?.template);
   const devices = useEditor((s) => s.project?.devices);
+  const orientation = useEditor((s) => s.project?.deviceOrientation);
   const { update } = useEditor.getState();
   if (!content || !template) return null;
 
@@ -70,7 +73,9 @@ function ContentSection() {
       <Field label="Subtitle" hint={count(content.subtitle, LIMITS.subtitle)}>
         <textarea value={content.subtitle} onChange={set('subtitle')} rows={3} className={cx(inputCls, 'resize-y')} />
       </Field>
-      {template === 'device-mix' && <DevicePicker devices={normalizeDevices(devices)} />}
+      {template === 'device-mix' && (
+        <DevicePicker devices={normalizeDevices(devices)} orientation={orientation ?? { tablet: 'portrait', mobile: 'portrait' }} />
+      )}
       {template === 'before-after' && (
         <div className="grid grid-cols-2 gap-2">
           <Field label="Before label">
@@ -201,7 +206,12 @@ function ImageSection() {
 }
 
 /** Device Mix: choose which frames to show. At least MIN_DEVICES stay selected. */
-function DevicePicker({ devices }: { devices: DeviceKind[] }) {
+const ORIENTATIONS: { value: DeviceOrientation; label: string }[] = [
+  { value: 'portrait', label: 'Portrait' },
+  { value: 'landscape', label: 'Landscape' },
+];
+
+function DevicePicker({ devices, orientation }: { devices: DeviceKind[]; orientation: Record<RotatableDevice, DeviceOrientation> }) {
   const { update } = useEditor.getState();
   const toggle = (d: DeviceKind) =>
     update((p) => {
@@ -229,6 +239,25 @@ function DevicePicker({ devices }: { devices: DeviceKind[] }) {
           );
         })}
       </div>
+      {(['tablet', 'mobile'] as const)
+        .filter((d) => devices.includes(d))
+        .map((d) => (
+          <div key={d} className="mt-2 flex items-center gap-2">
+            <span className="w-14 flex-none text-xs text-zinc-600">{DEVICE_LABELS[d]}</span>
+            <div className="flex-1">
+              <Segmented
+                label={`${DEVICE_LABELS[d]} orientation`}
+                value={orientation[d]}
+                options={ORIENTATIONS}
+                onChange={(v) =>
+                  update((p) => {
+                    p.deviceOrientation = { ...orientation, [d]: v };
+                  })
+                }
+              />
+            </div>
+          </div>
+        ))}
       <p className="mt-1 text-[11px] text-zinc-500">
         Pick {MIN_DEVICES} or 3. Screenshots fill the devices in order: {devices.map((d) => DEVICE_LABELS[d].toLowerCase()).join(', ')}.
       </p>

@@ -1,6 +1,15 @@
 import { clampCustomSize, FORMAT_ORDER, type FormatId } from './formats';
 import { isHexColor, type Theme } from './color';
-import { DEVICE_KINDS, getTemplate, isTemplateId, MIN_DEVICES, type DeviceKind, type TemplateId } from './templates';
+import {
+  DEVICE_KINDS,
+  getTemplate,
+  isTemplateId,
+  MIN_DEVICES,
+  type DeviceKind,
+  type DeviceOrientation,
+  type RotatableDevice,
+  type TemplateId,
+} from './templates';
 import type { HeadingFont } from './typography';
 
 export const PROJECT_SCHEMA_VERSION = '1.0';
@@ -93,6 +102,8 @@ export interface Project {
   customFormat: { width: number; height: number };
   /** Devices shown by the Device Mix template, in DEVICE_KINDS order. Screenshot i goes in device i. */
   devices: DeviceKind[];
+  /** Orientation of the tablet and phone frames in Device Mix. */
+  deviceOrientation: Record<RotatableDevice, DeviceOrientation>;
 }
 
 export function uid(prefix = ''): string {
@@ -141,6 +152,7 @@ export function createProject(init: Partial<Pick<Project, 'name' | 'template'>> 
     exportPresets: ['linkedin', 'open-graph', 'square', 'story', 'github'],
     customFormat: { width: 1600, height: 900 },
     devices: [...DEVICE_KINDS],
+    deviceOrientation: { tablet: 'portrait', mobile: 'portrait' },
   };
 }
 
@@ -207,6 +219,7 @@ export function migrateProject(raw: unknown): Project {
   const brand = obj(r.brand);
   const bg = obj(r.background);
   const custom = obj(r.customFormat);
+  const orient = obj(r.deviceOrientation);
 
   const assets: AssetRef[] = Array.isArray(r.assets)
     ? r.assets
@@ -292,5 +305,9 @@ export function migrateProject(raw: unknown): Project {
       height: clampCustomSize(num(custom.height, d.customFormat.height, 1, 100_000)),
     },
     devices: legacyDesktopMobile ? ['desktop', 'mobile'] : normalizeDevices(r.devices),
+    deviceOrientation: {
+      tablet: oneOf(orient.tablet, ['portrait', 'landscape'] as const, 'portrait'),
+      mobile: oneOf(orient.mobile, ['portrait', 'landscape'] as const, 'portrait'),
+    },
   };
 }

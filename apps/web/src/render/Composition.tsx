@@ -237,8 +237,24 @@ function BrowserFrame({ ctx, index, style }: { ctx: Ctx; index: number; style: C
   );
 }
 
-function PhoneFrame({ ctx, index, style, width }: { ctx: Ctx; index: number; style: CSSProperties; width: number }) {
+/** `width` is the short side of the phone; `landscape` turns it sideways with the camera on the left. */
+function PhoneFrame({
+  ctx,
+  index,
+  style,
+  width,
+  landscape = false,
+}: {
+  ctx: Ctx;
+  index: number;
+  style: CSSProperties;
+  width: number;
+  landscape?: boolean;
+}) {
   const bezel = width * 0.035;
+  const island: CSSProperties = landscape
+    ? { left: width * 0.035, top: '50%', width: width * 0.075, height: width * 0.3, marginTop: -width * 0.15 }
+    : { top: width * 0.035, left: '50%', width: width * 0.3, height: width * 0.075, marginLeft: -width * 0.15 };
   return (
     <div
       style={{
@@ -251,26 +267,28 @@ function PhoneFrame({ ctx, index, style, width }: { ctx: Ctx; index: number; sty
     >
       <div style={{ position: 'relative', width: '100%', height: '100%', borderRadius: width * 0.13, overflow: 'hidden' }}>
         <ImageBox ctx={ctx} slot={ctx.shots[index]} index={index} />
-        <div
-          style={{
-            position: 'absolute',
-            top: width * 0.035,
-            left: '50%',
-            width: width * 0.3,
-            height: width * 0.075,
-            marginLeft: -width * 0.15,
-            borderRadius: width,
-            background: '#0d0f14',
-          }}
-        />
+        <div style={{ position: 'absolute', ...island, borderRadius: width, background: '#0d0f14' }} />
       </div>
     </div>
   );
 }
 
-/** Portrait tablet: thin, even bezel and a camera dot on the top edge. */
-function TabletFrame({ ctx, index, style, width }: { ctx: Ctx; index: number; style: CSSProperties; width: number }) {
+/** Tablet with a thin, even bezel; `width` is the short side. The camera sits on the top edge, or the left one in landscape. */
+function TabletFrame({
+  ctx,
+  index,
+  style,
+  width,
+  landscape = false,
+}: {
+  ctx: Ctx;
+  index: number;
+  style: CSSProperties;
+  width: number;
+  landscape?: boolean;
+}) {
   const bezel = width * 0.04;
+  const camera: CSSProperties = landscape ? { left: bezel / 2, top: '50%' } : { top: bezel / 2, left: '50%' };
   return (
     <div
       style={{
@@ -287,8 +305,7 @@ function TabletFrame({ ctx, index, style, width }: { ctx: Ctx; index: number; st
       <span
         style={{
           position: 'absolute',
-          top: bezel / 2,
-          left: '50%',
+          ...camera,
           width: bezel * 0.36,
           height: bezel * 0.36,
           marginLeft: -bezel * 0.18,
@@ -763,6 +780,8 @@ function Minimal(ctx: Ctx) {
 
 /** Width / height of the device frames, used to keep their proportions whatever the format. */
 const DEVICE_RATIO = { tablet: 0.75, mobile: 0.48 } as const;
+/** Sideways devices are wider, so they may use more of the area's width than their upright slot allows. */
+const LANDSCAPE_WIDTH_BOOST = { tablet: 1.5, mobile: 1.4 } as const;
 
 /**
  * Layout of each device inside the device area, as fractions of that area.
@@ -810,9 +829,12 @@ function DeviceMix(ctx: Ctx) {
 
   // Tablet + mobile without a desktop: keep the phone overlapping the tablet's right edge and centre the
   // pair, so they read as one group even when the area is much wider than tall (banners, squares).
+  const turned = (device: 'tablet' | 'mobile') => ctx.p.deviceOrientation?.[device] === 'landscape';
   const size = (device: 'tablet' | 'mobile', slot: { hf: number; wf: number }) => {
-    const dh = Math.min(slot.hf * area.h, (slot.wf * area.w) / DEVICE_RATIO[device]);
-    return { dw: dh * DEVICE_RATIO[device], dh };
+    const ratio = turned(device) ? 1 / DEVICE_RATIO[device] : DEVICE_RATIO[device];
+    const wf = turned(device) ? Math.min(0.62, slot.wf * LANDSCAPE_WIDTH_BOOST[device]) : slot.wf;
+    const dh = Math.min(slot.hf * area.h, (wf * area.w) / ratio);
+    return { dw: dh * ratio, dh };
   };
   const pairLeft: Partial<Record<DeviceKind, number>> = {};
   const ts = layout.tablet;
@@ -826,30 +848,40 @@ function DeviceMix(ctx: Ctx) {
     pairLeft.mobile = left + t.dw - overlap;
   }
 
+  // Place every device first, then centre the group vertically in the area: sideways devices are
+  // shorter, and bottom-anchored slots would otherwise leave a gap above them in tall formats.
+  type Placed = { device: DeviceKind; index: number; rect: { left: number; top: number; width: number; height: number } };
+  const placed: Placed[] = [];
+  devices.forEach((device, index) => {
+    const slot = layout[device];
+    if (!slot) return;
+    if ('l' in slot) {
+      placed.push({ device, index, rect: { left: area.x + slot.l * area.w, top: area.y + slot.t * area.h, width: slot.w * area.w, height: slot.h * area.h } });
+      return;
+    }
+    const { dw, dh } = size(device as 'tablet' | 'mobile', slot);
+    // Keep the device inside the area even when a wide landscape frame is centred near an edge.
+    const ideal = pairLeft[device] ?? area.x + slot.cx * area.w - dw / 2;
+    const left = Math.max(area.x, Math.min(ideal, area.x + area.w - dw));
+    placed.push({ device, index, rect: { left, top: area.y + slot.b * area.h - dh, width: dw, height: dh } });
+  });
+  const groupTop = Math.min(...placed.map((d) => d.rect.top));
+  const groupBottom = Math.max(...placed.map((d) => d.rect.top + d.rect.height));
+  const shift = groupBottom - groupTop < area.h ? (area.y + area.y + area.h - groupTop - groupBottom) / 2 : 0;
+
   return (
     <>
       {text}
-      {devices.map((device, index) => {
-        const slot = layout[device];
-        if (!slot) return null;
+      {placed.map(({ device, index, rect }) => {
         const z = index + 1; // desktop at the back, mobile in front
-        if ('l' in slot) {
-          return (
-            <BrowserFrame
-              key={device}
-              ctx={ctx}
-              index={index}
-              style={abs(area.x + slot.l * area.w, area.y + slot.t * area.h, slot.w * area.w, slot.h * area.h, { zIndex: z })}
-            />
-          );
-        }
-        const { dw, dh } = size(device as 'tablet' | 'mobile', slot);
-        const left = pairLeft[device] ?? area.x + slot.cx * area.w - dw / 2;
-        const style = abs(left, area.y + slot.b * area.h - dh, dw, dh, { zIndex: z });
+        const style = abs(rect.left, rect.top + shift, rect.width, rect.height, { zIndex: z });
+        if (device === 'desktop') return <BrowserFrame key={device} ctx={ctx} index={index} style={style} />;
+        const landscape = turned(device);
+        const short = Math.min(rect.width, rect.height);
         return device === 'tablet' ? (
-          <TabletFrame key={device} ctx={ctx} index={index} width={dw} style={style} />
+          <TabletFrame key={device} ctx={ctx} index={index} width={short} landscape={landscape} style={style} />
         ) : (
-          <PhoneFrame key={device} ctx={ctx} index={index} width={dw} style={style} />
+          <PhoneFrame key={device} ctx={ctx} index={index} width={short} landscape={landscape} style={style} />
         );
       })}
     </>
