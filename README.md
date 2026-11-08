@@ -1,77 +1,280 @@
+<div align="center">
+
+<img src="apps/web/public/favicon.svg" width="72" alt="" />
+
 # SteffPoint Visual Studio
 
-> **Create once. Publish everywhere.**
+**Create once. Publish everywhere.**
 
-Turn screenshots, a logo and a headline into a consistent pack of visuals (LinkedIn, Open Graph, Square, Story, GitHub, Product Hunt, banner, thumbnail, custom) in a couple of minutes. Local-first: images never leave the browser.
+Turn screenshots, a logo and a headline into a consistent pack of social and product visuals in minutes, without being a designer.
+Runs entirely in your browser: **your images never leave your device.**
 
-Product vision and roadmap: [`docs/vision.md`](docs/vision.md).
+[![Deploy to GitHub Pages](https://github.com/ostefnn/SteffPoint-Visual-Studio/actions/workflows/pages.yml/badge.svg)](https://github.com/ostefnn/SteffPoint-Visual-Studio/actions/workflows/pages.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Local-first](https://img.shields.io/badge/local--first-no%20upload-10b981)
+![TypeScript](https://img.shields.io/badge/TypeScript-React%2019-3178c6)
 
-## Status: MVP V1 foundation
+**[▶ Open the app](https://ostefnn.github.io/SteffPoint-Visual-Studio/)**
 
-| Feature | State |
+</div>
+
+![Editor](docs/images/editor.png)
+
+---
+
+## Table of contents
+
+- [Why](#why)
+- [Features](#features)
+- [Templates](#templates)
+- [Output formats](#output-formats)
+- [How to use](#how-to-use)
+- [Keyboard shortcuts](#keyboard-shortcuts)
+- [Getting started (development)](#getting-started-development)
+- [Deployment](#deployment)
+- [Project file format](#project-file-format)
+- [Architecture](#architecture)
+- [Privacy & security](#privacy--security)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [License & credits](#license--credits)
+
+## Why
+
+Publishing a new app or feature means producing the same visual again and again: a LinkedIn post, an Open Graph image, a square, a story, a GitHub social preview… SteffPoint Visual Studio lets you compose **one** visual and get **all** formats, consistently branded, in a single export.
+
+It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused tool:
+
+> Import → compose → adapt → export
+
+## Features
+
+| | |
 |---|---|
-| Project manager (new, rename, duplicate, delete, favourites, search, thumbnails) | ✅ |
-| IndexedDB storage (projects, image blobs, thumbnails) + autosave | ✅ |
-| Project JSON import/export (images embedded) with `schemaVersion` migration | ✅ |
-| 8 templates: Browser Hero, Browser Duo, Mobile Trio, Bento, Spotlight, Before/After, Editorial, Minimal | ✅ |
-| Screenshot upload (click, drag & drop, paste), validation, up to 4 per project | ✅ |
-| Image settings: cover/contain, zoom, focal point picker | ✅ |
-| Brand: primary colour → derived palette, light/dark, heading font, radius, shadow, logo | ✅ |
-| Backgrounds: solid, gradient, soft glow, grid, mesh | ✅ |
-| Multi-format live preview + safe zones overlay | ✅ |
-| Undo/redo (bounded, coalesced) + keyboard shortcuts | ✅ |
-| Export PNG/JPEG/WebP at 1×/2×/3×, single file or ZIP with `project.json` | ✅ |
-| Deterministic suggestions + WCAG contrast checks (never block export) | ✅ |
+| 🗂️ **Projects** | Create, rename, duplicate, delete, favourite, search. Automatic thumbnails. Autosave. |
+| 💾 **Local storage** | Projects, images and thumbnails stored in IndexedDB. Close the tab, come back later, everything is there. |
+| 🧩 **8 templates** | Browser Hero, Browser Duo, Mobile Trio, Bento, Spotlight, Before / After, Editorial, Minimal. |
+| 🖼️ **Screenshots** | Up to 4 per project. Add by click, drag & drop anywhere, or paste (Ctrl/Cmd+V). |
+| 🎯 **Crop & focal point** | Cover / contain, zoom, and a focal point that stays visible when the layout changes between landscape, square and portrait. |
+| 🎨 **Brand** | One primary colour → derived palette. Light / dark theme, heading font, corner radius, shadow, logo. |
+| 🌈 **Backgrounds** | Solid, gradient, soft glow, grid, mesh, with intensity and angle. |
+| 📐 **Multi-format preview** | Every format previewed live, side by side. |
+| 🛟 **Safe zones** | Overlay showing where platform UI may cover your visual (e.g. stories, profile banners). |
+| ↩️ **Undo / redo** | Bounded history (60 steps); rapid edits like typing or sliders are merged into one step. |
+| 📦 **Export** | PNG, JPEG or WebP at 1×, 2× or 3×. One image, or a ZIP with every selected format plus `project.json`. |
+| 💡 **Smart suggestions** | Deterministic checks, no AI: title length, WCAG AA contrast, legibility in feeds, wrong template for screenshot orientation, images too small. Informative only, never blocks export. |
+| 🔁 **Import / export JSON** | Portable project file with images embedded. Backup, move between browsers, share. |
 
-Not yet: Brand Kits as reusable entities, Asset Manager, variants, more mockups (V2). Accounts, cloud, URL capture, AI, render API stay out of the MVP.
+![Dashboard](docs/images/dashboard.png)
 
-## Getting started
+## Templates
 
-```bash
-npm install
-npm run dev        # http://localhost:5173
-npm test           # unit tests (visual-core)
-npm run typecheck
-npm run build      # apps/web/dist, static, deployable anywhere
-```
+![Templates](docs/images/templates.png)
 
-## Structure
+| Template | Best for | Screenshots |
+|---|---|---|
+| **Browser Hero** | Web app launch, one key screen | 1 |
+| **Browser Duo** | Showing two related screens | 2 |
+| **Mobile Trio** | Mobile apps | 1–3 |
+| **Bento** | Feature overview | 1–3 |
+| **Spotlight** | One hero screenshot with a brand glow | 1 |
+| **Before / After** | Redesigns, SharePoint/SPFx makeovers, UX improvements | 2 |
+| **Editorial** | Articles, announcements, blog covers | 0–1 |
+| **Minimal** | Text-only announcements | 0 |
 
-```text
-apps/web/                 React + Vite app (dashboard, editor, export)
-  src/render/             Composition renderer: templates, frames, backgrounds
-  src/lib/                IndexedDB, image import, exporter, project file
-  src/store/              Zustand editor store with undo/redo
-packages/visual-core/     Framework-free model: formats, templates, palette,
-                          project schema + migration, rules engine (tested)
-docs/vision.md            Product vision
-```
+Every template adapts its layout to landscape, square, portrait and very wide (banner) formats.
 
-`visual-core` has no DOM or React dependency so it can later back a render API, a batch generator or a Microsoft 365 adapter.
+## Output formats
+
+![Formats](docs/images/formats.png)
+
+| Preset | Size (1×) | Notes |
+|---|---|---|
+| LinkedIn | 1200 × 627 | Feed post |
+| Open Graph | 1200 × 630 | Link previews; some platforms crop to the centre |
+| Square 1:1 | 1080 × 1080 | Instagram, LinkedIn, etc. |
+| Story 9:16 | 1080 × 1920 | Top and bottom covered by app UI |
+| GitHub | 1280 × 640 | Repository social preview |
+| Product Hunt | 1270 × 760 | Gallery image |
+| Banner | 1584 × 396 | Profile banner; avatar covers bottom-left |
+| Thumbnail 16:9 | 1280 × 720 | Video / article thumbnail |
+| Custom | 64 – 4096 px | Any size |
+
+At 2× and 3× the pixel size is multiplied. Very large exports (> ~33 MP) show a warning.
+
+## How to use
+
+1. **New project** from the dashboard, or click a template to start from it.
+2. **Images** tab: add 1 to 4 screenshots (click, drop or paste).
+3. **Content** panel (right): kicker, title, subtitle.
+4. **Templates** tab: pick a layout. Previews use your own screenshots.
+5. **Brand** tab: colour, theme, font, radius, shadow, logo.
+6. **Background** tab: style and intensity.
+7. Select a screenshot to set **zoom, fit and focal point** (click or drag on the image, or use arrow keys).
+8. Check every format in the **bottom strip**; tick the ones to export. Turn on **Safe zones** if needed.
+9. **Export** → choose file type and resolution → download the ZIP.
+
+Your work is saved automatically in the browser. Use **JSON** on a project card to back it up, and **Import project** to restore it.
+
+> ℹ️ Data lives in the storage of the browser and site you use. Clearing site data deletes your projects; export JSON backups for anything important.
 
 ## Keyboard shortcuts
 
 | Keys | Action |
 |---|---|
 | Ctrl/Cmd + Z | Undo |
-| Ctrl/Cmd + Shift + Z, Ctrl/Cmd + Y | Redo |
+| Ctrl/Cmd + Shift + Z · Ctrl/Cmd + Y | Redo |
 | Ctrl/Cmd + S | Save now |
 | Ctrl/Cmd + D | Duplicate selected screenshot |
 | Delete / Backspace | Remove selected screenshot |
-| Ctrl/Cmd + V | Paste an image as screenshot |
-| Esc | Leave field / deselect / close dialog |
+| Ctrl/Cmd + V | Paste an image as a screenshot |
+| Esc | Leave a field / deselect / close dialog |
+| Arrow keys (focal point) | Move focal point (Shift = larger steps) |
 
-## Privacy and security
+## Getting started (development)
 
-- All editing, rendering and ZIP generation happen in the browser. No network calls.
-- Production build ships a strict CSP (`connect-src 'self' blob: data:`, no remote origins).
-- Imported files are type/size checked (PNG, JPEG, WebP, GIF, ≤ 20 MB) and must decode as images.
-- Imported project JSON is normalised by `migrateProject` (unknown fields dropped, values clamped, control chars stripped).
+Requirements: **Node.js 20+** (22 recommended) and npm.
 
-## Stack note
+```bash
+git clone https://github.com/ostefnn/SteffPoint-Visual-Studio.git
+cd SteffPoint-Visual-Studio
+npm install
+npm run dev
+```
 
-The vision suggests Next.js; this app uses **Vite** because it is a fully client-side, local-first SPA with no server rendering needed. Tailwind CSS v4, Zustand, idb, modern-screenshot, JSZip, Vitest.
+Open http://localhost:5173.
 
-## Credits
+| Script | Description |
+|---|---|
+| `npm run dev` | Start the dev server |
+| `npm run build` | Typecheck and build to `apps/web/dist` |
+| `npm run preview` | Serve the production build locally |
+| `npm test` | Unit tests (`packages/visual-core`, Vitest) |
+| `npm run typecheck` | TypeScript check of all workspaces |
 
-Inspired by [Cover Studio](https://github.com/roosveltkn/cover-studio) (MIT). No code from it is included at this stage. See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+## Deployment
+
+The app is a fully static site: any static host works.
+
+### GitHub Pages (included)
+
+A workflow in [`.github/workflows/pages.yml`](.github/workflows/pages.yml) runs tests, builds and deploys on every push to `main` (or manually from the Actions tab).
+
+One-time setup:
+
+1. **Settings → Pages → Build and deployment → Source: _GitHub Actions_.**
+2. Push to `main`. The site is published at `https://<owner>.github.io/<repo>/`.
+
+The workflow sets `BASE_PATH=/<repo>/` so assets resolve under the project sub-path. Routing uses the URL hash (`#/p/<id>`), so reloads never 404.
+
+> GitHub Pages on a **private** repository requires a paid GitHub plan.
+
+### Other hosts
+
+```bash
+npm run build                                   # site at root, e.g. Netlify, Vercel, Cloudflare Pages
+BASE_PATH=/some/sub/path/ npm run build         # site served under a sub-path
+```
+
+Publish `apps/web/dist`. No server configuration or rewrites are needed.
+
+## Project file format
+
+Exported `project.json` / `*.svs.json`:
+
+```json
+{
+  "format": "steffpoint-visual-studio/project",
+  "schemaVersion": "1.0",
+  "exportedAt": "2026-11-08T12:00:00.000Z",
+  "project": {
+    "schemaVersion": "1.0",
+    "name": "Cockpit SteffPoint Launch",
+    "template": "browser-hero",
+    "content": { "kicker": "New release", "title": "Cockpit SteffPoint", "subtitle": "One cockpit. All my environments." },
+    "brand": { "primary": "#0078d4", "theme": "light", "headingFont": "sans", "radius": 0.5, "shadow": 0.5, "logoAssetId": null },
+    "background": { "type": "glow", "intensity": 0.6, "angle": 135 },
+    "assets": [{ "id": "ast_…", "name": "home.png", "mime": "image/png", "width": 1600, "height": 1000, "size": 123456 }],
+    "screenshots": [{ "id": "shot_…", "assetId": "ast_…", "fit": "cover", "zoom": 1, "focalX": 0.5, "focalY": 0 }],
+    "exportPresets": ["linkedin", "open-graph", "square"],
+    "customFormat": { "width": 1600, "height": 900 }
+  },
+  "assets": { "ast_…": "data:image/png;base64,…" }
+}
+```
+
+`schemaVersion` lets future versions migrate older files. Every import goes through `migrateProject()`, which drops unknown fields, clamps values and removes dangling references.
+
+## Architecture
+
+```text
+SteffPoint-Visual-Studio/
+├── apps/
+│   └── web/                     React 19 + Vite app
+│       ├── public/              Static files (favicon)
+│       └── src/
+│           ├── components/      Dashboard, Editor, panels, export dialog, UI kit
+│           ├── render/          Composition renderer: templates, frames, backgrounds
+│           ├── lib/             IndexedDB, image import, exporter, project file
+│           └── store/           Zustand stores (editor + undo/redo, toasts)
+├── packages/
+│   └── visual-core/             Framework-free domain model (no DOM, no React)
+│       └── src/
+│           ├── formats.ts       Presets, safe zones, orientation
+│           ├── templates.ts     Declarative template definitions (slots)
+│           ├── color.ts         Palette derivation, WCAG contrast
+│           ├── typography.ts    Shared type scale and font stacks
+│           ├── project.ts       Project schema, defaults, validation, migration
+│           └── rules.ts         Smart suggestions / accessibility checks
+├── docs/
+│   ├── vision.md                Full product vision (FR)
+│   └── images/                  README screenshots
+├── .github/workflows/pages.yml  GitHub Pages deployment
+├── LICENSE
+├── THIRD_PARTY_NOTICES.md
+└── README.md
+```
+
+**Rendering pipeline:** the `Composition` component is a pure function of *(project, width, height, image URLs)*. The editor shows it scaled down with a CSS transform. For export it is rendered off-screen at native size and rasterised with [modern-screenshot](https://github.com/qq15725/modern-screenshot), so preview and export are the same DOM.
+
+**Why `visual-core` is separate:** it can later power a render API, a batch generator or Microsoft 365 / SharePoint adapters without depending on the web UI.
+
+**Stack:** TypeScript · React 19 · Vite · Tailwind CSS v4 · Zustand · idb (IndexedDB) · modern-screenshot · JSZip · Vitest · Playwright (manual E2E).
+Vite was chosen over Next.js because the app is fully client-side with no server rendering.
+
+## Privacy & security
+
+- **Local-first.** Editing, rendering, thumbnails and ZIP creation run in the browser. The app makes no network requests besides loading itself.
+- **Strict Content Security Policy** in production builds: no remote origins for scripts, images, fonts or connections.
+- **File validation:** PNG, JPEG, WebP, GIF only, max 20 MB each, and the file must decode as an image.
+- **Import sanitisation:** project files are normalised (types checked, values clamped, control characters removed); text is rendered by React, never as HTML.
+- **Object URLs** are revoked when a project is closed; unused image blobs are garbage-collected.
+
+Found a security issue? Please open a private security advisory on GitHub rather than a public issue.
+
+## Roadmap
+
+**V1 — Better Cover Studio** (this release): projects, IndexedDB, autosave, JSON, 8 templates, crop/zoom/focal point, brand, undo/redo, safe zones, custom sizes, PNG/JPEG/WebP, ZIP export.
+
+**V2 — Visual Studio:** reusable Brand Kits, Asset Manager, variants (Original / Dark / Minimal…), more Before/After modes (split, slider), more device mockups, richer accessibility checks, FR / NL / EN interface.
+
+**V3 — Visual Platform:** optional cloud sync and teams, batch generator (CSV/JSON), URL capture service, render API, CMS integrations, AI-assisted copy. Remote features will always be opt-in and clearly labelled.
+
+Details in [`docs/vision.md`](docs/vision.md).
+
+## Contributing
+
+Issues and pull requests are welcome.
+
+1. Fork and create a branch.
+2. `npm install`, then `npm test && npm run typecheck && npm run build`.
+3. Keep the product principle in mind: **a professional result in two minutes, without being a designer.** Prefer fewer, better options.
+4. New templates: add the definition in `packages/visual-core/src/templates.ts` and the layout in `apps/web/src/render/Composition.tsx`, and make sure it looks right in landscape, square, portrait and banner formats.
+
+## License & credits
+
+Released under the [MIT License](LICENSE) © 2026 O. Steffen.
+
+- Product concept inspired by [Cover Studio](https://github.com/roosveltkn/cover-studio) by roosveltkn (MIT). No Cover Studio code is currently included.
+- Third-party packages and their licenses: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+- LinkedIn, GitHub, Product Hunt and other names are trademarks of their respective owners, used only to describe image sizes. No affiliation or endorsement.

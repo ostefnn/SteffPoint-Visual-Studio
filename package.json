@@ -2,6 +2,8 @@
   "name": "steffpoint-visual-studio",
   "private": true,
   "version": "0.1.0",
+  "license": "MIT",
+  "author": "O. Steffen (https://github.com/ostefnn)",
   "type": "module",
   "workspaces": [
     "packages/*",
@@ -16,6 +18,7 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.5",
+    "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.2.1",
@@ -23,5 +26,9 @@
     "typescript": "^7.0.2",
     "vite": "^8.3.6",
     "vitest": "^5.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ostefnn/SteffPoint-Visual-Studio.git"
   }
 }

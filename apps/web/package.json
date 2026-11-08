@@ -1,6 +1,8 @@
 {
   "name": "@svs/web",
   "version": "0.1.0",
+  "license": "MIT",
+  "author": "O. Steffen (https://github.com/ostefnn)",
   "private": true,
   "type": "module",
   "scripts": {

@@ -92,7 +92,7 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
     <div className="min-h-full">
       <header className="border-b border-zinc-200 bg-white">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-4 sm:px-6">
-          <img src="/favicon.svg" alt="" className="size-8" />
+          <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="size-8" />
           <div className="mr-auto">
             <h1 className="text-lg font-semibold leading-tight">SteffPoint Visual Studio</h1>
             <p className="text-xs text-zinc-500">Create once. Publish everywhere.</p>

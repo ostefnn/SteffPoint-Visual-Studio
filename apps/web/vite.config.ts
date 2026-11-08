@@ -25,6 +25,12 @@ const cspPlugin = (): Plugin => ({
     html.replace('<head>', `<head>\n    <meta http-equiv="Content-Security-Policy" content="${CSP}" />`),
 });
 
+/**
+ * Public base path. `/` locally; set BASE_PATH=/<repo-name>/ for GitHub Pages project sites.
+ */
+const base = process.env.BASE_PATH || '/';
+
 export default defineConfig({
+  base,
   plugins: [react(), tailwindcss(), cspPlugin()],
 });
