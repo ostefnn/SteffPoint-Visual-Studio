@@ -1,0 +1,14 @@
+{
+  "name": "@svs/visual-core",
+  "version": "0.1.0",
+  "license": "MIT",
+  "author": "O. Steffen (https://github.com/ostefnn)",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  }
+}

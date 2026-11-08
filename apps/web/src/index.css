@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: Inter, "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-zinc-100 text-zinc-900 antialiased;
+}
+
+input[type='range'] {
+  accent-color: var(--color-blue-600);
+}
+
+.checker {
+  background-color: #e4e4e7;
+  background-image:
+    linear-gradient(45deg, #f4f4f5 25%, transparent 25%),
+    linear-gradient(-45deg, #f4f4f5 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #f4f4f5 75%),
+    linear-gradient(-45deg, transparent 75%, #f4f4f5 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+}

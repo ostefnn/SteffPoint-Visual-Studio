@@ -1,0 +1,125 @@
+/**
+ * Deterministic "smart suggestions" and accessibility checks. No AI, no network.
+ * Suggestions are informative only and never block an export.
+ */
+import { backgroundPeak, contrastRatio, derivePalette } from './color';
+import { getOrientation, type FormatPreset } from './formats';
+import type { Project } from './project';
+import { getTemplate, TEMPLATES, type TemplateId } from './templates';
+import { subtitleSize } from './typography';
+
+export type SuggestionLevel = 'info' | 'warning';
+
+export interface Suggestion {
+  id: string;
+  level: SuggestionLevel;
+  message: string;
+  /** Optional one-click fix, e.g. switching template. */
+  action?: { label: string; template?: TemplateId };
+}
+
+/** Width of the preview a social feed typically shows, used for the thumbnail legibility check. */
+const FEED_THUMB_WIDTH = 500;
+/** Fraction of the canvas width the main screenshot covers, roughly, across templates. */
+const MAIN_SHOT_COVERAGE = 0.6;
+
+export function analyzeProject(project: Project, format: FormatPreset, exportScale = 1): Suggestion[] {
+  const out: Suggestion[] = [];
+  const { content, brand } = project;
+  const tpl = getTemplate(project.template);
+  const orientation = getOrientation(format.width, format.height);
+  const pal = derivePalette(brand.primary, brand.theme);
+  const assets = new Map(project.assets.map((a) => [a.id, a]));
+  const shots = project.screenshots.map((s) => assets.get(s.assetId)).filter((a) => !!a);
+
+  // --- Text -----------------------------------------------------------------
+  const title = content.title.trim();
+  if (!title) out.push({ id: 'title-empty', level: 'warning', message: 'Add a title: it is the first thing people read.' });
+  if (title.length > 60) {
+    out.push({ id: 'title-long', level: 'warning', message: `Title is ${title.length} characters. Aim for 60 or fewer.` });
+  } else if (orientation !== 'portrait' && format.height / format.width < 0.3 && title.length > 36) {
+    out.push({ id: 'title-long-banner', level: 'info', message: 'Very wide formats read best with a title under 36 characters.' });
+  }
+  const lines = content.title.split('\n').length;
+  if (lines > 3) out.push({ id: 'title-lines', level: 'warning', message: 'Title has more than 3 lines.' });
+  if (content.subtitle.trim().length > 140) {
+    out.push({ id: 'subtitle-long', level: 'info', message: 'Subtitle is long. Shorter subtitles stay legible on small previews.' });
+  }
+
+  // --- Contrast (WCAG AA) ----------------------------------------------------
+  // Test against the most tinted part of the background (worst case).
+  const peak = backgroundPeak(pal, project.background.type, project.background.intensity);
+  const worst = (fg: string) => Math.min(contrastRatio(fg, pal.bg), contrastRatio(fg, peak));
+  const titleContrast = worst(pal.text);
+  if (titleContrast < 4.5) {
+    out.push({ id: 'contrast-title', level: 'warning', message: `Title contrast is ${titleContrast.toFixed(1)}:1, below WCAG AA (4.5:1).` });
+  }
+  const mutedContrast = worst(pal.textMuted);
+  if (mutedContrast < 4.5) {
+    out.push({ id: 'contrast-subtitle', level: 'info', message: `Subtitle contrast is ${mutedContrast.toFixed(1)}:1, below WCAG AA (4.5:1).` });
+  }
+
+  // --- Thumbnail legibility --------------------------------------------------
+  const u = Math.min(format.width, format.height) / 100;
+  const subPxInFeed = subtitleSize(u, orientation) * (FEED_THUMB_WIDTH / format.width);
+  if (tpl.slots.subtitle && content.subtitle.trim() && subPxInFeed < 8) {
+    out.push({ id: 'thumb-legibility', level: 'info', message: 'The subtitle will be under 8px in a feed preview. Consider removing it for this format.' });
+  }
+
+  // --- Screenshots -------------------------------------------------------------
+  const { min, max } = tpl.slots.screenshots;
+  if (shots.length < min) {
+    out.push({ id: 'shots-missing', level: 'warning', message: `${tpl.name} expects at least ${min} screenshot${min > 1 ? 's' : ''}.` });
+  }
+  if (max > 0 && shots.length > max) {
+    out.push({ id: 'shots-extra', level: 'info', message: `${tpl.name} shows ${max} screenshot${max > 1 ? 's' : ''}; the others are kept but hidden.` });
+  }
+
+  const used = shots.slice(0, Math.max(max, 0));
+  if (used.length) {
+    const portraitShots = used.filter((a) => a.height > a.width * 1.2).length;
+    const landscapeShots = used.filter((a) => a.width > a.height * 1.2).length;
+    if (tpl.shotKind === 'desktop' && portraitShots === used.length) {
+      out.push({
+        id: 'tpl-orientation',
+        level: 'info',
+        message: 'Your screenshots look like mobile screens. A phone template will fit them better.',
+        action: { label: 'Use Mobile Trio', template: 'mobile-trio' },
+      });
+    }
+    if (tpl.shotKind === 'mobile' && landscapeShots === used.length) {
+      out.push({
+        id: 'tpl-orientation',
+        level: 'info',
+        message: 'Your screenshots look like desktop screens. A browser template will fit them better.',
+        action: { label: 'Use Browser Hero', template: 'browser-hero' },
+      });
+    }
+
+    const needed = format.width * MAIN_SHOT_COVERAGE * exportScale;
+    const small = used.filter((a) => a.width > 0 && a.width < needed * (tpl.shotKind === 'mobile' ? 0.4 : 1));
+    if (small.length) {
+      out.push({ id: 'shot-small', level: 'info', message: `${small.length} screenshot${small.length > 1 ? 's are' : ' is'} small for this export size and may look blurry.` });
+    }
+  }
+
+  if (tpl.slots.screenshots.max === 0 && project.screenshots.length > 0) {
+    const better = TEMPLATES.find((t) => t.id === 'spotlight');
+    if (better) {
+      out.push({
+        id: 'tpl-no-shots',
+        level: 'info',
+        message: 'This template does not show screenshots.',
+        action: { label: `Use ${better.name}`, template: better.id },
+      });
+    }
+  }
+
+  // --- Format specific ---------------------------------------------------------
+  if (format.id === 'story' && title.length > 40) {
+    out.push({ id: 'story-title', level: 'info', message: 'Stories are viewed quickly: keep the title under 40 characters.' });
+  }
+  if (format.note) out.push({ id: `format-note-${format.id}`, level: 'info', message: format.note });
+
+  return out;
+}
