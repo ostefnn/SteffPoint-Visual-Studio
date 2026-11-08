@@ -184,8 +184,10 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
             ))}
           </ol>
           <p className="mt-2 text-xs text-zinc-500">
-            Cover, then one page per screenshot (titled with its caption in the Image panel){slides.some((s) => s.kind === 'features') ? ', then your features' : ''}.
-            Post it on LinkedIn as a document.
+            {slides[0]?.auto
+              ? 'Automatic pages: cover, one page per screenshot (titled with its caption), then your features.'
+              : 'Your custom pages.'}{' '}
+            Choose templates, text and order in the <strong>Carousel</strong> tab. Post the PDF on LinkedIn as a document.
           </p>
           <Button className="mt-3" onClick={runCarousel} disabled={busy || carouselBlocked}>
             <Icon name="download" /> Export Carousel PDF ({slides.length} {slides.length === 1 ? 'Page' : 'Pages'})

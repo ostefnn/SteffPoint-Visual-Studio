@@ -93,14 +93,14 @@ test('editor tabs follow the ARIA tabs keyboard pattern', async ({ page }) => {
   await expect(tab('Images')).toBeFocused();
   await expect(tab('Images')).toHaveAttribute('aria-selected', 'true');
   await page.keyboard.press('End');
-  await expect(tab('Background')).toBeFocused();
+  await expect(tab('Carousel')).toBeFocused();
   await page.keyboard.press('ArrowRight'); // wraps around
   await expect(tab('Templates')).toBeFocused();
   await page.keyboard.press('ArrowLeft');
-  await expect(tab('Background')).toBeFocused();
+  await expect(tab('Carousel')).toBeFocused();
   // Roving tabindex: only the selected tab is in the tab order.
   await expect(page.locator('[role=tab][tabindex="0"]')).toHaveCount(1);
-  await expect(page.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', 'tab-background');
+  await expect(page.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', 'tab-carousel');
 });
 
 test('focal point image reserves its size before decoding', async ({ page }) => {

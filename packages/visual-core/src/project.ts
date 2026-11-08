@@ -158,6 +158,49 @@ export interface Project {
   deviceOrientation: Record<RotatableDevice, DeviceOrientation>;
   /** Frame drawn around desktop screenshots (Browser Hero, Browser Duo, Device Mix). */
   desktopFrame: DesktopFrame;
+  /** LinkedIn carousel. With no slides, pages are generated from the project. */
+  carousel: CarouselSettings;
+}
+
+/** Text a variant can replace. A missing key inherits the project's text. */
+export type ContentOverrides = Partial<Pick<Content, 'kicker' | 'title' | 'subtitle'>>;
+export const OVERRIDABLE_CONTENT = ['kicker', 'title', 'subtitle'] as const;
+
+/**
+ * A variant re-presents the project: its own template, optionally its own text and its own
+ * selection of screenshots. Brand, background, images and template-specific content
+ * (features, code, figures…) are always shared with the project, so they stay consistent.
+ */
+export interface Variant {
+  id: string;
+  template: TemplateId;
+  content: ContentOverrides;
+  /** Screenshot slot ids to show, in order. `null` shows the project's screenshots. */
+  screenshotIds: string[] | null;
+}
+
+export interface CarouselSettings {
+  /** Custom pages. Empty = automatic pages (cover, one per screenshot, features). */
+  slides: Variant[];
+  /** Write "2 / 5" in the kicker of every page after the cover (unless the page sets its own kicker). */
+  pageNumbers: boolean;
+}
+
+/** Hard cap on carousel pages: readable in the feed and a light PDF. */
+export const CAROUSEL_MAX_SLIDES = 10;
+
+export function createVariant(init: Partial<Omit<Variant, 'id'>> = {}): Variant {
+  return { id: uid('var'), template: init.template ?? 'minimal', content: { ...init.content }, screenshotIds: init.screenshotIds ?? null };
+}
+
+/** The project as seen through a variant. */
+export function applyVariant(project: Project, v: Variant): Project {
+  const byId = new Map(project.screenshots.map((s) => [s.id, s]));
+  const screenshots =
+    v.screenshotIds === null ? project.screenshots : v.screenshotIds.map((id) => byId.get(id)).filter((s): s is ScreenshotSlot => !!s);
+  const overrides: ContentOverrides = {};
+  for (const k of OVERRIDABLE_CONTENT) if (typeof v.content[k] === 'string') overrides[k] = v.content[k];
+  return { ...project, template: v.template, screenshots, content: { ...project.content, ...overrides } };
 }
 
 export function uid(prefix = ''): string {
@@ -220,6 +263,7 @@ export function createProject(init: Partial<Pick<Project, 'name' | 'template'>> 
     devices: [...DEVICE_KINDS],
     deviceOrientation: { tablet: 'portrait', mobile: 'portrait' },
     desktopFrame: 'browser',
+    carousel: { slides: [], pageNumbers: true },
   };
 }
 
@@ -396,5 +440,33 @@ export function migrateProject(raw: unknown): Project {
       mobile: oneOf(orient.mobile, ['portrait', 'landscape'] as const, 'portrait'),
     },
     desktopFrame: oneOf(r.desktopFrame, DESKTOP_FRAMES, d.desktopFrame),
+    carousel: migrateCarousel(obj(r.carousel), new Set(screenshots.map((x) => x.id))),
   };
+}
+
+const OVERRIDE_LIMITS: Record<(typeof OVERRIDABLE_CONTENT)[number], number> = {
+  kicker: LIMITS.kicker,
+  title: LIMITS.title,
+  subtitle: LIMITS.subtitle,
+};
+
+function migrateCarousel(raw: Record<string, unknown>, slotIds: Set<string>): CarouselSettings {
+  const slides: Variant[] = Array.isArray(raw.slides)
+    ? raw.slides
+        .map(obj)
+        .slice(0, CAROUSEL_MAX_SLIDES)
+        .map((v) => {
+          const content = obj(v.content);
+          const overrides: ContentOverrides = {};
+          for (const k of OVERRIDABLE_CONTENT) {
+            if (typeof content[k] === 'string') overrides[k] = sanitizeText(content[k] as string).slice(0, OVERRIDE_LIMITS[k]);
+          }
+          const template: TemplateId = v.template === 'browser-mobile' ? 'device-mix' : isTemplateId(v.template) ? v.template : 'minimal';
+          const ids = Array.isArray(v.screenshotIds)
+            ? [...new Set(v.screenshotIds.filter((id): id is string => typeof id === 'string' && slotIds.has(id)))]
+            : null;
+          return { id: typeof v.id === 'string' && v.id ? v.id : uid('var'), template, content: overrides, screenshotIds: ids };
+        })
+    : [];
+  return { slides, pageNumbers: raw.pageNumbers !== false };
 }
