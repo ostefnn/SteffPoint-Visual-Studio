@@ -35,7 +35,7 @@ export function analyzeProject(project: Project, format: FormatPreset, exportSca
 
   // --- Text -----------------------------------------------------------------
   const title = content.title.trim();
-  if (!title) out.push({ id: 'title-empty', level: 'warning', message: 'Add a title: it is the first thing people read.' });
+  if (tpl.slots.title && !title) out.push({ id: 'title-empty', level: 'warning', message: 'Add a title: it is the first thing people read.' });
   if (title.length > 60) {
     out.push({ id: 'title-long', level: 'warning', message: `Title is ${title.length} characters. Aim for 60 or fewer.` });
   } else if (orientation !== 'portrait' && format.height / format.width < 0.3 && title.length > 36) {
@@ -157,6 +157,23 @@ export function analyzeProject(project: Project, format: FormatPreset, exportSca
     if (items.some((f) => f.length > 48)) {
       out.push({ id: 'features-long', level: 'info', message: 'Keep each feature under about 48 characters so it stays on one line.' });
     }
+  }
+  if (tpl.id === 'testimonial') {
+    if (!content.quote.trim()) out.push({ id: 'quote-empty', level: 'warning', message: 'Add the quote.' });
+    if (!content.author.trim()) out.push({ id: 'quote-author', level: 'warning', message: 'Add who said it: a quote without a name is not credible.' });
+    if (content.quote.length > 180) {
+      out.push({ id: 'quote-long', level: 'info', message: `The quote has ${content.quote.length} characters. Under 180 reads better in a feed.` });
+    }
+  }
+  if (tpl.id === 'stats') {
+    const filled = content.stats.filter((s) => s.value.trim());
+    if (filled.length < 2) out.push({ id: 'stats-few', level: 'warning', message: 'Add at least two figures.' });
+    if (content.stats.some((s) => s.value.trim() && !s.label.trim())) {
+      out.push({ id: 'stats-label', level: 'info', message: 'Give every figure a label so people know what it measures.' });
+    }
+  }
+  if (tpl.id === 'event' && !content.eventDate.trim()) {
+    out.push({ id: 'event-date', level: 'warning', message: 'Add the date of the event.' });
   }
   if (tpl.id === 'code') {
     const lines = content.code.split('\n');

@@ -53,7 +53,7 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 |---|---|
 | 🗂️ **Projects** | Create, rename, duplicate, delete, favourite, search. Automatic thumbnails. Autosave. |
 | 💾 **Local storage** | Projects, images and thumbnails stored in IndexedDB. Close the tab, come back later, everything is there. |
-| 🧩 **11 templates** | Browser Hero, Device Mix, Browser Duo, Mobile Trio, Bento, Spotlight, Before / After, Features, Code, Editorial, Minimal. |
+| 🧩 **15 templates** | Browser Hero, Device Mix, App Store, Browser Duo, Mobile Trio, Bento, Spotlight, Before / After, Testimonial, Key Figures, Event, Features, Code, Editorial, Minimal. |
 | 🖼️ **Screenshots** | Up to 4 per project. Add by click, drag & drop anywhere, or paste (Ctrl/Cmd+V). Desktop screenshots can sit in a browser, a macOS window, no frame, or a laptop. |
 | 🎯 **Crop & focal point** | Crop each edge, cover / contain, zoom in or out (0.5×–3×), and a focal point that stays visible when the layout changes between landscape, square and portrait. |
 | 🎨 **Brand** | One primary colour → derived palette. Light / dark theme, heading font, corner radius, shadow, logo (small / medium / large). |
@@ -75,11 +75,15 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 |---|---|---|
 | **Browser Hero** | Web app launch, one key screen | 1 |
 | **Device Mix** | Responsive apps: pick 2 or 3 devices among desktop, tablet and mobile; tablet and phone can be portrait or landscape | 2–3 (one per device, in that order) |
+| **App Store** | Store screenshots: big caption over a device that bleeds off the bottom (phone, tablet or desktop, picked from the format) | 1 |
 | **Browser Duo** | Showing two related screens | 2 |
 | **Mobile Trio** | Mobile apps | 1–3 |
 | **Bento** | Feature overview | 1–3 |
 | **Spotlight** | One hero screenshot with a brand glow | 1 |
 | **Before / After** | Redesigns, SharePoint/SPFx makeovers, UX improvements | 2 |
+| **Testimonial** | Customer quote with photo (or initials), name and role | 0–1 (photo) |
+| **Key Figures** | 2–4 big numbers: users, ratings, time saved | 0 |
+| **Event** | Webinars, meetups, launches: date, time, place, speakers and a call to action | 0–3 (speaker photos) |
 | **Features** | “What’s new”, release notes, feature highlights (up to 4 items) | 0 |
 | **Code** | Code snippet in an editor window, with light syntax colouring | 0 |
 | **Editorial** | Articles, announcements, blog covers | 0–1 |
@@ -101,6 +105,9 @@ Every template adapts its layout to landscape, square, portrait and very wide (b
 | Product Hunt | 1270 × 760 | Gallery image |
 | Banner | 1584 × 396 | Profile banner; avatar covers bottom-left |
 | Thumbnail 16:9 | 1280 × 720 | Video / article thumbnail |
+| App Store iPhone | 1320 × 2868 | iPhone 6.9" store screenshot (export at 1×) |
+| App Store iPad | 2064 × 2752 | iPad 13" store screenshot (export at 1×) |
+| Mac App Store | 2880 × 1800 | Mac store screenshot (export at 1×) |
 | Custom | 64 – 4096 px | Any size |
 
 At 2× and 3× the pixel size is multiplied. Very large exports (> ~33 MP) show a warning.

@@ -249,3 +249,34 @@ describe('desktop frame', () => {
     expect(migrateProject({ desktopFrame: 'tv' }).desktopFrame).toBe('browser');
   });
 });
+
+describe('testimonial, key figures and event', () => {
+  it('migrates the new content fields with defaults and limits', () => {
+    const d = createProject();
+    expect(migrateProject({}).content.quote).toBe(d.content.quote);
+    const p = migrateProject({
+      content: {
+        stats: [{ value: '1234567890123456', label: 'x' }, { value: '2', label: 'y' }, {}, {}, { value: '5', label: 'z' }],
+        author: 'A\nB',
+        eventDate: 'Mon 1 Jan',
+      },
+    });
+    expect(p.content.stats).toHaveLength(4);
+    expect(p.content.stats[0].value).toHaveLength(12);
+    expect(p.content.author).toBe('A B');
+    expect(p.content.eventDate).toBe('Mon 1 Jan');
+  });
+
+  it('checks the template-specific content', () => {
+    const t = createProject({ template: 'testimonial' });
+    t.content.author = '';
+    const ids = analyzeProject(t, FORMAT_PRESETS.linkedin).map((s) => s.id);
+    expect(ids).toContain('quote-author');
+    expect(ids).not.toContain('title-empty'); // the title is not used by this template
+    const k = createProject({ template: 'stats' });
+    k.content.stats = [{ value: '10k', label: '' }];
+    const kids = analyzeProject(k, FORMAT_PRESETS.linkedin).map((s) => s.id);
+    expect(kids).toContain('stats-few');
+    expect(kids).toContain('stats-label');
+  });
+});

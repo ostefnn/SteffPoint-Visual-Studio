@@ -504,6 +504,7 @@ function TextBlock({
   font,
   kickerStyle = 'pill',
   subtitle = true,
+  showTitle = true,
   children,
 }: {
   ctx: Ctx;
@@ -514,6 +515,8 @@ function TextBlock({
   font?: string;
   kickerStyle?: 'pill' | 'caps';
   subtitle?: boolean;
+  /** Templates whose main text is not the title (Testimonial) turn it off. */
+  showTitle?: boolean;
   children?: ReactNode;
 }) {
   const { u, o, pal, p } = ctx;
@@ -554,7 +557,7 @@ function TextBlock({
             {kicker}
           </span>
         ))}
-      {title.trim() && (
+      {showTitle && title.trim() && (
         <h1
           style={{
             margin: 0,
@@ -1033,6 +1036,329 @@ function DeviceMix(ctx: Ctx) {
   );
 }
 
+/**
+ * Store screenshot: a large centred caption, then one device that bleeds off the bottom edge.
+ * The device follows the canvas shape: phone for tall formats, tablet for 3:4-ish, desktop otherwise.
+ */
+function AppStore(ctx: Ctx) {
+  const { w, h } = ctx;
+  const r = w / h;
+  const text = (
+    <TextBlock
+      ctx={ctx}
+      align="center"
+      scale={1.08}
+      style={{ position: 'absolute', left: w * 0.08, right: w * 0.08, top: h * (r < 0.95 ? 0.06 : 0.07) }}
+    />
+  );
+  let device: ReactNode;
+  if (r < 0.6) {
+    const pw = w * 0.74;
+    device = <PhoneFrame ctx={ctx} index={0} width={pw} style={abs((w - pw) / 2, h * 0.33, pw, pw / DEVICE_RATIO.mobile)} />;
+  } else if (r < 0.95) {
+    const tw = w * 0.84;
+    device = <TabletFrame ctx={ctx} index={0} width={tw} style={abs((w - tw) / 2, h * 0.41, tw, tw / DEVICE_RATIO.tablet)} />;
+  } else {
+    // The caption takes more of the height on square canvases, so the window starts lower there.
+    const dw = w * (r > 1.15 ? 0.8 : 0.86);
+    const top = h * (r > 1.15 ? 0.47 : 0.53);
+    device = <BrowserFrame ctx={ctx} index={0} style={abs((w - dw) / 2, top, dw, dw * 0.625)} />;
+  }
+  return (
+    <>
+      {text}
+      {device}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Testimonial, Key Figures, Event
+// ---------------------------------------------------------------------------
+
+/** Round photo from a screenshot slot, or the person's initials on the brand colour. */
+function Avatar({ ctx, index, size, name }: { ctx: Ctx; index: number; size: number; name?: string }) {
+  const slot = ctx.shots[index];
+  const url = slot ? ctx.urls[slot.assetId] : undefined;
+  const initials = (name ?? '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase())
+    .join('');
+  return (
+    <div
+      style={{
+        position: 'relative',
+        flex: 'none',
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        overflow: 'hidden',
+        background: ctx.pal.primary,
+        color: ctx.pal.onPrimary,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: size * 0.38,
+        fontWeight: 700,
+        boxShadow: `0 0 0 ${Math.max(2, size * 0.05)}px ${ctx.pal.surface}`,
+      }}
+    >
+      {url ? <ImageBox ctx={ctx} slot={slot} index={index} /> : initials}
+    </div>
+  );
+}
+
+function Testimonial(ctx: Ctx) {
+  const { w, h, u, o, pal, wide, p } = ctx;
+  const { quote, author, authorRole } = p.content;
+  const len = Math.max(1, quote.length);
+  const base = o === 'portrait' ? 7.2 : o === 'square' ? 6.6 : wide ? 7 : 6.4;
+  const qSize = u * base * Math.min(1, Math.max(0.55, Math.sqrt(90 / len)));
+  const avatar = u * (wide ? 12 : 11);
+  const center = o !== 'landscape' || wide ? false : true;
+  const block: CSSProperties = wide
+    ? leftColumn(ctx, 0.88)
+    : o === 'landscape'
+      ? { position: 'absolute', left: w * 0.1, right: w * 0.1, top: 0, bottom: 0, justifyContent: 'center' }
+      : { position: 'absolute', left: w * 0.09, right: w * 0.09, top: 0, bottom: 0, justifyContent: 'center' };
+  return (
+    <>
+      <span
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          left: center ? w / 2 - u * 9 : w * 0.06,
+          top: h * (o === 'portrait' ? 0.12 : 0.02),
+          fontFamily: FONT_STACKS.serif,
+          fontSize: u * (wide ? 30 : 40),
+          lineHeight: 1,
+          color: withAlpha(pal.primary, 0.14),
+          fontWeight: 700,
+        }}
+      >
+        “
+      </span>
+      <TextBlock ctx={ctx} align={center ? 'center' : 'left'} style={block} showTitle={false} subtitle={false}>
+        <blockquote
+          style={{
+            margin: 0,
+            fontFamily: ctx.heading,
+            fontSize: qSize,
+            lineHeight: 1.22,
+            fontWeight: p.brand.headingFont === 'serif' ? 500 : 650,
+            letterSpacing: '-0.015em',
+            color: pal.text,
+            whiteSpace: 'pre-wrap',
+            overflowWrap: 'break-word',
+          }}
+        >
+          “{quote}”
+        </blockquote>
+        {(author.trim() || authorRole.trim()) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: u * 2, marginTop: u * 1.5, textAlign: 'left' }}>
+            <Avatar ctx={ctx} index={0} size={avatar} name={author} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: u * 0.4, minWidth: 0 }}>
+              <span style={{ fontSize: u * (wide ? 4.4 : 3.4), fontWeight: 700, color: pal.text }}>{author}</span>
+              {authorRole.trim() && <span style={{ fontSize: u * (wide ? 3.6 : 2.8), color: pal.textMuted }}>{authorRole}</span>}
+            </div>
+          </div>
+        )}
+      </TextBlock>
+    </>
+  );
+}
+
+function Stats(ctx: Ctx) {
+  const { w, h, u, o, pal, wide, p } = ctx;
+  const items = p.content.stats.filter((s) => s.value.trim()).slice(0, 4);
+  const portrait = o === 'portrait';
+  const columns = wide ? Math.max(1, items.length) : items.length <= 2 && o === 'landscape' ? 1 : 2;
+  const vSize = u * (portrait ? 11 : o === 'square' ? 9 : wide ? 10 : 8.4);
+  const card = (s: { value: string; label: string }, i: number) => (
+    <div
+      key={i}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        gap: u * 0.6,
+        padding: `${u * 2}px ${u * 2.4}px`,
+        borderRadius: ctx.radius,
+        background: pal.surface,
+        border: `${Math.max(1, u * 0.12)}px solid ${pal.border}`,
+        boxShadow: ctx.shadow === 'none' ? undefined : ctx.softShadow([{ y: u * 0.3, blur: u * 1.4, alpha: 0.04 + 0.08 * p.brand.shadow }]),
+        minWidth: 0,
+      }}
+    >
+      <span
+        style={{
+          fontFamily: ctx.heading,
+          fontSize: vSize,
+          lineHeight: 1,
+          fontWeight: 800,
+          letterSpacing: '-0.03em',
+          color: pal.primary,
+          fontVariantNumeric: 'tabular-nums',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {s.value}
+      </span>
+      {s.label.trim() && <span style={{ fontSize: vSize * 0.3, lineHeight: 1.3, color: pal.textMuted, fontWeight: 550 }}>{s.label}</span>}
+    </div>
+  );
+  const grid = (style: CSSProperties) => (
+    <div
+      style={{
+        position: 'absolute',
+        display: 'grid',
+        gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+        alignContent: 'center',
+        gap: u * 1.8,
+        ...style,
+      }}
+    >
+      {items.map(card)}
+    </div>
+  );
+  if (wide) {
+    return (
+      <>
+        <TextBlock ctx={ctx} style={leftColumn(ctx, 0.3)} scale={0.85} subtitle={false} />
+        {grid({ left: w * 0.38, right: w * 0.04, top: h * 0.12, bottom: h * 0.12 })}
+      </>
+    );
+  }
+  if (o === 'landscape') {
+    return (
+      <>
+        <TextBlock ctx={ctx} style={leftColumn(ctx, 0.38)} />
+        {grid({ left: w * 0.5, right: w * 0.06, top: h * 0.08, bottom: h * 0.08 })}
+      </>
+    );
+  }
+  return (
+    <>
+      <TextBlock ctx={ctx} align="center" style={topBlock(ctx)} subtitle={portrait} />
+      {grid({ left: w * 0.07, right: w * 0.07, top: h * (portrait ? 0.4 : 0.38), bottom: h * (portrait ? 0.16 : 0.07) })}
+    </>
+  );
+}
+
+const EVENT_ICONS = {
+  date: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4',
+  time: 'M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 7v5l3 2',
+  place: 'M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11zM12 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z',
+};
+
+function EventTemplate(ctx: Ctx) {
+  const { w, h, u, o, pal, wide, p } = ctx;
+  const { eventDate, eventTime, eventPlace, cta } = p.content;
+  const speakers = ctx.shots.slice(0, 3).filter(Boolean).length;
+  const fs = u * (o === 'portrait' ? 3.6 : o === 'square' ? 3.1 : wide ? 4.4 : 3.5);
+  const rows = (
+    [
+      ['date', eventDate],
+      ['time', eventTime],
+      ['place', eventPlace],
+    ] as const
+  ).filter(([, v]) => v.trim());
+  // The panel is as tall as its content and centred vertically on `mid`.
+  const panel = (style: CSSProperties, mid: number) => (
+    <div
+      style={{
+        position: 'absolute',
+        top: mid,
+        transform: 'translateY(-50%)',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        gap: fs * 0.9,
+        padding: fs * 1.4,
+        borderRadius: ctx.radius * 1.4,
+        background: pal.surface,
+        border: `${Math.max(1, u * 0.12)}px solid ${pal.border}`,
+        boxShadow: ctx.shadow,
+        ...style,
+      }}
+    >
+      {rows.map(([icon, value]) => (
+        <div key={icon} style={{ display: 'flex', alignItems: 'center', gap: fs * 0.7, minWidth: 0 }}>
+          <span
+            style={{
+              flex: 'none',
+              width: fs * 1.9,
+              height: fs * 1.9,
+              borderRadius: fs * 0.5,
+              background: pal.primarySoft,
+              color: pal.primaryStrong,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <svg viewBox="0 0 24 24" width={fs * 1.1} height={fs * 1.1} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d={EVENT_ICONS[icon]} />
+            </svg>
+          </span>
+          <span style={{ fontSize: fs, fontWeight: icon === 'date' ? 750 : 600, color: pal.text, overflowWrap: 'break-word', minWidth: 0 }}>{value}</span>
+        </div>
+      ))}
+      {(speakers > 0 || cta.trim()) && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: fs, marginTop: fs * 0.3 }}>
+          <div style={{ display: 'flex' }}>
+            {Array.from({ length: speakers }, (_, i) => (
+              <div key={i} style={{ marginLeft: i ? -fs * 0.7 : 0 }}>
+                <Avatar ctx={ctx} index={i} size={fs * 2.6} />
+              </div>
+            ))}
+          </div>
+          {cta.trim() && (
+            <span
+              style={{
+                fontSize: fs * 0.95,
+                fontWeight: 700,
+                padding: `${fs * 0.55}px ${fs * 1.1}px`,
+                borderRadius: fs * 3,
+                background: pal.primary,
+                color: pal.onPrimary,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {cta}
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+  if (wide) {
+    return (
+      <>
+        <TextBlock ctx={ctx} style={leftColumn(ctx, 0.46)} scale={0.85} subtitle={false} />
+        {panel({ left: w * 0.56, right: w * 0.04 }, h / 2)}
+      </>
+    );
+  }
+  if (o === 'landscape') {
+    return (
+      <>
+        <TextBlock ctx={ctx} style={leftColumn(ctx, 0.46)} />
+        {panel({ left: w * 0.56, right: w * 0.06 }, h / 2)}
+      </>
+    );
+  }
+  const portrait = o === 'portrait';
+  return (
+    <>
+      <TextBlock ctx={ctx} align="center" style={topBlock(ctx)} subtitle={portrait} />
+      {panel({ left: w * 0.1, right: w * 0.1 }, h * (portrait ? 0.62 : 0.7))}
+    </>
+  );
+}
+
 function CheckBadge({ size, bg, fg }: { size: number; bg: string; fg: string }) {
   return (
     <span style={{ flex: 'none', width: size, height: size, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1250,6 +1576,10 @@ const TEMPLATE_COMPONENTS: Record<string, (ctx: Ctx) => ReactNode> = {
   'browser-hero': BrowserHero,
   'browser-duo': BrowserDuo,
   'device-mix': DeviceMix,
+  'app-store': AppStore,
+  testimonial: Testimonial,
+  stats: Stats,
+  event: EventTemplate,
   features: Features,
   code: Code,
   'mobile-trio': MobileTrio,

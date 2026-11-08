@@ -9,6 +9,9 @@ export type FormatId =
   | 'product-hunt'
   | 'banner'
   | 'thumbnail'
+  | 'appstore-iphone'
+  | 'appstore-ipad'
+  | 'appstore-mac'
   | 'custom';
 
 export type Orientation = 'landscape' | 'square' | 'portrait';
@@ -69,6 +72,30 @@ export const FORMAT_PRESETS: Record<FormatId, FormatPreset> = {
     note: 'Profile banners: the avatar usually covers the bottom-left.',
   },
   thumbnail: { id: 'thumbnail', label: 'Thumbnail 16:9', width: 1280, height: 720, safe: uniform(0.05) },
+  'appstore-iphone': {
+    id: 'appstore-iphone',
+    label: 'App Store iPhone',
+    width: 1320,
+    height: 2868,
+    safe: uniform(0.04),
+    note: 'iPhone 6.9" App Store screenshot. Export at 1× for the exact size App Store Connect expects.',
+  },
+  'appstore-ipad': {
+    id: 'appstore-ipad',
+    label: 'App Store iPad',
+    width: 2064,
+    height: 2752,
+    safe: uniform(0.04),
+    note: 'iPad 13" App Store screenshot. Export at 1× for the exact size App Store Connect expects.',
+  },
+  'appstore-mac': {
+    id: 'appstore-mac',
+    label: 'Mac App Store',
+    width: 2880,
+    height: 1800,
+    safe: uniform(0.04),
+    note: 'Mac App Store screenshot. Export at 1× for the exact size App Store Connect expects.',
+  },
   custom: { id: 'custom', label: 'Custom', width: 1600, height: 900, safe: uniform(0.05) },
 };
 
@@ -81,6 +108,9 @@ export const FORMAT_ORDER: FormatId[] = [
   'product-hunt',
   'banner',
   'thumbnail',
+  'appstore-iphone',
+  'appstore-ipad',
+  'appstore-mac',
   'custom',
 ];
 
