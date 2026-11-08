@@ -2,7 +2,6 @@
 
 export type TemplateId =
   | 'browser-hero'
-  | 'browser-mobile'
   | 'device-mix'
   | 'features'
   | 'code'
@@ -60,14 +59,6 @@ export const TEMPLATES: TemplateDefinition[] = [
     description: 'One screenshot in a browser window next to your headline.',
     shotKind: 'desktop',
     slots: { ...text, screenshots: { min: 1, max: 1 } },
-  },
-  {
-    id: 'browser-mobile',
-    name: 'Desktop + Mobile',
-    category: 'app-showcase',
-    description: 'A browser window with a phone in front: show that your app is responsive.',
-    shotKind: 'any',
-    slots: { ...text, screenshots: { min: 2, max: 2 } },
   },
   {
     id: 'device-mix',

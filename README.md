@@ -53,7 +53,7 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 |---|---|
 | 🗂️ **Projects** | Create, rename, duplicate, delete, favourite, search. Automatic thumbnails. Autosave. |
 | 💾 **Local storage** | Projects, images and thumbnails stored in IndexedDB. Close the tab, come back later, everything is there. |
-| 🧩 **11 templates** | Browser Hero, Desktop + Mobile, Browser Duo, Mobile Trio, Bento, Spotlight, Before / After, Features, Code, Editorial, Minimal. |
+| 🧩 **11 templates** | Browser Hero, Device Mix, Browser Duo, Mobile Trio, Bento, Spotlight, Before / After, Features, Code, Editorial, Minimal. |
 | 🖼️ **Screenshots** | Up to 4 per project. Add by click, drag & drop anywhere, or paste (Ctrl/Cmd+V). |
 | 🎯 **Crop & focal point** | Cover / contain, zoom, and a focal point that stays visible when the layout changes between landscape, square and portrait. |
 | 🎨 **Brand** | One primary colour → derived palette. Light / dark theme, heading font, corner radius, shadow, logo. |
@@ -74,7 +74,7 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 | Template | Best for | Screenshots |
 |---|---|---|
 | **Browser Hero** | Web app launch, one key screen | 1 |
-| **Desktop + Mobile** | Responsive apps: browser window with a phone in front | 2 (desktop, then mobile) |
+| **Device Mix** | Responsive apps: pick 2 or 3 devices among desktop, tablet and mobile | 2–3 (one per device, in that order) |
 | **Browser Duo** | Showing two related screens | 2 |
 | **Mobile Trio** | Mobile apps | 1–3 |
 | **Bento** | Feature overview | 1–3 |
