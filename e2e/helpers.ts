@@ -17,7 +17,13 @@ export async function addScreenshot(page: Page, file: string) {
   await page.getByRole('tab', { name: 'Images' }).click();
   const before = await page.locator('[role=tabpanel] li').count();
   await page.locator('input[type=file][multiple]').setInputFiles(path.join(FIXTURES, file));
-  await expect(page.locator('[role=tabpanel] li')).toHaveCount(before + 1);
+  try {
+    await expect(page.locator('[role=tabpanel] li')).toHaveCount(before + 1);
+  } catch (e) {
+    // Surface the app's own error toast, if any, to make CI failures diagnosable.
+    const toast = await page.getByRole('alert').allInnerTexts().catch(() => []);
+    throw new Error(`Screenshot was not added. App message: ${toast.join(' | ') || '(none)'}\n${e}`);
+  }
   await expect(page.getByTestId('save-state')).toHaveText('Saved');
 }
 

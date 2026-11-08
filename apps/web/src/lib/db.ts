@@ -10,10 +10,30 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import { migrateProject, type Project } from '@svs/visual-core';
 
+/**
+ * Binary data is stored as ArrayBuffer + MIME type rather than Blob: WebKit cannot store
+ * Blobs in IndexedDB in ephemeral sessions (Safari private browsing), ArrayBuffers work everywhere.
+ * Older records may still be Blobs; both are read.
+ */
+interface StoredBinary {
+  type: string;
+  data: ArrayBuffer;
+}
+type BinaryRecord = StoredBinary | Blob;
+
 interface SvsDB extends DBSchema {
   projects: { key: string; value: Project };
-  blobs: { key: string; value: Blob };
-  thumbnails: { key: string; value: Blob };
+  blobs: { key: string; value: BinaryRecord };
+  thumbnails: { key: string; value: BinaryRecord };
+}
+
+async function toRecord(blob: Blob): Promise<StoredBinary> {
+  return { type: blob.type, data: await blob.arrayBuffer() };
+}
+
+function fromRecord(r: BinaryRecord | undefined): Blob | undefined {
+  if (!r) return undefined;
+  return r instanceof Blob ? r : new Blob([r.data], { type: r.type });
 }
 
 let dbPromise: Promise<IDBPDatabase<SvsDB>> | null = null;
@@ -118,11 +138,12 @@ export async function deleteProject(id: string): Promise<void> {
 // ---------------------------------------------------------------------------
 
 export async function putBlob(projectId: string, assetId: string, blob: Blob): Promise<void> {
-  await (await db()).put('blobs', blob, blobKey(projectId, assetId));
+  const record = await toRecord(blob); // read before opening the transaction (it must not await other work)
+  await (await db()).put('blobs', record, blobKey(projectId, assetId));
 }
 
 export async function getBlob(projectId: string, assetId: string): Promise<Blob | undefined> {
-  return (await db()).get('blobs', blobKey(projectId, assetId));
+  return fromRecord(await (await db()).get('blobs', blobKey(projectId, assetId)));
 }
 
 /**
@@ -163,11 +184,12 @@ export async function copyBlobs(fromId: string, toId: string): Promise<void> {
 // ---------------------------------------------------------------------------
 
 export async function putThumbnail(projectId: string, blob: Blob): Promise<void> {
-  await (await db()).put('thumbnails', blob, projectId);
+  const record = await toRecord(blob);
+  await (await db()).put('thumbnails', record, projectId);
 }
 
 export async function getThumbnail(projectId: string): Promise<Blob | undefined> {
-  return (await db()).get('thumbnails', projectId);
+  return fromRecord(await (await db()).get('thumbnails', projectId));
 }
 
 // ---------------------------------------------------------------------------
