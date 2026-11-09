@@ -14,6 +14,7 @@ import {
 } from './templates';
 import { LOGO_SIZES, type HeadingFont, type LogoSize } from './typography';
 import { STYLE_IDS, STYLES, type StyleId } from './styles';
+import { normalizeLegend, type LegendItem } from './legend';
 
 export const PROJECT_SCHEMA_VERSION = '1.0';
 
@@ -42,7 +43,8 @@ export const LIMITS = {
   /** Event template. */
   eventField: 50,
   cta: 30,
-  screenshots: 4,
+  /** Enough for one image per page of a full carousel. */
+  screenshots: 12,
   fileBytes: 20 * 1024 * 1024,
 } as const;
 
@@ -71,6 +73,8 @@ export interface ScreenshotSlot {
   crop: Crop;
   /** Optional caption, used as the title of this screenshot's carousel slide. */
   caption: string;
+  /** Numbered fields drawn in the image, for the Annotated Panel template. Item i answers badge i + 1. */
+  legend: LegendItem[];
 }
 
 export interface Crop {
@@ -190,7 +194,7 @@ export interface CarouselSettings {
 }
 
 /** Hard cap on carousel pages: readable in the feed and a light PDF. */
-export const CAROUSEL_MAX_SLIDES = 10;
+export const CAROUSEL_MAX_SLIDES = 12;
 
 export function createVariant(init: Partial<Omit<Variant, 'id'>> = {}): Variant {
   return { id: uid('var'), template: init.template ?? 'minimal', content: { ...init.content }, screenshotIds: init.screenshotIds ?? null };
@@ -287,7 +291,7 @@ export function screenshotRange(p: Pick<Project, 'template' | 'devices'>): { min
 }
 
 export function createScreenshotSlot(assetId: string): ScreenshotSlot {
-  return { id: uid('shot'), assetId, fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { ...NO_CROP }, caption: '' };
+  return { id: uid('shot'), assetId, fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { ...NO_CROP }, caption: '', legend: [] };
 }
 
 // ---------------------------------------------------------------------------
@@ -367,6 +371,7 @@ export function migrateProject(raw: unknown): Project {
           focalY: num(s.focalY, 0, 0, 1),
           crop: clampCrop(obj(s.crop)),
           caption: str(s.caption, '', LIMITS.caption).replace(/\n/g, ' '),
+          legend: normalizeLegend(s.legend),
         }))
     : [];
 

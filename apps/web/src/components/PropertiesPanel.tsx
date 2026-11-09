@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   buildCarouselSlides,
   analyzeProject,
@@ -8,8 +8,11 @@ import {
   DEVICE_KINDS,
   DEVICE_LABELS,
   getTemplate,
+  LEGEND_LIMITS,
+  legendToText,
   LIMITS,
   MIN_DEVICES,
+  parseLegendText,
   NO_CROP,
   normalizeDevices,
   resolveFormat,
@@ -19,6 +22,7 @@ import {
   type DesktopFrame,
   type DeviceKind,
   type DeviceOrientation,
+  type LegendItem,
   type RotatableDevice,
   type ScreenshotSlot,
 } from '@svs/visual-core';
@@ -270,6 +274,36 @@ function ContentSection() {
   );
 }
 
+/**
+ * Legend of the numbered fields in the screenshot, one per line: `Label | property | off`.
+ * The draft is kept as typed (a trailing "|" would not survive a round trip) and only
+ * replaced when the legend changes from elsewhere, such as undo.
+ */
+function LegendField({ legend, onChange }: { legend: LegendItem[]; onChange: (legend: LegendItem[]) => void }) {
+  const [draft, setDraft] = useState(() => legendToText(legend));
+  useEffect(() => {
+    if (JSON.stringify(parseLegendText(draft)) !== JSON.stringify(legend)) setDraft(legendToText(legend));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [legend]);
+  return (
+    <Field label="Legend" hint={`${legend.length}/${LEGEND_LIMITS.items}`}>
+      <textarea
+        value={draft}
+        rows={Math.min(10, Math.max(4, legend.length + 1))}
+        name="legend"
+        spellCheck={false}
+        placeholder={'One numbered field per line:\nTitle | title\nButton link | ctaUrl | off'}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          onChange(parseLegendText(e.target.value));
+        }}
+        className={cx(inputCls, 'resize-y text-xs leading-relaxed')}
+      />
+      <span className="mt-1 block text-xs text-muted">Line 1 names badge 1 in the image. Add “| off” for a field that is greyed out.</span>
+    </Field>
+  );
+}
+
 function ImageSection() {
   const shots = useEditor((s) => s.project?.screenshots);
   const selectedId = useEditor((s) => s.selectedShotId);
@@ -324,6 +358,9 @@ function ImageSection() {
           className={inputCls}
         />
       </Field>
+      {(template === 'annotated' || (shot.legend?.length ?? 0) > 0) && (
+        <LegendField key={shot.id} legend={shot.legend ?? []} onChange={(legend) => set('legend', legend, `legend-${shot.id}`)} />
+      )}
       <FocalPicker
         url={urls[shot.assetId]}
         asset={assets?.find((a) => a.id === shot.assetId)}
