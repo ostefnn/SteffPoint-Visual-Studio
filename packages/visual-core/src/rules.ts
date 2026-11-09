@@ -172,6 +172,22 @@ export function analyzeProject(project: Project, format: FormatPreset, exportSca
       out.push({ id: 'stats-label', level: 'info', message: 'Give every figure a label so people know what it measures.' });
     }
   }
+  if (tpl.id === 'annotated' && project.screenshots[0]) {
+    const legend = project.screenshots[0].legend ?? [];
+    if (!legend.length) {
+      out.push({
+        id: 'legend-empty',
+        level: 'info',
+        message: 'Add a legend to the image (one field per line) or import a legend file, so each number in the screenshot has a name.',
+      });
+    } else if (orientation === 'landscape' && legend.length > 8) {
+      out.push({
+        id: 'legend-dense',
+        level: 'info',
+        message: `${legend.length} fields is a lot for a landscape format: portrait formats (LinkedIn carousel, Story) keep the legend legible.`,
+      });
+    }
+  }
   if (tpl.id === 'event' && !content.eventDate.trim()) {
     out.push({ id: 'event-date', level: 'warning', message: 'Add the date of the event.' });
   }

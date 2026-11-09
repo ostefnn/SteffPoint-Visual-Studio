@@ -9,6 +9,7 @@ export type TemplateId =
   | 'event'
   | 'features'
   | 'code'
+  | 'annotated'
   | 'browser-duo'
   | 'mobile-trio'
   | 'bento'
@@ -179,6 +180,14 @@ export const TEMPLATES: TemplateDefinition[] = [
     description: 'A code snippet in an editor window next to your headline.',
     shotKind: 'any',
     slots: { ...text, screenshots: { min: 0, max: 0 } },
+  },
+  {
+    id: 'annotated',
+    name: 'Annotated Panel',
+    category: 'documentation',
+    description: 'A settings panel with numbered fields and its legend: one page per group, ideal for a PDF guide.',
+    shotKind: 'any',
+    slots: { ...text, screenshots: { min: 1, max: 1 } },
   },
   {
     id: 'minimal',

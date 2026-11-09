@@ -7,6 +7,7 @@
  *   1. cover    – the project as designed
  *   2. one page per screenshot – spotlighted (or a phone for portrait images), titled with its caption
  *   3. features – when the project has a feature list and the cover is not already Features
+ * An Annotated Panel project is a guide instead: a title cover, then one annotated page per screenshot.
  */
 import type { FormatId } from './formats';
 import {
@@ -34,6 +35,13 @@ export interface CarouselSlide {
 /** Automatic pages, as editable variants. Used as-is in auto mode and as the starting point when customising. */
 export function autoCarouselVariants(project: Project): Variant[] {
   const assets = new Map(project.assets.map((a) => [a.id, a]));
+  if (project.template === 'annotated') {
+    const pages = project.screenshots.map((shot) =>
+      createVariant({ template: 'annotated', screenshotIds: [shot.id], content: { title: shot.caption.trim(), subtitle: '' } }),
+    );
+    // The first page would repeat the first group: open on a title page instead.
+    return [createVariant({ template: 'minimal', screenshotIds: [] }), ...pages].slice(0, CAROUSEL_MAX_SLIDES);
+  }
   const out: Variant[] = [createVariant({ template: project.template, screenshotIds: null })];
   for (const shot of project.screenshots) {
     const asset = assets.get(shot.assetId);
@@ -92,7 +100,7 @@ export function analyzeCarousel(project: Project): Suggestion[] {
   const out: Suggestion[] = [];
   const slides = buildCarouselSlides(project);
   if (slides.length < 3) {
-    out.push({ id: 'carousel-short', level: 'info', message: 'Carousels with 3 to 10 pages tend to perform best.' });
+    out.push({ id: 'carousel-short', level: 'info', message: 'Carousels with 3 to 12 pages tend to perform best.' });
   }
   slides.forEach((s, i) => {
     const { min } = screenshotRange({ template: s.variant.template, devices: project.devices });

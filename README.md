@@ -53,7 +53,7 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 |---|---|
 | 🗂️ **Projects** | Create, rename, duplicate, delete, favourite, search. Automatic thumbnails. Autosave. |
 | 💾 **Local storage** | Projects, images and thumbnails stored in IndexedDB. Close the tab, come back later, everything is there. |
-| 🧩 **15 templates** | Browser Hero, Device Mix, App Store, Browser Duo, Mobile Trio, Bento, Spotlight, Before / After, Testimonial, Key Figures, Event, Features, Code, Editorial, Minimal. |
+| 🧩 **16 templates** | Browser Hero, Device Mix, App Store, Browser Duo, Mobile Trio, Bento, Spotlight, Before / After, Testimonial, Key Figures, Event, Features, Code, Annotated Panel, Editorial, Minimal. |
 | 🖼️ **Screenshots** | Up to 4 per project. Add by click, drag & drop anywhere, or paste (Ctrl/Cmd+V). Desktop screenshots can sit in a browser, a macOS window, no frame, or a laptop. |
 | 🎯 **Crop & focal point** | Crop each edge, cover / contain, zoom in or out (0.5×–3×), and a focal point that stays visible when the layout changes between landscape, square and portrait. |
 | ✒️ **Styles** | One click sets typefaces, title scale, kicker, frames, shadows and background for every template: **Minimal** (default), **Editorial**, **Bold**, or **Soft** (the original look, kept as an option). Fonts are bundled, so exports look the same on every computer. |
@@ -63,7 +63,7 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 | 🛟 **Safe zones** | Overlay showing where platform UI may cover your visual (e.g. stories, profile banners). |
 | ↩️ **Undo / redo** | Bounded history (60 steps); rapid edits like typing or sliders are merged into one step. |
 | 📦 **Export** | PNG, JPEG or WebP at 1×, 2× or 3×. One image, or a ZIP with every selected format plus `project.json`. |
-| 🗂️ **LinkedIn carousel** | A 4:5 multi-page PDF for a LinkedIn document post. Automatic pages (cover, one per screenshot, features), or your own: a template per page, page-specific kicker/title/subtitle and screenshots, add, duplicate, reorder (drag, buttons or Alt+↑/↓). Up to 10 pages, with carousel-specific advice. |
+| 🗂️ **LinkedIn carousel** | A 4:5 multi-page PDF for a LinkedIn document post. Automatic pages (cover, one per screenshot, features), or your own: a template per page, page-specific kicker/title/subtitle and screenshots, add, duplicate, reorder (drag, buttons or Alt+↑/↓). Up to 12 pages, with carousel-specific advice. |
 | 💡 **Smart suggestions** | Deterministic checks, no AI: title length, WCAG AA contrast, legibility in feeds, wrong template or device for the screenshot orientation, images or logo too small for the export size, missing quote author, figures or event date. Informative only, never blocks export. |
 | 🔁 **Import / export JSON** | Portable project file with images embedded. Backup, move between browsers, share. |
 
@@ -101,6 +101,7 @@ Projects created before styles existed open in **Soft**, unchanged. Picking a st
 | **Event** | Webinars, meetups, launches: date, time, place, speakers and a call to action | 0–3 (speaker photos) |
 | **Features** | “What’s new”, release notes, feature highlights (up to 4 items) | 0 |
 | **Code** | Code snippet in an editor window, with light syntax colouring | 0 |
+| **Annotated Panel** | A settings panel (or any UI) with numbered call-outs, next to its legend: field name, property, greyed when disabled. Import a capture report to get one page per group | 1 |
 | **Editorial** | Articles, announcements, blog covers | 0–1 |
 | **Minimal** | Text-only announcements | 0 |
 
@@ -140,6 +141,15 @@ At 2× and 3× the pixel size is multiplied. Very large exports (> ~33 MP) show 
 8. Check every format in the **bottom strip**; tick the ones to export. Turn on **Safe zones** if needed.
 9. **Export** → choose file type and resolution → download the ZIP.
 10. **LinkedIn carousel** (optional): open the **Carousel** tab. Pages are generated automatically (captions from the Image panel become page titles). Click **Customize Pages** to pick a template per page, give a page its own text or screenshots, add a closing page and reorder. Then in Export click **Export Carousel PDF** and post the file on LinkedIn as a document.
+
+### Annotated guide from a legend file
+
+Have screenshots of a settings panel with numbered badges and a Markdown report that names each field (for example a SharePoint property pane capture)? On the dashboard, click **Import Legend** and select the `.md` file **together with its images**. Each `## Group (image.png)` section followed by a `| N° | Field | Property | State |` table becomes one screenshot with its caption and legend; the carousel becomes a guide: a title page (name, version), then one annotated page per group.
+
+- Column names are recognised in English, French and Dutch (*Champ / Propriété / État*, *Veld / Eigenschap / Staat*); *Disabled*, *Désactivé* or *Uitgeschakeld* draws a hollow badge.
+- Images named in the report but not selected are listed, never replaced by placeholders.
+- Edit a legend later in the Image panel, one field per line: `Label | property | off`.
+- Set the **brand colour** to the colour of the badges in your screenshots so the legend matches them.
 
 Your work is saved automatically in the browser. Use **JSON** on a project card to back it up, and **Import project** to restore it.
 
@@ -288,6 +298,7 @@ SteffPoint-Visual-Studio/
 │           ├── color.ts         Palette derivation, WCAG contrast
 │           ├── typography.ts    Shared type scale and font stacks
 │           ├── project.ts       Project schema, defaults, validation, migration
+│           ├── legend.ts        Annotated Panel legends: text form and Markdown report parser
 │           └── rules.ts         Smart suggestions / accessibility checks
 ├── docs/
 │   ├── vision.md                Full product vision (FR)
@@ -322,7 +333,7 @@ Found a security issue? Please open a private security advisory on GitHub rather
 
 ## Roadmap
 
-**V1 — Better Cover Studio** (this release): projects, IndexedDB, autosave, JSON, 15 templates (including Device Mix, App Store, Testimonial, Key Figures, Event), device and laptop frames, App Store formats, crop/zoom/focal point, brand with logo size, undo/redo, safe zones, custom sizes, PNG/JPEG/WebP, ZIP export, LinkedIn carousel PDF.
+**V1 — Better Cover Studio** (this release): projects, IndexedDB, autosave, JSON, 16 templates (including Device Mix, App Store, Testimonial, Key Figures, Event, Annotated Panel with legend import), device and laptop frames, App Store formats, crop/zoom/focal point, brand with logo size, undo/redo, safe zones, custom sizes, PNG/JPEG/WebP, ZIP export, LinkedIn carousel PDF.
 
 **V2 — Visual Studio:** reusable Brand Kits, Asset Manager, variants beyond the carousel (Original / Dark / Minimal…, built on the same `Variant` model), more Before/After modes (split, slider), richer accessibility checks, FR / NL / EN interface.
 

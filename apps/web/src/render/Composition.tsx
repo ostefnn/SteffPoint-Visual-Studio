@@ -28,6 +28,7 @@ import {
   type Orientation,
   type DeviceKind,
   type Palette,
+  type LegendItem,
   type Project,
   type ScreenshotSlot,
 } from '@svs/visual-core';
@@ -1645,6 +1646,208 @@ function Code(ctx: Ctx) {
   );
 }
 
+// --- Annotated Panel ------------------------------------------------------------
+
+/**
+ * Legend of the numbered fields already drawn in the screenshot. Badge i answers the
+ * image's badge i; a hollow badge marks a field that is disabled in the capture.
+ */
+function Legend({ ctx, items, fontSize, columns }: { ctx: Ctx; items: LegendItem[]; fontSize: number; columns: number }) {
+  const { pal } = ctx;
+  const fs = fontSize;
+  const badge = fs * 1.5;
+  return (
+    <ol
+      style={{
+        margin: 0,
+        padding: 0,
+        listStyle: 'none',
+        display: 'grid',
+        gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+        gridAutoFlow: columns > 1 ? 'row' : undefined,
+        columnGap: fs * 1.6,
+        rowGap: fs * 0.62,
+        alignContent: 'start',
+        minWidth: 0,
+      }}
+    >
+      {items.map((item, i) => (
+        <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: fs * 0.7, minWidth: 0 }}>
+          <span
+            aria-hidden="true"
+            style={{
+              flex: 'none',
+              width: badge,
+              height: badge,
+              borderRadius: '50%',
+              boxSizing: 'border-box',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: fs * (i >= 9 ? 0.72 : 0.82),
+              fontWeight: 700,
+              fontVariantNumeric: 'tabular-nums',
+              background: item.off ? 'transparent' : pal.primary,
+              color: item.off ? pal.textMuted : pal.onPrimary,
+              border: item.off ? `${Math.max(1, fs * 0.11)}px solid ${pal.textMuted}` : undefined,
+            }}
+          >
+            {i + 1}
+          </span>
+          <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, paddingTop: (badge - fs * 1.25) / 2 }}>
+            <span style={{ fontSize: fs, fontWeight: 600, lineHeight: 1.25, color: item.off ? pal.textMuted : pal.text, overflowWrap: 'break-word' }}>
+              {item.label || item.prop}
+            </span>
+            {item.prop && item.label && (
+              <span
+                style={{
+                  fontFamily: FONT_STACKS.mono,
+                  fontSize: fs * 0.74,
+                  lineHeight: 1.3,
+                  color: pal.textMuted,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {item.prop}
+              </span>
+            )}
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+
+/** Aspect ratio of the visible (cropped) part of a screenshot. */
+function shotRatio(ctx: Ctx, slot: ScreenshotSlot | undefined, fallback: number): number {
+  const asset = slot && ctx.p.assets.find((a) => a.id === slot.assetId);
+  if (!slot || !asset || asset.width <= 0 || asset.height <= 0) return fallback;
+  const c = slot.crop ?? NO_CROP;
+  return (asset.width * (1 - c.left - c.right)) / (asset.height * (1 - c.top - c.bottom));
+}
+
+/**
+ * A settings panel (or any UI with numbered call-outs) next to its legend. The screenshot keeps
+ * its own proportions, uncropped.
+ *   Landscape: the shot runs the full height on the left; title and legend share the right.
+ *   Portrait and square: title on top; tall shots sit beside the legend, wide ones above it.
+ */
+function Annotated(ctx: Ctx) {
+  const { w, h, o, u } = ctx;
+  const slot = ctx.shots[0];
+  const items = slot?.legend ?? [];
+  const hasLegend = items.length > 0;
+  const ratio = shotRatio(ctx, slot, 0.6);
+  const pad = u * (o === 'portrait' ? 6.5 : 5.5);
+  const gap = u * (o === 'portrait' ? 4 : 3.5);
+  const beside = o === 'landscape';
+  // Rough room for each part (the text block grows with the title).
+  const textH = h * (beside ? 0.3 : o === 'portrait' ? 0.2 : 0.24);
+  const innerW = w - pad * 2;
+  const innerH = h - pad * 2;
+  const bodyH = beside ? innerH : innerH - textH - gap;
+  // Portrait and square: beside the legend when the shot is tall, above it when wide.
+  const side = beside || !hasLegend || ratio < 1.25;
+  const imgW = beside
+    ? clamp(innerH * ratio, w * 0.18, w * (hasLegend ? 0.5 : 0.55))
+    : hasLegend && side
+      ? clamp(bodyH * ratio, innerW * 0.28, innerW * 0.6)
+      : innerW;
+  const legendW = side ? innerW - imgW - gap : innerW;
+  // Under a wide shot the legend may take up to 45% of the height, then the shot takes the rest.
+  const legendH = beside ? innerH - textH - gap : side ? bodyH : bodyH * 0.45;
+  const ROW = 2.85; // height of one legend row, in font sizes
+  const maxFont = u * (o === 'portrait' ? 2.6 : 2.2);
+  const fontFor = (cols: number) => clamp(legendH / (Math.ceil(items.length / cols) * ROW), u * 1.25, maxFont);
+  // More columns only while one would shrink the text and each column stays wide enough.
+  let columns = 1;
+  while (columns < (beside ? 3 : 2) && items.length > 4 * columns && fontFor(columns) < maxFont * 0.95 && legendW / (columns + 1) > maxFont * 10) {
+    columns++;
+  }
+  const fontSize = fontFor(columns);
+  const legendNeed = Math.min(legendH, Math.ceil(items.length / columns) * ROW * fontSize);
+  // Stacked: the shot is only as tall as it needs, so the legend follows it directly.
+  const stackedImgH = Math.max(bodyH * 0.3, Math.min(bodyH - legendNeed - gap, innerW / ratio));
+  const textScale = ctx.wide ? 0.62 : beside ? 0.72 : o === 'square' ? 0.74 : 0.84;
+  const n = (v: number) => +v.toFixed(6);
+
+  const image = (
+    <div
+      style={{
+        flex: !side ? `0 0 ${n(stackedImgH)}px` : hasLegend || beside ? `0 0 ${n(imgW)}px` : '1 1 0',
+        minWidth: 0,
+        minHeight: 0,
+        containerType: 'size',
+        display: 'flex',
+        alignItems: 'center',
+        // Stacked shots line up with the title and the legend on the left.
+        justifyContent: side ? 'center' : 'flex-start',
+      }}
+    >
+      <div
+        data-annotated-shot=""
+        style={{
+          position: 'relative',
+          width: `min(100cqw, 100cqh * ${n(ratio)})`,
+          height: `min(100cqh, 100cqw / ${n(ratio)})`,
+          borderRadius: ctx.radius,
+          overflow: 'hidden',
+          background: ctx.pal.surface,
+          border: ctx.edge,
+          boxShadow: ctx.shadow,
+        }}
+      >
+        <ImageBox ctx={ctx} slot={slot && { ...slot, fit: 'cover' }} index={0} />
+      </div>
+    </div>
+  );
+
+  const legend = hasLegend && (
+    <div
+      data-legend=""
+      style={{
+        flex: beside ? '0 1 auto' : '1 1 0',
+        minWidth: 0,
+        minHeight: 0,
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: side && !beside ? 'center' : 'flex-start',
+      }}
+    >
+      <Legend ctx={ctx} items={items} fontSize={fontSize} columns={columns} />
+    </div>
+  );
+
+  const text = <TextBlock ctx={ctx} scale={textScale} style={{ flex: 'none' }} />;
+  const root: CSSProperties = { position: 'absolute', inset: 0, padding: pad, display: 'flex', gap };
+
+  if (beside) {
+    return (
+      <div style={{ ...root, flexDirection: 'row' }}>
+        {image}
+        <div style={{ flex: '1 1 0', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: gap * 0.8 }}>
+          {text}
+          {legend}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div style={{ ...root, flexDirection: 'column' }}>
+      {text}
+      <div style={{ flex: '1 1 0', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: side ? 'row' : 'column', gap }}>
+        {image}
+        {legend}
+      </div>
+    </div>
+  );
+}
+
 const TEMPLATE_COMPONENTS: Record<string, (ctx: Ctx) => ReactNode> = {
   'browser-hero': BrowserHero,
   'browser-duo': BrowserDuo,
@@ -1655,6 +1858,7 @@ const TEMPLATE_COMPONENTS: Record<string, (ctx: Ctx) => ReactNode> = {
   event: EventTemplate,
   features: Features,
   code: Code,
+  annotated: Annotated,
   'mobile-trio': MobileTrio,
   bento: Bento,
   spotlight: Spotlight,

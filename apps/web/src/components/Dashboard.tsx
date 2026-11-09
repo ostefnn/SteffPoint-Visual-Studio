@@ -3,6 +3,7 @@ import {
   createProject,
   createScreenshotSlot,
   FORMAT_PRESETS,
+  LIMITS,
   TEMPLATES,
   uid,
   type Project,
@@ -11,6 +12,8 @@ import {
 } from '@svs/visual-core';
 import { copyBlobs, createProjectRecord, deleteProject, getThumbnail, listProjects, patchProject } from '../lib/db';
 import { buildProjectFile, importProjectFile } from '../lib/projectFile';
+import { importLegendBundle } from '../lib/legendImport';
+import { notify } from '../store/toasts';
 import { downloadBlob, slugify } from '../lib/download';
 import { Button, cx, Icon, inputCls, useObjectUrl } from './ui';
 import { Stage } from './Stage';
@@ -39,7 +42,15 @@ const SAMPLE: Project = (() => {
   return p;
 })();
 const PHONE_FIRST: TemplateId[] = ['mobile-trio', 'app-store'];
+/** The editor's own panels, as they appear in the editor screenshot. */
+const SAMPLE_LEGEND = [
+  { label: 'Images', prop: '', off: false },
+  { label: 'Template and style', prop: '', off: false },
+  { label: 'Preview', prop: '', off: false },
+  { label: 'Content', prop: '', off: false },
+];
 function sampleFor(template: TemplateId): Project {
+  if (template === 'annotated') return { ...SAMPLE, template, screenshots: [{ ...SAMPLE.screenshots[0], legend: SAMPLE_LEGEND }] };
   const shots = PHONE_FIRST.includes(template) ? [SAMPLE.screenshots[1], SAMPLE.screenshots[0], SAMPLE.screenshots[2]] : SAMPLE.screenshots;
   return { ...SAMPLE, template, screenshots: shots };
 }
@@ -59,6 +70,8 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
   const [category, setCategory] = useState<(typeof GALLERY_GROUPS)[number]['id']>('all');
   const [error, setError] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const legendInput = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
 
   const refresh = () => listProjects().then(setProjects).catch((e) => setError(String(e)));
   useEffect(() => {
@@ -119,6 +132,25 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
     }
   };
 
+  const onImportLegend = async (files: FileList | null) => {
+    if (!files?.length) return;
+    setError(null);
+    setImporting(true);
+    try {
+      const { project, missing, skipped } = await importLegendBundle([...files]);
+      const pages = project.screenshots.length;
+      notify(`${pages} annotated page${pages > 1 ? 's' : ''} created from the legend.`);
+      if (missing.length) notify(`Not selected, so left out: ${missing.join(', ')}.`, 'error');
+      if (skipped) notify(`${skipped} more section${skipped > 1 ? 's' : ''} left out: a project holds ${LIMITS.screenshots} images.`, 'error');
+      onOpen(project.id);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setImporting(false);
+      if (legendInput.current) legendInput.current.value = '';
+    }
+  };
+
   const group = GALLERY_GROUPS.find((g) => g.id === category) ?? GALLERY_GROUPS[0];
   const templates = TEMPLATES.filter((t) => group.id === 'all' || group.categories.includes(t.category));
 
@@ -136,6 +168,22 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
             <Icon name="upload" /> Import Project
           </Button>
           <input ref={fileInput} type="file" accept="application/json,.json" className="hidden" onChange={(e) => onImport(e.target.files)} />
+          <Button
+            onClick={() => legendInput.current?.click()}
+            disabled={importing}
+            title="Select a legend file (.md) and the screenshots it describes: one annotated page per section"
+          >
+            <Icon name="image" /> {importing ? 'Importing…' : 'Import Legend'}
+          </Button>
+          <input
+            ref={legendInput}
+            type="file"
+            multiple
+            aria-label="Legend file and screenshots"
+            accept=".md,.markdown,text/markdown,image/png,image/jpeg,image/webp,image/gif"
+            className="hidden"
+            onChange={(e) => onImportLegend(e.target.files)}
+          />
           <Button variant="primary" onClick={() => create()}>
             <Icon name="plus" /> New Project
           </Button>
