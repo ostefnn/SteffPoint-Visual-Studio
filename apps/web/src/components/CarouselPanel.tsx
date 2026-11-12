@@ -9,7 +9,8 @@ import {
   analyzeCarousel,
   autoCarouselVariants,
   buildCarouselSlides,
-  CAROUSEL_FORMAT,
+  CAROUSEL_PAGE_SIZES,
+  carouselFormat,
   CAROUSEL_MAX_SLIDES,
   createVariant,
   LIMITS,
@@ -17,14 +18,14 @@ import {
   resolveFormat,
   TEMPLATES,
   uid,
+  type CarouselPageSize,
   type TemplateId,
   type Variant,
 } from '@svs/visual-core';
 import { useEditor } from '../store/editor';
-import { Button, cx, Field, Icon, inputCls, Section } from './ui';
+import { Button, cx, Field, Icon, inputCls, Section, Segmented } from './ui';
 import { Stage } from './Stage';
 
-const FORMAT = resolveFormat(CAROUSEL_FORMAT);
 const TEXT_LABEL = { kicker: 'Kicker', title: 'Title', subtitle: 'Subtitle' } as const;
 const TEXT_LIMIT = { kicker: LIMITS.kicker, title: LIMITS.title, subtitle: LIMITS.subtitle } as const;
 
@@ -34,6 +35,7 @@ export function CarouselPanel() {
   const page = useEditor((s) => s.carouselPage);
   const { update, setCarouselPage } = useEditor.getState();
   const slides = useMemo(() => buildCarouselSlides(project), [project]);
+  const format = resolveFormat(carouselFormat(project));
   const advice = useMemo(() => analyzeCarousel(project), [project]);
   const custom = project.carousel.slides.length > 0;
   const [dragFrom, setDragFrom] = useState<number | null>(null);
@@ -107,6 +109,18 @@ export function CarouselPanel() {
             </Button>
           )}
         </div>
+        <div>
+          <p className="mb-1 text-xs font-medium text-ink-soft">Page size</p>
+          <Segmented<CarouselPageSize>
+            label="Carousel page size"
+            value={project.carousel.pageSize}
+            options={CAROUSEL_PAGE_SIZES.map((v) => ({ value: v, label: v }))}
+            onChange={(v) => update((d) => void (d.carousel.pageSize = v))}
+          />
+          <p className="mt-1 text-[11px] text-muted">
+            {format.width} × {format.height}. 4:5 takes the most space in the LinkedIn feed.
+          </p>
+        </div>
         <label className="flex items-center gap-2 text-xs text-ink-soft">
           <input
             type="checkbox"
@@ -152,7 +166,7 @@ export function CarouselPanel() {
                 }}
                 className="flex min-w-0 flex-1 items-center gap-2 text-left"
               >
-                <Stage project={s.project} format={FORMAT} urls={urls} maxWidth={44} maxHeight={55} className="flex-none rounded-sm ring-1 ring-ink/5" />
+                <Stage project={s.project} format={format} urls={urls} maxWidth={44} maxHeight={55} className="flex-none rounded-sm ring-1 ring-ink/5" />
                 <span className="min-w-0">
                   <span className="line-clamp-2 text-xs font-medium break-words">
                     {i + 1}. {s.label}

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   buildCarouselSlides,
-  CAROUSEL_FORMAT,
+  carouselFormat as carouselFormatOf,
   FORMAT_ORDER,
   IOS_CANVAS_PIXELS,
   isScaleReasonable,
@@ -67,7 +67,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
 
   // LinkedIn carousel: slides derived from the project (cover, one per screenshot, features).
   const slides = useMemo(() => buildCarouselSlides(project), [project]);
-  const carouselFormat = resolveFormat(CAROUSEL_FORMAT);
+  const carouselFormat = resolveFormat(carouselFormatOf(project));
   const carouselBlocked = IS_IOS && !isScaleReasonable(carouselFormat.width, carouselFormat.height, scale, IOS_CANVAS_PIXELS);
   const runCarousel = async () => {
     setError(null);

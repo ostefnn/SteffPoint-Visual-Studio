@@ -15,13 +15,22 @@ import {
   CAROUSEL_MAX_SLIDES,
   createVariant,
   screenshotRange,
+  type CarouselPageSize,
   type Project,
   type Variant,
 } from './project';
 import type { Suggestion } from './rules';
 import { getTemplate, type TemplateId } from './templates';
 
+/** Default page format (4:5). Use `carouselFormat(project)` for the project's chosen page size. */
 export const CAROUSEL_FORMAT: FormatId = 'linkedin-carousel';
+
+/** Each page size maps to an existing preset, so pages render exactly like that format. */
+const PAGE_FORMATS: Record<CarouselPageSize, FormatId> = { '4:5': 'linkedin-carousel', '1:1': 'square', '16:9': 'thumbnail' };
+
+export function carouselFormat(project: Pick<Project, 'carousel'>): FormatId {
+  return PAGE_FORMATS[project.carousel.pageSize] ?? CAROUSEL_FORMAT;
+}
 
 export interface CarouselSlide {
   /** True when the page comes from the automatic plan (not user-customised). */
@@ -99,6 +108,13 @@ const CLOSING_TEMPLATES: TemplateId[] = ['minimal', 'event'];
 export function analyzeCarousel(project: Project): Suggestion[] {
   const out: Suggestion[] = [];
   const slides = buildCarouselSlides(project);
+  if (project.carousel.pageSize === '16:9') {
+    out.push({
+      id: 'carousel-wide',
+      level: 'info',
+      message: '16:9 pages are much smaller in the LinkedIn feed on phones. Prefer 4:5 unless you reuse a presentation.',
+    });
+  }
   if (slides.length < 3) {
     out.push({ id: 'carousel-short', level: 'info', message: 'Carousels with 3 to 12 pages tend to perform best.' });
   }

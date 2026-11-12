@@ -64,7 +64,7 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 | 🛟 **Safe zones** | Overlay showing where platform UI may cover your visual (e.g. stories, profile banners). |
 | ↩️ **Undo / redo** | Bounded history (60 steps); rapid edits like typing or sliders are merged into one step. |
 | 📦 **Export** | PNG, JPEG or WebP at 1×, 2× or 3×. One image, or a ZIP with every selected format plus `project.json`. |
-| 🗂️ **LinkedIn carousel** | A 4:5 multi-page PDF for a LinkedIn document post. Automatic pages (cover, one per screenshot, features), or your own: a template per page, page-specific kicker/title/subtitle and screenshots, add, duplicate, reorder (drag, buttons or Alt+↑/↓). Up to 12 pages, with carousel-specific advice. |
+| 🗂️ **LinkedIn carousel** | A multi-page PDF for a LinkedIn document post, with 4:5 (default), 1:1 or 16:9 pages. Automatic pages (cover, one per screenshot, features), or your own: a template per page, page-specific kicker/title/subtitle and screenshots, add, duplicate, reorder (drag, buttons or Alt+↑/↓). Up to 12 pages, with carousel-specific advice. |
 | 💡 **Smart suggestions** | Deterministic checks, no AI: title length, WCAG AA contrast, legibility in feeds, wrong template or device for the screenshot orientation, images or logo too small for the export size, missing quote author, figures or event date. Informative only, never blocks export. |
 | 🔁 **Import / export JSON** | Portable project file with images embedded. Backup, move between browsers, share. |
 
@@ -117,7 +117,7 @@ Every template adapts its layout to landscape, square, portrait and very wide (b
 | Preset | Size (1×) | Notes |
 |---|---|---|
 | LinkedIn | 1200 × 627 | Feed post |
-| LinkedIn 4:5 | 1080 × 1350 | Portrait post; page size of the LinkedIn carousel PDF |
+| LinkedIn 4:5 | 1080 × 1350 | Portrait post; default page size of the LinkedIn carousel PDF (1:1 uses Square, 16:9 uses Thumbnail) |
 | Open Graph | 1200 × 630 | Link previews; some platforms crop to the centre |
 | Square 1:1 | 1080 × 1080 | Instagram, LinkedIn, etc. |
 | Story 9:16 | 1080 × 1920 | Top and bottom covered by app UI |
@@ -143,7 +143,7 @@ At 2× and 3× the pixel size is multiplied. Very large exports (> ~33 MP) show 
 7. Select a screenshot to **crop** its edges and set **zoom, fit and focal point** (click or drag on the image, or use arrow keys).
 8. Check every format in the **bottom strip**; tick the ones to export. Turn on **Safe zones** if needed.
 9. **Export** → choose file type and resolution → download the ZIP.
-10. **LinkedIn carousel** (optional): open the **Carousel** tab. Pages are generated automatically (captions from the Image panel become page titles). Click **Customize Pages** to pick a template per page, give a page its own text or screenshots, add a closing page and reorder. Then in Export click **Export Carousel PDF** and post the file on LinkedIn as a document.
+10. **LinkedIn carousel** (optional): open the **Carousel** tab and pick the **Page size** (4:5 by default, the largest in the feed; 1:1 or 16:9 also work). Pages are generated automatically (captions from the Image panel become page titles). Click **Customize Pages** to pick a template per page, give a page its own text or screenshots, add a closing page and reorder. Then in Export click **Export Carousel PDF** and post the file on LinkedIn as a document.
 
 ### Annotated guide from a legend file
 
@@ -264,6 +264,7 @@ Exported `project.json` / `*.svs.json`:
     "exportPresets": ["linkedin", "open-graph", "square"],
     "carousel": {
       "pageNumbers": true,
+      "pageSize": "4:5",
       "slides": [
         { "id": "var_…", "template": "minimal", "content": { "title": "Too many tabs?" }, "screenshotIds": [] },
         { "id": "var_…", "template": "device-mix", "content": {}, "screenshotIds": null }
@@ -280,7 +281,7 @@ Exported `project.json` / `*.svs.json`:
 
 `schemaVersion` lets future versions migrate older files. Every import goes through `migrateProject()`, which drops unknown fields, clamps values, removes dangling references and fills newer fields with defaults, so files from earlier versions open unchanged. Projects that used the retired *Desktop + Mobile* template open as *Device Mix* with desktop and mobile.
 
-In `carousel.slides`, each page is a **variant**: a template, optional `content` overrides (a missing `kicker`, `title` or `subtitle` uses the project's), and `screenshotIds` (`null` = the project's screenshots). An empty `slides` list means automatic pages.
+In `carousel.slides`, each page is a **variant**: a template, optional `content` overrides (a missing `kicker`, `title` or `subtitle` uses the project's), and `screenshotIds` (`null` = the project's screenshots). An empty `slides` list means automatic pages. `pageSize` is `"4:5"`, `"1:1"` or `"16:9"`.
 
 ## Architecture
 
