@@ -112,7 +112,7 @@ describe('features and code content', () => {
   it('keeps defaults for old projects without these fields', () => {
     const p = migrateProject({ content: { title: 'Old' } });
     expect(p.content.features.length).toBeGreaterThan(0);
-    expect(p.content.code).toContain('createPack');
+    expect(p.content.code).toContain('Replace with a short snippet');
   });
 
   it('clamps code length', () => {
