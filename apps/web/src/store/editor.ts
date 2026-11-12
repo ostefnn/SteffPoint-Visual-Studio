@@ -25,6 +25,8 @@ interface EditorState {
   selectedShotId: string | null;
   activeFormat: FormatId;
   showSafeZones: boolean;
+  /** Canvas shows the same content in every style side by side. */
+  compareStyles: boolean;
   /** Carousel page shown on the canvas (index into the carousel pages), or null for the project itself. */
   carouselPage: number | null;
 
@@ -38,6 +40,7 @@ interface EditorState {
   selectShot(id: string | null): void;
   setActiveFormat(id: FormatId): void;
   toggleSafeZones(): void;
+  toggleCompareStyles(): void;
   setCarouselPage(index: number | null): void;
 }
 
@@ -52,6 +55,7 @@ export const useEditor = create<EditorState>((set, get) => ({
   selectedShotId: null,
   activeFormat: 'linkedin',
   showSafeZones: false,
+  compareStyles: false,
   carouselPage: null,
 
   open(project, urls) {
@@ -123,6 +127,9 @@ export const useEditor = create<EditorState>((set, get) => ({
   },
   toggleSafeZones() {
     set({ showSafeZones: !get().showSafeZones });
+  },
+  toggleCompareStyles() {
+    set({ compareStyles: !get().compareStyles });
   },
 }));
 

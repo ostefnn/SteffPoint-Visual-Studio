@@ -4,7 +4,6 @@ import {
   getStyle,
   STYLE_IDS,
   STYLES,
-  type StyleId,
   createProject,
   derivePalette,
   FORMAT_PRESETS,
@@ -14,13 +13,16 @@ import {
   TEMPLATES,
   type BackgroundType,
   type HeadingFont,
+  type LogoColor,
+  withStyle,
   type LogoSize,
 } from '@svs/visual-core';
 import { useEditor } from '../store/editor';
-import { imageFilesFrom, importImages, moveScreenshot, removeLogo, removeScreenshot } from '../lib/actions';
+import { applyStyle, imageFilesFrom, importImages, moveScreenshot, removeLogo, removeScreenshot } from '../lib/actions';
 import { Button, cx, Field, Icon, inputCls, Section, Segmented, Slider } from './ui';
 import { Stage } from './Stage';
 import { CarouselPanel } from './CarouselPanel';
+import { sampleLogoColorsFromUrl } from '../lib/logoColors';
 
 const NONE: never[] = [];
 const DEFAULT_BRAND = createProject().brand;
@@ -210,17 +212,8 @@ const FONTS: { value: HeadingFont; label: string }[] = [
 function StylePicker() {
   const project = useEditor((s) => s.project);
   const urls = useEditor((s) => s.urls);
-  const { update } = useEditor.getState();
   if (!project) return null;
   const current = project.brand.style;
-  const choose = (id: StyleId) =>
-    update((d) => {
-      if (d.brand.style === id) return;
-      d.brand.style = id;
-      // A style brings its own background and screenshot frame; both stay editable afterwards.
-      d.background.type = STYLES[id].defaults.background;
-      d.desktopFrame = STYLES[id].defaults.desktopFrame;
-    });
   return (
     <Section title="Style">
       <div role="radiogroup" aria-label="Style" className="grid grid-cols-2 gap-2">
@@ -233,7 +226,7 @@ function StylePicker() {
               type="button"
               role="radio"
               aria-checked={on}
-              onClick={() => choose(id)}
+              onClick={() => applyStyle(id)}
               title={st.description}
               className={cx(
                 'overflow-hidden rounded-lg bg-surface text-left ring-1 transition-transform duration-100 ease-out motion-safe:active:scale-[0.97]',
@@ -241,12 +234,7 @@ function StylePicker() {
               )}
             >
               <Stage
-                project={{
-                  ...project,
-                  brand: { ...project.brand, style: id },
-                  background: { ...project.background, type: st.defaults.background },
-                  desktopFrame: st.defaults.desktopFrame,
-                }}
+                project={withStyle(project, id)}
                 format={FORMAT_PRESETS.linkedin}
                 urls={urls}
                 maxWidth={124}
@@ -275,6 +263,8 @@ function BrandTab() {
   const logoInput = useRef<HTMLInputElement>(null);
   const pal = derivePalette(brand.primary, brand.theme, brand.style);
   const spec = getStyle(brand.style);
+  const logoUrl = brand.logoAssetId ? urls[brand.logoAssetId] : undefined;
+  const logoColors = useLogoColors(logoUrl);
 
   const setPrimary = (c: string) => {
     setHex(c);
@@ -307,11 +297,39 @@ function BrandTab() {
             />
           ))}
         </div>
+        {logoColors.length > 0 && (
+          <div>
+            <p className="mb-1 text-xs font-medium text-muted">From your logo</p>
+            <div role="group" aria-label="Colours from your logo" className="flex flex-wrap gap-1.5">
+              {logoColors.map((c) => (
+                <button
+                  key={c.hex}
+                  type="button"
+                  onClick={() => setPrimary(c.hex)}
+                  aria-label={`Use ${c.hex} from the logo`}
+                  aria-pressed={brand.primary === c.hex}
+                  title={`${c.hex} · ${Math.round(c.share * 100)}% of the logo`}
+                  className={cx('size-6 rounded-full ring-1 ring-line ring-offset-2', brand.primary === c.hex && 'ring-2 ring-ink')}
+                  style={{ background: c.hex }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
         <div>
           <p className="mb-1 text-xs font-medium text-muted">Derived palette</p>
           <div className="flex overflow-hidden rounded-lg ring-1 ring-line">
-            {[pal.bg, pal.primarySoft, pal.primary, pal.primaryStrong, pal.accent, pal.text].map((c, i) => (
-              <span key={i} className="h-6 flex-1" style={{ background: c }} title={c} />
+            {(
+              [
+                ['Background', pal.bg],
+                ['Tint', pal.primarySoft],
+                ['Primary', pal.primary],
+                ['Shade', pal.primaryStrong],
+                ['Accent', pal.accent],
+                ['Text', pal.text],
+              ] as const
+            ).map(([role, c]) => (
+              <span key={role} className="h-6 flex-1" style={{ background: c }} title={`${role} · ${c}`} />
             ))}
           </div>
         </div>
@@ -388,6 +406,20 @@ function BrandTab() {
       </Section>
     </>
   );
+}
+
+/** Dominant colours of the logo, sampled on a canvas whenever the logo changes. */
+function useLogoColors(url: string | undefined): LogoColor[] {
+  const [colors, setColors] = useState<LogoColor[]>([]);
+  useEffect(() => {
+    if (!url) return setColors([]);
+    let live = true;
+    sampleLogoColorsFromUrl(url).then((c) => live && setColors(c));
+    return () => {
+      live = false;
+    };
+  }, [url]);
+  return colors;
 }
 
 const BACKGROUNDS: { value: BackgroundType; label: string }[] = [

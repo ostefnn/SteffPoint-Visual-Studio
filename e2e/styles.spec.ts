@@ -53,3 +53,37 @@ test('switching style is undoable and keeps the content', async ({ page }) => {
   await expect(page.getByRole('radio', { name: /^Minimal/ })).toHaveAttribute('aria-checked', 'true');
   await expect(titleBox(page)).toHaveValue('Kept title');
 });
+
+test('Technical sets a mono kicker in the bundled face, on a white grid', async ({ page }) => {
+  await newProject(page);
+  await titleBox(page).fill('Release notes');
+  await page.getByRole('textbox', { name: 'Kicker', exact: true }).fill('Version 2.4');
+  await page.getByRole('tab', { name: 'Brand' }).click();
+  await page.getByRole('radio', { name: /^Technical/ }).click();
+  const kicker = page.getByTestId('canvas').getByText('Version 2.4');
+  await expect(kicker).toHaveCSS('font-family', /Geist Mono Variable/);
+  await expect(kicker).toHaveCSS('text-transform', 'none');
+  await expect.poll(() => page.evaluate(() => document.fonts.check("500 20px 'Geist Mono Variable'"))).toBe(true);
+  await page.getByRole('tab', { name: 'Background' }).click();
+  await expect(page.getByRole('button', { name: 'Grid' })).toHaveAttribute('aria-pressed', 'true');
+  // Bottom-left corner: white ground (grid lines are faint).
+  const png = await exportLinkedIn(page);
+  expectColor((await probePng(page, png, [0.01, 0.97])).rgb, [255, 255, 255], 14);
+});
+
+test('Tint paints a brand-tinted ground with brand-dark text', async ({ page }) => {
+  await newProject(page);
+  await titleBox(page).fill('Quiet launch');
+  await page.getByRole('tab', { name: 'Brand' }).click();
+  await page.getByRole('radio', { name: /^Tint/ }).click();
+  await page.getByRole('textbox', { name: 'Primary colour hex' }).fill('#0f766e');
+  const title = page.getByTestId('canvas').locator('h1', { hasText: 'Quiet launch' });
+  // The title keeps the brand hue: green-blue channels above red, and not black.
+  const [r, g, b] = (await title.evaluate((el) => getComputedStyle(el).color)).match(/\d+/g)!.map(Number);
+  expect(g).toBeGreaterThan(r);
+  expect(b).toBeGreaterThan(r);
+  expect(r + g + b).toBeGreaterThan(30);
+  const png = await exportLinkedIn(page);
+  // 7% of #0f766e over white.
+  expectColor((await probePng(page, png, [0.01, 0.5])).rgb, [238, 245, 245], 4);
+});

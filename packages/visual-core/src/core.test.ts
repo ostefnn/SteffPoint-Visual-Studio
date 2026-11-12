@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   getStyle,
+  STYLE_IDS,
+  inkOn,
+  hexToRgb,
   analyzeCarousel,
   buildCarouselSlides,
   createVariant,
@@ -21,6 +24,36 @@ import {
   screenshotRange,
   sanitizeText,
 } from './index';
+
+describe('Tint and Technical palettes', () => {
+  const brands = ['#2563eb', '#facc15', '#0f766e', '#e11d48', '#111827', '#ffffff'];
+
+  it('inkOn reaches the asked contrast and keeps the hue', () => {
+    for (const c of brands) {
+      for (const ground of ['#ffffff', '#0b0c10']) {
+        expect(contrastRatio(inkOn(c, ground, 7), ground), `${c} on ${ground}`).toBeGreaterThanOrEqual(7);
+      }
+    }
+    const ink = hexToRgb(inkOn('#2563eb', '#ffffff', 7));
+    expect(ink.b).toBeGreaterThan(ink.r); // still blue, not black
+  });
+
+  it('Tint keeps body and muted text readable, and its mat differs from the ground', () => {
+    for (const theme of ['light', 'dark'] as const) {
+      for (const c of brands) {
+        const p = derivePalette(c, theme, 'tint');
+        expect(contrastRatio(p.text, p.bg), `text ${theme} ${c}`).toBeGreaterThanOrEqual(9);
+        expect(contrastRatio(p.textMuted, p.bg), `muted ${theme} ${c}`).toBeGreaterThanOrEqual(4.5);
+        expect(contrastRatio(p.primarySoft, p.bg), `mat ${theme} ${c}`).toBeGreaterThanOrEqual(1.08);
+      }
+    }
+  });
+
+  it('Technical sits on a white (or near-black) ground whatever the brand', () => {
+    expect(derivePalette('#e11d48', 'light', 'technical').bg).toBe('#ffffff');
+    expect(derivePalette('#e11d48', 'dark', 'technical').bg).toBe('#0e0f12');
+  });
+});
 
 describe('formats', () => {
   it('detects orientation', () => {
@@ -50,7 +83,7 @@ describe('color', () => {
   it('derives readable palettes for both themes', () => {
     for (const theme of ['light', 'dark'] as const) {
       for (const c of ['#2563eb', '#facc15', '#111827', '#ffffff']) {
-        for (const style of ['soft', 'minimal', 'editorial', 'bold'] as const) {
+        for (const style of STYLE_IDS) {
           const p = derivePalette(c, theme, style);
           expect(contrastRatio(p.text, p.bg), `${style} ${theme} ${c}`).toBeGreaterThan(4.5);
         }
@@ -112,7 +145,7 @@ describe('features and code content', () => {
   it('keeps defaults for old projects without these fields', () => {
     const p = migrateProject({ content: { title: 'Old' } });
     expect(p.content.features.length).toBeGreaterThan(0);
-    expect(p.content.code).toContain('createPack');
+    expect(p.content.code).toContain('Replace with a short snippet');
   });
 
   it('clamps code length', () => {

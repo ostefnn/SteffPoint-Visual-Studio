@@ -2,11 +2,16 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   createProject,
   createScreenshotSlot,
+  FORMAT_ORDER,
   FORMAT_PRESETS,
   LIMITS,
+  STYLE_IDS,
+  STYLES,
   TEMPLATES,
   uid,
+  withStyle,
   type Project,
+  type StyleId,
   type TemplateCategory,
   type TemplateId,
 } from '@svs/visual-core';
@@ -49,10 +54,73 @@ const SAMPLE_LEGEND = [
   { label: 'Preview', prop: '', off: false },
   { label: 'Content', prop: '', off: false },
 ];
-function sampleFor(template: TemplateId): Project {
-  if (template === 'annotated') return { ...SAMPLE, template, screenshots: [{ ...SAMPLE.screenshots[0], legend: SAMPLE_LEGEND }] };
+/**
+ * Gallery-only content for the templates that take no screenshot: real facts about this app,
+ * counted from the code so they never go stale, and real code from its core package.
+ * Projects created from a card keep the neutral placeholders.
+ */
+const SAMPLE_CONTENT: Partial<Record<TemplateId, Partial<Project['content']>>> = {
+  stats: {
+    stats: [
+      { value: String(TEMPLATES.length), label: 'templates' },
+      { value: String(FORMAT_ORDER.filter((f) => f !== 'custom').length), label: 'export formats' },
+      { value: String(STYLE_IDS.length), label: 'styles' },
+      { value: '0', label: 'images uploaded' },
+    ],
+  },
+  features: {
+    features: ['Brand colour picked from your logo', 'All four styles compared side by side', 'LinkedIn carousel as a PDF', 'Nothing leaves your device'],
+  },
+  code: {
+    codeFile: 'brand.ts',
+    code: [
+      "import { derivePalette, extractLogoColors } from '@svs/visual-core';",
+      '',
+      '// The brand colour, sampled from the logo.',
+      'const [brand] = extractLogoColors(pixels);',
+      "const palette = derivePalette(brand.hex, 'light', 'bold');",
+    ].join('\n'),
+  },
+};
+
+/** Real App Store listing captions: one claim per screen, taken from the app's own features. */
+const STORE_CAPTIONS = ['Every format at once', 'Your brand, from your logo', 'Nothing leaves your device'];
+
+function sampleFor(template: TemplateId, style: StyleId): Project {
+  const content = { ...SAMPLE.content, ...SAMPLE_CONTENT[template] };
+  const base = withStyle({ ...SAMPLE, content }, style);
+  if (template === 'annotated') return { ...base, template, screenshots: [{ ...SAMPLE.screenshots[0], legend: SAMPLE_LEGEND }] };
   const shots = PHONE_FIRST.includes(template) ? [SAMPLE.screenshots[1], SAMPLE.screenshots[0], SAMPLE.screenshots[2]] : SAMPLE.screenshots;
-  return { ...SAMPLE, template, screenshots: shots };
+  return { ...base, template, screenshots: shots };
+}
+
+const CARD = { width: 264, height: 138 };
+
+/**
+ * A template card's picture. App Store is shown as what it makes: a row of portrait iPhone
+ * screens with one caption each, as in a store listing. The others draw in LinkedIn landscape.
+ */
+function TemplatePreview({ template, style }: { template: TemplateId; style: StyleId }) {
+  const project = sampleFor(template, style);
+  if (template === 'app-store') {
+    const iphone = FORMAT_PRESETS['appstore-iphone'];
+    return (
+      <div className="flex w-full items-center justify-center gap-2 bg-subtle" style={{ height: CARD.height }}>
+        {STORE_CAPTIONS.map((title, i) => (
+          <Stage
+            key={title}
+            project={{ ...project, content: { ...project.content, title, subtitle: '' }, screenshots: [project.screenshots[i % project.screenshots.length]] }}
+            format={iphone}
+            urls={SAMPLE_URLS}
+            maxWidth={CARD.width}
+            maxHeight={CARD.height - 12}
+            className="rounded-sm shadow-sm"
+          />
+        ))}
+      </div>
+    );
+  }
+  return <Stage project={project} format={FORMAT_PRESETS.linkedin} urls={SAMPLE_URLS} maxWidth={CARD.width} maxHeight={CARD.height} className="w-full" />;
 }
 
 /** Four filters instead of one per category: most categories hold one or two templates. */
@@ -68,6 +136,8 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
   const [query, setQuery] = useState('');
   const [favOnly, setFavOnly] = useState(false);
   const [category, setCategory] = useState<(typeof GALLERY_GROUPS)[number]['id']>('all');
+  // The gallery previews every template in one style; a card opens in that same style.
+  const [galleryStyle, setGalleryStyle] = useState<StyleId>(() => createProject().brand.style);
   const [error, setError] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const legendInput = useRef<HTMLInputElement>(null);
@@ -79,7 +149,7 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
   }, []);
 
   const create = async (template: TemplateId = 'browser-hero') => {
-    const p = createProject({ template, name: `Untitled ${new Date().toLocaleDateString()}` });
+    const p = withStyle(createProject({ template, name: `Untitled ${new Date().toLocaleDateString()}` }), galleryStyle);
     await createProjectRecord(p);
     onOpen(p.id);
   };
@@ -260,6 +330,20 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
                 {c.label}
               </button>
             ))}
+            <label className="flex items-center gap-2 text-xs text-muted sm:ml-auto">
+              Preview style
+              <select
+                value={galleryStyle}
+                onChange={(e) => setGalleryStyle(e.target.value as StyleId)}
+                className={cx(inputCls, 'h-8 w-36 py-0 text-xs text-ink')}
+              >
+                {STYLE_IDS.map((id) => (
+                  <option key={id} value={id}>
+                    {STYLES[id].name}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {templates.map((t) => (
@@ -269,7 +353,7 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
                   onClick={() => create(t.id)}
                   className="group block w-full overflow-hidden rounded-xl bg-surface text-left ring-1 ring-line transition hover:ring-2 hover:ring-accent"
                 >
-                  <Stage project={sampleFor(t.id)} format={FORMAT_PRESETS.linkedin} urls={SAMPLE_URLS} maxWidth={264} maxHeight={138} className="w-full" />
+                  <TemplatePreview template={t.id} style={galleryStyle} />
                   <div className="p-3">
                     <p className="text-sm font-medium">{t.name}</p>
                     <p className="mt-0.5 text-xs text-muted">{t.description}</p>

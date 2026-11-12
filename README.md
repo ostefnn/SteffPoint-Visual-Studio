@@ -57,9 +57,10 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 | 🖼️ **Screenshots** | Up to 4 per project. Add by click, drag & drop anywhere, or paste (Ctrl/Cmd+V). Desktop screenshots can sit in a browser, a macOS window, no frame, or a laptop. |
 | 🎯 **Crop & focal point** | Crop each edge, cover / contain, zoom in or out (0.5×–3×), and a focal point that stays visible when the layout changes between landscape, square and portrait. |
 | ✒️ **Styles** | One click sets typefaces, title scale, kicker, frames, shadows and background for every template: **Minimal** (default), **Editorial**, **Bold**, or **Soft** (the original look, kept as an option). Fonts are bundled, so exports look the same on every computer. |
-| 🎨 **Brand** | One primary colour → derived palette (accents stay in your brand's hue outside Soft). Light / dark theme, corner radius, logo (small / medium / large); heading font and shadow in Soft. |
+| 🎨 **Brand** | One primary colour → derived palette (accents stay in your brand's hue outside Soft). Light / dark theme, corner radius, logo (small / medium / large); heading font and shadow in Soft. Importing a logo samples its dominant colours on a canvas: the main brand colour becomes the primary (one undo step), the others are offered as one-click swatches. |
 | 🌈 **Backgrounds** | Solid, gradient, soft glow, grid, mesh, with intensity and angle. |
 | 📐 **Multi-format preview** | Every format previewed live, side by side. |
+| 🔲 **Compare Styles** | A matrix on the canvas renders the same content in every style at the current format, laid out so each is drawn as large as possible; click one to apply it. |
 | 🛟 **Safe zones** | Overlay showing where platform UI may cover your visual (e.g. stories, profile banners). |
 | ↩️ **Undo / redo** | Bounded history (60 steps); rapid edits like typing or sliders are merged into one step. |
 | 📦 **Export** | PNG, JPEG or WebP at 1×, 2× or 3×. One image, or a ZIP with every selected format plus `project.json`. |
@@ -78,6 +79,8 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 | **Minimal** (default) | Geist | Neutral grey | Plain text with a brand square | Thin outline, no shadow |
 | **Editorial** | Instrument Serif titles, Geist body, italic serif subtitle | White | Plain text over a hairline | Square corners, no shadow |
 | **Bold** | Bricolage Grotesque, condensed | Your brand colour | Black label | Thick outline, hard offset shadow |
+| **Technical** | Geist titles, Geist Mono kicker | White (or near-black) drafting grid | `// text` in mono, brand-coloured slashes | Window frame, square corners, hairline |
+| **Tint** | Geist | Light tint of your brand; text in a dark shade of it | Plain text with a brand square | Window frame on a soft brand-coloured mat, no shadow |
 | **Soft** | Inter / system, your heading font | Tinted with glows | Pill | Browser chrome, soft shadow |
 
 Projects created before styles existed open in **Soft**, unchanged. Picking a style also applies its background and screenshot frame; both stay editable. No style uses tracked capitals or invented content: template defaults are placeholders that ask for your real quote, figures and event details.
@@ -299,6 +302,7 @@ SteffPoint-Visual-Studio/
 │           ├── typography.ts    Shared type scale and font stacks
 │           ├── project.ts       Project schema, defaults, validation, migration
 │           ├── legend.ts        Annotated Panel legends: text form and Markdown report parser
+│           ├── logoColors.ts    Dominant colour sampling for logos
 │           └── rules.ts         Smart suggestions / accessibility checks
 ├── docs/
 │   ├── vision.md                Full product vision (FR)

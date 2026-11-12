@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { buildCarouselSlides, CAROUSEL_FORMAT, resolveFormat } from '@svs/visual-core';
+import { buildCarouselSlides, CAROUSEL_FORMAT, resolveFormat, fitGrid, STYLE_IDS, STYLES, withStyle, type FormatPreset, type Project } from '@svs/visual-core';
 import { useEditor } from '../store/editor';
 import { notify, useToasts } from '../store/toasts';
 import { useProjectSession, type SaveState } from '../lib/useProjectSession';
-import { duplicateScreenshot, imageFilesFrom, importImages, removeScreenshot } from '../lib/actions';
+import { applyStyle, duplicateScreenshot, imageFilesFrom, importImages, removeScreenshot } from '../lib/actions';
 import { Button, cx, Icon, inputCls, useElementSize } from './ui';
 import { Stage } from './Stage';
 import { PrivacyBadge } from './PrivacyBadge';
@@ -187,8 +187,9 @@ function Canvas() {
   const active = useEditor((s) => s.activeFormat);
   const showSafe = useEditor((s) => s.showSafeZones);
   const carouselPage = useEditor((s) => s.carouselPage);
+  const compare = useEditor((s) => s.compareStyles);
   const [ref, size] = useElementSize<HTMLDivElement>();
-  const { update, toggleSafeZones, setCarouselPage } = useEditor.getState();
+  const { update, toggleSafeZones, toggleCompareStyles, setCarouselPage } = useEditor.getState();
   // While a carousel page is selected, the canvas shows that page at the carousel size.
   const slides = useMemo(() => (carouselPage === null ? [] : buildCarouselSlides(project)), [project, carouselPage]);
   const slide = carouselPage === null ? undefined : slides[carouselPage];
@@ -231,12 +232,24 @@ function Canvas() {
             ))}
           </span>
         )}
-        <label className="ml-auto flex items-center gap-2 text-xs text-muted">
-          <input type="checkbox" checked={showSafe} onChange={toggleSafeZones} /> Safe zones
-        </label>
+        <span className="ml-auto flex items-center gap-3">
+          <Button
+            size="sm"
+            variant={compare ? 'selected' : 'ghost'}
+            aria-pressed={compare}
+            onClick={toggleCompareStyles}
+            title="Show the same content in every style side by side"
+          >
+            <Icon name="grid" /> Compare Styles
+          </Button>
+          <label className="flex items-center gap-2 text-xs text-muted">
+            <input type="checkbox" checked={showSafe} onChange={toggleSafeZones} /> Safe zones
+          </label>
+        </span>
       </div>
       <div ref={ref} className="checker relative flex h-[56vh] max-h-[640px] flex-none items-center justify-center overflow-hidden lg:h-auto lg:max-h-none lg:min-h-0 lg:flex-1" data-testid="canvas">
-        {size.width > 0 && (
+        {size.width > 0 && compare && <StyleMatrix project={shown} format={format} urls={urls} width={size.width} height={size.height} showSafeZones={showSafe} />}
+        {size.width > 0 && !compare && (
           <Stage
             project={shown}
             format={format}
@@ -249,6 +262,70 @@ function Canvas() {
           />
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Style matrix: the same content rendered in all four styles at once, in a 2 × 2 grid
+ * sized to the canvas. Picking a cell applies that style (undoable) and keeps the grid open.
+ */
+function StyleMatrix({
+  project,
+  format,
+  urls,
+  width,
+  height,
+  showSafeZones,
+}: {
+  project: Project;
+  format: Pick<FormatPreset, 'width' | 'height' | 'safe'>;
+  urls: Record<string, string>;
+  width: number;
+  height: number;
+  showSafeZones: boolean;
+}) {
+  const pad = 16;
+  const gap = 12;
+  const label = 22;
+  // 2 × 2 for landscape formats, one row for tall ones, one column for banners: whichever draws each style largest.
+  const fit = fitGrid(STYLE_IDS.length, { width, height }, format, { gap, padding: pad, caption: label });
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Compare styles"
+      data-testid="style-matrix"
+      data-columns={fit.columns}
+      className="grid place-items-center"
+      style={{ gap, padding: pad, gridTemplateColumns: `repeat(${fit.columns}, minmax(0, auto))` }}
+    >
+      {STYLE_IDS.map((id) => {
+        const on = project.brand.style === id;
+        return (
+          <button
+            key={id}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            onClick={() => applyStyle(id)}
+            title={STYLES[id].description}
+            className="group flex flex-col items-center gap-1 rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+          >
+            <Stage
+              project={withStyle(project, id)}
+              format={format}
+              urls={urls}
+              maxWidth={fit.width}
+              maxHeight={fit.height}
+              showSafeZones={showSafeZones}
+              className={cx('shadow-lg ring-1 transition-[box-shadow]', on ? 'ring-2 ring-accent' : 'ring-ink/5 group-hover:ring-field')}
+            />
+            <span className={cx('text-xs', on ? 'font-semibold text-ink' : 'text-muted')} style={{ height: label - 4 }}>
+              {STYLES[id].name}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -268,6 +345,18 @@ function Toasts() {
           )}
         >
           {t.message}
+          {t.action && (
+            <button
+              type="button"
+              onClick={() => {
+                t.action!.run();
+                dismiss(t.id);
+              }}
+              className="rounded-md px-2 py-0.5 font-semibold underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-on-accent"
+            >
+              {t.action.label}
+            </button>
+          )}
           <button type="button" onClick={() => dismiss(t.id)} aria-label="Dismiss" className="opacity-70 hover:opacity-100">
             <Icon name="x" className="size-3.5" />
           </button>

@@ -114,7 +114,22 @@ export const BOLD_INK = '#0c0d10';
  * The other styles use a neutral ground and an accent derived from the brand itself,
  * so no style but Soft drifts toward violet.
  */
-export function derivePalette(primary: string, theme: Theme, style: 'minimal' | 'editorial' | 'bold' | 'soft' = 'soft'): Palette {
+export type PaletteStyle = 'minimal' | 'editorial' | 'bold' | 'technical' | 'tint' | 'soft';
+
+/**
+ * The darkest (or, on a dark ground, lightest) shade of `hue` that reaches `min` contrast on
+ * `ground`, so text keeps the brand's hue instead of turning plain black or white.
+ */
+export function inkOn(hue: string, ground: string, min: number): string {
+  const toward = relativeLuminance(ground) > 0.18 ? '#000000' : '#ffffff';
+  for (let t = 0.3; t < 1; t += 0.02) {
+    const c = mix(hue, toward, t);
+    if (contrastRatio(c, ground) >= min) return c;
+  }
+  return toward === '#000000' ? '#0c0d10' : '#f5f6fa';
+}
+
+export function derivePalette(primary: string, theme: Theme, style: PaletteStyle = 'soft'): Palette {
   const p = isHexColor(primary) ? primary : '#2563eb';
   const onPrimary = contrastRatio(p, '#ffffff') >= contrastRatio(p, BOLD_INK) ? '#ffffff' : BOLD_INK;
   if (style === 'bold') {
@@ -133,8 +148,30 @@ export function derivePalette(primary: string, theme: Theme, style: 'minimal' | 
       border: BOLD_INK,
     };
   }
-  if (style === 'minimal' || style === 'editorial') {
-    const ground = style === 'editorial' ? (theme === 'dark' ? '#141414' : '#ffffff') : theme === 'dark' ? '#121315' : '#f3f4f5';
+  if (style === 'tint') {
+    // One hue throughout: a tinted ground, brand-dark (or brand-light) text, a soft brand mat.
+    const ground = theme === 'dark' ? mix('#0b0c10', p, 0.16) : mix('#ffffff', p, 0.07);
+    const text = inkOn(p, ground, 9);
+    // A brand too close to the ground (white, near-white) would leave no visible mat: fall back to a shade of the ink.
+    const tinted = theme === 'dark' ? mix(ground, p, 0.32) : mix('#ffffff', p, 0.22);
+    const mat = contrastRatio(tinted, ground) < 1.1 ? mix(ground, text, 0.1) : tinted;
+    return {
+      primary: p,
+      primarySoft: mat,
+      primaryStrong: theme === 'dark' ? mix(p, '#ffffff', 0.35) : mix(p, '#000000', 0.35),
+      accent: inkOn(p, ground, 4.5),
+      onPrimary,
+      bg: ground,
+      bgAlt: mix(ground, p, theme === 'dark' ? 0.2 : 0.1),
+      surface: theme === 'dark' ? mix(ground, '#ffffff', 0.06) : '#ffffff',
+      text,
+      textMuted: inkOn(mix(p, text, 0.5), ground, 4.8),
+      border: mix(ground, p, theme === 'dark' ? 0.4 : 0.3),
+    };
+  }
+  if (style === 'minimal' || style === 'editorial' || style === 'technical') {
+    const ground =
+      style === 'editorial' || style === 'technical' ? (theme === 'dark' ? (style === 'technical' ? '#0e0f12' : '#141414') : '#ffffff') : theme === 'dark' ? '#121315' : '#f3f4f5';
     if (theme === 'dark') {
       return {
         primary: p,
@@ -161,7 +198,7 @@ export function derivePalette(primary: string, theme: Theme, style: 'minimal' | 
       surface: '#ffffff',
       text: '#111316',
       textMuted: '#4a4e57',
-      border: style === 'editorial' ? '#cfd0d4' : '#c9ccd2',
+      border: style === 'minimal' ? '#c9ccd2' : '#cfd0d4',
     };
   }
   const accent = shiftHue(p, 40);

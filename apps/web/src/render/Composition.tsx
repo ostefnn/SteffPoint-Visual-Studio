@@ -6,7 +6,9 @@
 import type { CSSProperties, ReactNode } from 'react';
 import {
   BOLD_INK,
+  BUNDLED_FONTS,
   getStyle,
+  inkOn,
   type StyleSpec,
   backgroundPeak,
   CODE_LINE_HEIGHT,
@@ -73,6 +75,13 @@ interface ShadowLayer {
   alpha: number;
 }
 
+/** Shadow of the small cards (figures, feature rows): a light lift, or Tint's mat at half width. */
+function smallCardShadow(ctx: Ctx): string | undefined {
+  if (ctx.shadow === 'none') return undefined;
+  if (ctx.style.shadow === 'mat') return `0 0 0 ${ctx.u * 0.55}px ${ctx.pal.primarySoft}`;
+  return boxShadow([{ y: ctx.u * 0.3, blur: ctx.u * 1.4, alpha: 0.04 + 0.08 * ctx.p.brand.shadow }]);
+}
+
 /** CSS box-shadow for soft layers. (WebKit exports replace it, see lib/flattenShadows.) */
 function boxShadow(layers: ShadowLayer[]): string {
   return layers.map((l) => `0 ${l.y}px ${l.blur}px rgba(0,0,0,${l.alpha})`).join(', ');
@@ -102,12 +111,20 @@ export function Composition({ project, width, height, urls }: CompositionProps) 
     urls,
     heading: spec.heading ?? FONT_STACKS[project.brand.headingFont],
     style: spec,
-    edge: spec.edge === 'thick' ? `${Math.max(2, u * 0.45)}px solid ${BOLD_INK}` : `${Math.max(1, u * 0.12)}px solid ${pal.border}`,
+    edge:
+      spec.edge === 'none'
+        ? 'none'
+        : spec.edge === 'thick'
+          ? `${Math.max(2, u * 0.45)}px solid ${BOLD_INK}`
+          : `${Math.max(1, u * 0.12)}px solid ${pal.border}`,
     radius: u * (0.4 + project.brand.radius * 3.6) * spec.radiusScale,
     shadow:
       spec.shadow === 'none'
         ? 'none'
-        : spec.shadow === 'hard'
+        : spec.shadow === 'mat'
+          ? // A flat passe-partout: a solid spread ring, no blur, no offset.
+            `0 0 0 ${u * 1.1}px ${pal.primarySoft}`
+          : spec.shadow === 'hard'
           ? `${u * 1.1}px ${u * 1.1}px 0 ${BOLD_INK}`
           : s <= 0.01
         ? 'none'
@@ -158,6 +175,16 @@ function backgroundStyle({ p, pal, u, style }: Ctx): CSSProperties {
         ].join(', '),
       };
     case 'grid': {
+      if (style.crispGrid) {
+        // Technical: a drafting grid, lines you can see, and no halo.
+        const line = withAlpha(pal.text, 0.07 + 0.08 * i);
+        const g = u * 5;
+        return {
+          backgroundColor: pal.bg,
+          backgroundImage: `linear-gradient(${line} 1px, transparent 1px), linear-gradient(90deg, ${line} 1px, transparent 1px)`,
+          backgroundSize: `${g}px ${g}px, ${g}px ${g}px`,
+        };
+      }
       const line = withAlpha(pal.text, 0.03 + 0.06 * i);
       const g = u * 6;
       return {
@@ -544,6 +571,17 @@ function Kicker({ ctx, text, legacy, scale, colors }: { ctx: Ctx; text: string; 
   if (style.kicker === 'rule') {
     return (
       <span style={{ alignSelf: 'stretch', fontSize: size, fontWeight: 500, color: colors.muted, paddingBottom: size * 0.7, borderBottom: `${Math.max(1, u * 0.1)}px solid ${colors.text}` }}>
+        {text}
+      </span>
+    );
+  }
+  if (style.kicker === 'code') {
+    // The slashes are the brand mark; the text stays in the muted ink so it reads on any ground.
+    return (
+      <span style={{ fontFamily: BUNDLED_FONTS.mono, fontSize: size * 0.92, fontWeight: 500, color: colors.muted, whiteSpace: 'nowrap', letterSpacing: 0 }}>
+        <span aria-hidden="true" style={{ color: inkOn(pal.primary, pal.bg, 3) }}>
+          {'// '}
+        </span>
         {text}
       </span>
     );
@@ -1261,7 +1299,7 @@ function Stats(ctx: Ctx) {
         borderRadius: ctx.radius,
         background: pal.surface,
         border: ctx.edge,
-        boxShadow: ctx.shadow === 'none' ? undefined : ctx.softShadow([{ y: u * 0.3, blur: u * 1.4, alpha: 0.04 + 0.08 * p.brand.shadow }]),
+        boxShadow: smallCardShadow(ctx),
         minWidth: 0,
       }}
     >
@@ -1458,7 +1496,7 @@ function Features(ctx: Ctx) {
         borderRadius: ctx.radius,
         background: pal.surface,
         border: ctx.edge,
-        boxShadow: ctx.shadow === 'none' ? undefined : ctx.softShadow([{ y: u * 0.3, blur: u * 1.4, alpha: 0.04 + 0.08 * p.brand.shadow }]),
+        boxShadow: smallCardShadow(ctx),
         minWidth: 0,
       }}
     >

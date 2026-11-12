@@ -1,9 +1,10 @@
 /** Editor commands shared by panels, keyboard shortcuts, paste and drag & drop. */
-import { createScreenshotSlot, LIMITS, uid } from '@svs/visual-core';
+import { createScreenshotSlot, LIMITS, pickBrandColor, STYLES, uid, type StyleId } from '@svs/visual-core';
 import { useEditor } from '../store/editor';
 import { notify } from '../store/toasts';
 import { ImportError, readImageFile } from './assets';
 import { describeStorageError, putBlob, requestPersistence } from './db';
+import { sampleLogoColors } from './logoColors';
 
 export function imageFilesFrom(list: FileList | File[] | null | undefined): File[] {
   return [...(list ?? [])].filter((f) => f.type.startsWith('image/'));
@@ -23,12 +24,26 @@ export async function importImages(files: File[], target: 'screenshot' | 'logo')
       await putBlob(project.id, asset.id, blob);
       ed().addUrl(asset.id, URL.createObjectURL(blob));
       const slot = createScreenshotSlot(asset.id);
+      // A new logo dresses the project in its colour, in the same undo step as the import.
+      const brandColor = target === 'logo' ? pickBrandColor(await sampleLogoColors(blob).catch(() => [])) : null;
+      const previous = ed().project?.brand.primary;
       ed().update((d) => {
         d.assets.push(asset);
-        if (target === 'logo') d.brand.logoAssetId = asset.id;
-        else d.screenshots.push(slot);
+        if (target === 'logo') {
+          d.brand.logoAssetId = asset.id;
+          if (brandColor) d.brand.primary = brandColor;
+        } else d.screenshots.push(slot);
       });
       if (target === 'screenshot') ed().selectShot(slot.id);
+      if (brandColor && previous && brandColor !== previous) {
+        // Undo here restores only the colour and keeps the logo, whatever was edited since.
+        notify(`Brand colour set to ${brandColor} from the logo.`, 'info', {
+          label: 'Undo',
+          run: () => {
+            if (ed().project?.brand.primary === brandColor) ed().update((d) => void (d.brand.primary = previous));
+          },
+        });
+      }
       // The user now has content worth keeping: ask the browser not to evict it.
       void requestPersistence();
     } catch (e) {
@@ -84,5 +99,15 @@ export function removeLogo() {
   useEditor.getState().update((d) => {
     d.brand.logoAssetId = null;
     pruneAssets(d);
+  });
+}
+
+/** Pick a style: it brings its own background and screenshot frame; both stay editable afterwards. */
+export function applyStyle(id: StyleId) {
+  useEditor.getState().update((d) => {
+    if (d.brand.style === id) return;
+    d.brand.style = id;
+    d.background.type = STYLES[id].defaults.background;
+    d.desktopFrame = STYLES[id].defaults.desktopFrame;
   });
 }
