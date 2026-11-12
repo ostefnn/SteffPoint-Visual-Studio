@@ -206,6 +206,7 @@ Open http://localhost:5173.
 | `npm run preview` | Serve the production build locally |
 | `npm test` | Unit tests (`packages/visual-core`, Vitest) |
 | `npm run e2e` | End-to-end tests (Playwright) on Chromium, Firefox, WebKit, iPhone and iPad emulation |
+| `npm run samples` | Recapture the phone and tablet screens shown in the template gallery (`apps/web/public/samples`); needs `npm run build && npm run preview -w @svs/web -- --port 4173` running |
 | `npm run typecheck` | TypeScript check of all workspaces |
 
 ## Deployment
