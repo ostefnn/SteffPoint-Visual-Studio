@@ -37,6 +37,7 @@ export type HeadingFont = 'sans' | 'serif' | 'rounded' | 'mono';
 /** Faces bundled with the app (open licence, loaded from the app itself, never from a CDN). */
 export const BUNDLED_FONTS = {
   geist: "'Geist Variable', 'Geist', 'Segoe UI', system-ui, -apple-system, sans-serif",
+  mono: "'Geist Mono Variable', 'Geist Mono', 'SF Mono', Menlo, Consolas, monospace",
   serif: "'Instrument Serif', Georgia, 'Iowan Old Style', 'Times New Roman', serif",
   condensed: "'Bricolage Grotesque Variable', 'Bricolage Grotesque', 'Arial Narrow', 'Segoe UI', sans-serif",
 } as const;
@@ -45,6 +46,8 @@ export const BUNDLED_FONTS = {
 export const BUNDLED_FONT_FACES = [
   "400 16px 'Geist Variable'",
   "700 16px 'Geist Variable'",
+  "400 16px 'Geist Mono Variable'",
+  "500 16px 'Geist Mono Variable'",
   "400 16px 'Instrument Serif'",
   "italic 400 16px 'Instrument Serif'",
   "800 16px 'Bricolage Grotesque Variable'",
@@ -54,7 +57,8 @@ export const FONT_STACKS: Record<HeadingFont, string> = {
   sans: "Inter, 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif",
   serif: BUNDLED_FONTS.serif,
   rounded: "'SF Pro Rounded', 'Segoe UI', Nunito, system-ui, sans-serif",
-  mono: "'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace",
+  // Bundled, so code windows and the Mono heading export the same on every computer.
+  mono: BUNDLED_FONTS.mono,
 };
 
 export const BODY_STACK = FONT_STACKS.sans;

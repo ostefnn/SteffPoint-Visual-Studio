@@ -2,6 +2,7 @@
  * Deterministic "smart suggestions" and accessibility checks. No AI, no network.
  * Suggestions are informative only and never block an export.
  */
+import { getStyle } from './styles';
 import { backgroundPeak, contrastRatio, derivePalette } from './color';
 import { getOrientation, type FormatPreset } from './formats';
 import type { Project } from './project';
@@ -49,7 +50,7 @@ export function analyzeProject(project: Project, format: FormatPreset, exportSca
 
   // --- Contrast (WCAG AA) ----------------------------------------------------
   // Test against the most tinted part of the background (worst case).
-  const peak = backgroundPeak(pal, brand.style === 'bold' ? 'solid' : project.background.type, project.background.intensity);
+  const peak = backgroundPeak(pal, getStyle(brand.style).brandBackground ? 'solid' : project.background.type, project.background.intensity);
   const worst = (fg: string) => Math.min(contrastRatio(fg, pal.bg), contrastRatio(fg, peak));
   const titleContrast = worst(pal.text);
   if (titleContrast < 4.5) {

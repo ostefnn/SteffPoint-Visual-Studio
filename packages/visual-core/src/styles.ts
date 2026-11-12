@@ -10,11 +10,15 @@ import type { BackgroundType, Project } from './project';
 import type { DesktopFrame } from './templates';
 import { BUNDLED_FONTS } from './typography';
 
-export type StyleId = 'minimal' | 'editorial' | 'bold' | 'soft';
-export const STYLE_IDS: StyleId[] = ['minimal', 'editorial', 'bold', 'soft'];
+export type StyleId = 'minimal' | 'editorial' | 'bold' | 'technical' | 'tint' | 'soft';
+/** Display order. Soft, the original look, stays last. */
+export const STYLE_IDS: StyleId[] = ['minimal', 'editorial', 'bold', 'technical', 'tint', 'soft'];
 
-/** How the kicker (the short line above the title) is drawn. None uses tracked capitals. */
-export type KickerTreatment = 'plain' | 'rule' | 'label' | 'pill';
+/**
+ * How the kicker (the short line above the title) is drawn. None uses tracked capitals.
+ * `code` is Technical's: the text in the bundled mono face after a brand-coloured `//`.
+ */
+export type KickerTreatment = 'plain' | 'rule' | 'label' | 'pill' | 'code';
 
 export interface StyleSpec {
   id: StyleId;
@@ -33,14 +37,19 @@ export interface StyleSpec {
   /** Subtitle in the heading face, italic (Editorial). */
   italicSubtitle: boolean;
   kicker: KickerTreatment;
-  /** Shadow under screenshots and cards. */
-  shadow: 'soft' | 'none' | 'hard';
+  /**
+   * Shadow under screenshots and cards. `mat` (Tint) is no shadow at all but a flat margin
+   * of soft brand colour around each frame, like a passe-partout.
+   */
+  shadow: 'soft' | 'none' | 'hard' | 'mat';
   /** Multiplier on the project's corner radius. */
   radiusScale: number;
   /** Outline of screenshots and cards. */
-  edge: 'hairline' | 'thick';
+  edge: 'hairline' | 'thick' | 'none';
   /** Glows and gradient blobs behind screenshots (Spotlight halo…). */
   glow: boolean;
+  /** Grid background drawn crisp: visible lines, no brand halo (Technical). */
+  crispGrid?: boolean;
   /** Bold paints the brand colour as the background, whatever the background setting. */
   brandBackground: boolean;
   /** Applied when the user picks the style; both stay editable afterwards. */
@@ -105,6 +114,45 @@ export const STYLES: Record<StyleId, StyleSpec> = {
     glow: false,
     brandBackground: true,
     defaults: { background: 'solid', desktopFrame: 'plain' },
+  },
+  technical: {
+    id: 'technical',
+    name: 'Technical',
+    description: 'White grid, mono kicker, square corners. For changelogs, APIs and developer tools.',
+    heading: BUNDLED_FONTS.geist,
+    body: BUNDLED_FONTS.geist,
+    titleScale: 1.2,
+    titleWeight: 600,
+    titleTracking: '-0.035em',
+    titleLeading: 1.02,
+    italicSubtitle: false,
+    kicker: 'code',
+    shadow: 'none',
+    radiusScale: 0.2,
+    edge: 'hairline',
+    glow: false,
+    crispGrid: true,
+    brandBackground: false,
+    defaults: { background: 'grid', desktopFrame: 'window' },
+  },
+  tint: {
+    id: 'tint',
+    name: 'Tint',
+    description: 'Your brand in quiet shades: tinted ground, brand-dark text, screenshots on a coloured mat.',
+    heading: BUNDLED_FONTS.geist,
+    body: BUNDLED_FONTS.geist,
+    titleScale: 1.25,
+    titleWeight: 650,
+    titleTracking: '-0.03em',
+    titleLeading: 1,
+    italicSubtitle: false,
+    kicker: 'plain',
+    shadow: 'mat',
+    radiusScale: 0.6,
+    edge: 'none',
+    glow: false,
+    brandBackground: false,
+    defaults: { background: 'solid', desktopFrame: 'window' },
   },
   soft: {
     id: 'soft',

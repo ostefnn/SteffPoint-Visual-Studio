@@ -25,9 +25,10 @@ test('App Store is previewed as a row of iPhone screens, one caption each', asyn
 
 test('the preview style restyles every card and a card opens in that style', async ({ page }) => {
   await page.goto('/');
-  const styles = page.getByRole('radiogroup', { name: 'Preview style' });
-  await expect(styles.getByRole('radio', { name: 'Minimal' })).toBeChecked();
-  await styles.getByRole('radio', { name: 'Editorial' }).click();
+  const styles = page.getByRole('combobox', { name: 'Preview style' });
+  await expect(styles).toHaveValue('minimal');
+  await expect(styles.getByRole('option')).toHaveCount(6);
+  await styles.selectOption({ label: 'Editorial' });
   await expect(card(page, 'Minimal').locator('h1').first()).toHaveCSS('font-family', /Instrument Serif/);
   await card(page, 'Minimal').getByRole('button').click();
   await expect(page.getByTestId('save-state')).toHaveText('Saved');

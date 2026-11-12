@@ -20,7 +20,7 @@ import { buildProjectFile, importProjectFile } from '../lib/projectFile';
 import { importLegendBundle } from '../lib/legendImport';
 import { notify } from '../store/toasts';
 import { downloadBlob, slugify } from '../lib/download';
-import { Button, cx, Icon, inputCls, Segmented, useObjectUrl } from './ui';
+import { Button, cx, Icon, inputCls, useObjectUrl } from './ui';
 import { Stage } from './Stage';
 import { PrivacyBadge } from './PrivacyBadge';
 import { StorageStatus } from './StorageStatus';
@@ -330,14 +330,20 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
                 {c.label}
               </button>
             ))}
-            <div className="w-full sm:ml-auto sm:w-72">
-              <Segmented<StyleId>
-                label="Preview style"
+            <label className="flex items-center gap-2 text-xs text-muted sm:ml-auto">
+              Preview style
+              <select
                 value={galleryStyle}
-                options={STYLE_IDS.map((id) => ({ value: id, label: STYLES[id].name }))}
-                onChange={setGalleryStyle}
-              />
-            </div>
+                onChange={(e) => setGalleryStyle(e.target.value as StyleId)}
+                className={cx(inputCls, 'h-8 w-36 py-0 text-xs text-ink')}
+              >
+                {STYLE_IDS.map((id) => (
+                  <option key={id} value={id}>
+                    {STYLES[id].name}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {templates.map((t) => (

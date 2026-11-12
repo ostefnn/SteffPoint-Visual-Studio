@@ -55,15 +55,15 @@ test('a monochrome logo keeps the brand colour but lists its ink', async ({ page
   await expect(hex).toHaveValue(before);
 });
 
-test('Compare Styles shows the content in all four styles and applies the one picked', async ({ page }) => {
+test('Compare Styles shows the content in every style and applies the one picked', async ({ page }) => {
   await newProject(page);
   await titleBox(page).fill('Matrix title');
   const toggle = page.getByRole('button', { name: 'Compare Styles' });
   await toggle.click();
   await expect(toggle).toHaveAttribute('aria-pressed', 'true');
   const matrix = page.getByRole('radiogroup', { name: 'Compare styles' });
-  await expect(matrix.getByRole('radio')).toHaveCount(4);
-  await expect(matrix.locator('h1', { hasText: 'Matrix title' })).toHaveCount(4);
+  await expect(matrix.getByRole('radio')).toHaveCount(6);
+  await expect(matrix.locator('h1', { hasText: 'Matrix title' })).toHaveCount(6);
   await expect(matrix.getByRole('radio', { name: /^Minimal/ })).toHaveAttribute('aria-checked', 'true');
   // Each cell really renders its own style.
   await expect(matrix.getByRole('radio', { name: /^Editorial/ }).locator('h1')).toHaveCSS('font-family', /Instrument Serif/);
@@ -77,16 +77,16 @@ test('Compare Styles shows the content in all four styles and applies the one pi
     expect(b.x + b.width).toBeLessThanOrEqual(canvas.x + canvas.width + 1);
     expect(b.y + b.height).toBeLessThanOrEqual(canvas.y + canvas.height + 1);
   }
-  // Landscape: a 2 × 2 grid. The active cell is named plainly, without a suffix.
+  // Landscape: two columns. The active cell is named plainly, without a suffix.
   await expect(matrix).toHaveAttribute('data-columns', '2');
   await expect(matrix.getByRole('radio', { name: 'Minimal', exact: true })).toBeVisible();
   await matrix.getByRole('radio', { name: /^Editorial/ }).click();
   await expect(matrix.getByRole('radio', { name: /^Editorial/ })).toHaveAttribute('aria-checked', 'true');
   await page.getByRole('tab', { name: 'Brand' }).click();
   await expect(page.getByRole('radio', { name: /^Editorial/ }).first()).toHaveAttribute('aria-checked', 'true');
-  // A tall format draws the four styles on one row, each larger than in a 2 × 2 grid would be.
+  // A tall format goes to three columns instead of two: each style is drawn larger.
   await page.getByRole('button', { name: 'Preview Story 9:16' }).click();
-  await expect(matrix).toHaveAttribute('data-columns', '4');
+  await expect(matrix).toHaveAttribute('data-columns', '3');
   // The pressed toggle is tinted, not a second primary (filled) button.
   const bg = await toggle.evaluate((el) => getComputedStyle(el).backgroundColor);
   const exportBg = await page.getByRole('button', { name: 'Export', exact: true }).evaluate((el) => getComputedStyle(el).backgroundColor);

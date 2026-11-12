@@ -38,6 +38,7 @@ Packaged into the build from Fontsource and served by the app itself; no request
 | Font | Package | Author | Source |
 |---|---|---|---|
 | Geist | @fontsource-variable/geist 5.3.0 | Vercel | https://github.com/vercel/geist-font |
+| Geist Mono | @fontsource-variable/geist-mono 5.3.0 | Vercel | https://github.com/vercel/geist-font |
 | Bricolage Grotesque | @fontsource-variable/bricolage-grotesque 5.3.0 | Mathieu Triay | https://github.com/ateliertriay/bricolage |
 | Instrument Serif | @fontsource/instrument-serif 5.3.0 | Instrument | https://github.com/Instrument/instrument-serif |
 
@@ -61,7 +62,7 @@ If code is reused later, its copyright notice and full MIT license text must be 
 
 ## Assets
 
-- **Fonts:** Geist, Bricolage Grotesque and Instrument Serif are bundled (see above). The Soft style also uses system stacks (Inter, Segoe UI…) when installed on the device.
+- **Fonts:** Geist, Geist Mono, Bricolage Grotesque and Instrument Serif are bundled (see above). The Soft style also uses system stacks (Inter, Segoe UI…) when installed on the device.
 - **Icons:** drawn in-house as inline SVG paths.
 - **Device mockups (browser, phone):** drawn in code with CSS, generic, no brand or trademarked device artwork.
 - **Screenshots in `docs/images/` and `apps/web/public/samples/`:** captures of SteffPoint Visual Studio itself, used for documentation and for the template gallery previews.
