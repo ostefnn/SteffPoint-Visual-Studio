@@ -35,3 +35,16 @@ test('the preview style restyles every card and a card opens in that style', asy
   await page.getByRole('tab', { name: 'Brand' }).click();
   await expect(page.getByRole('radio', { name: /^Editorial/ }).first()).toHaveAttribute('aria-checked', 'true');
 });
+
+test('phones and tablets in the gallery show real mobile screens, never a desktop screenshot', async ({ page }) => {
+  await page.goto('/');
+  const srcs = async (name: string) => card(page, name).locator('img').evaluateAll((els) => els.map((e) => (e as HTMLImageElement).src.split('/').pop()));
+  expect(await srcs('Mobile Trio')).toEqual(expect.arrayContaining(['phone-1.jpg', 'phone-2.jpg', 'phone-3.jpg']));
+  expect((await srcs('Mobile Trio')).every((f) => f?.startsWith('phone-'))).toBe(true);
+  expect((await srcs('App Store')).every((f) => f?.startsWith('phone-'))).toBe(true);
+  expect(await srcs('Device Mix')).toEqual(expect.arrayContaining(['editor.jpg', 'tablet.jpg', 'phone-1.jpg']));
+  // Every sample image actually loads.
+  for (const img of await page.locator('main img').all()) {
+    await expect.poll(() => img.evaluate((e) => (e as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+  }
+});

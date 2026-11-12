@@ -25,28 +25,37 @@ import { Stage } from './Stage';
 import { PrivacyBadge } from './PrivacyBadge';
 import { StorageStatus } from './StorageStatus';
 
-/** Project shown in the template gallery cards. */
 /**
- * Gallery previews show real material: screenshots of SteffPoint Visual Studio itself
- * (public/samples), never invented proof. Phone-first templates get the phone shot first.
+ * Gallery previews show real material, never invented proof: screenshots of SteffPoint Visual
+ * Studio itself (public/samples). Desktop frames get desktop screenshots; iPhones and iPads get
+ * real phone and tablet screens, captured on a mobile viewport by scripts/capture-samples.mjs.
  */
-const SAMPLE_URLS: Record<string, string> = {
-  'sample-editor': `${import.meta.env.BASE_URL}samples/editor.jpg`,
-  'sample-phone': `${import.meta.env.BASE_URL}samples/phone.jpg`,
-  'sample-dashboard': `${import.meta.env.BASE_URL}samples/dashboard.jpg`,
-};
+const sample = (file: string) => `${import.meta.env.BASE_URL}samples/${file}`;
+const SAMPLE_ASSETS = [
+  { id: 'sample-editor', name: 'editor.jpg', width: 1600, height: 1000 },
+  { id: 'sample-dashboard', name: 'dashboard.jpg', width: 1600, height: 1000 },
+  { id: 'sample-phone-1', name: 'phone-1.jpg', width: 780, height: 1624 },
+  { id: 'sample-phone-2', name: 'phone-2.jpg', width: 780, height: 1624 },
+  { id: 'sample-phone-3', name: 'phone-3.jpg', width: 780, height: 1624 },
+  { id: 'sample-tablet', name: 'tablet.jpg', width: 1536, height: 2048 },
+] as const;
+type SampleId = (typeof SAMPLE_ASSETS)[number]['id'];
+const SAMPLE_URLS: Record<string, string> = Object.fromEntries(SAMPLE_ASSETS.map((a) => [a.id, sample(a.name)]));
 const SAMPLE: Project = (() => {
   const p = createProject();
   p.content = { ...p.content, title: 'SteffPoint Visual Studio', subtitle: 'Screenshots in, launch visuals for every format out.' };
-  p.assets = [
-    { id: 'sample-editor', name: 'editor.jpg', mime: 'image/jpeg', width: 1600, height: 1000, size: 0 },
-    { id: 'sample-phone', name: 'phone.jpg', mime: 'image/jpeg', width: 780, height: 1688, size: 0 },
-    { id: 'sample-dashboard', name: 'dashboard.jpg', mime: 'image/jpeg', width: 1600, height: 1000, size: 0 },
-  ];
-  p.screenshots = p.assets.map((a) => ({ ...createScreenshotSlot(a.id), id: `shot-${a.id}` }));
+  p.assets = SAMPLE_ASSETS.map((a) => ({ ...a, mime: 'image/jpeg', size: 0 }));
   return p;
 })();
-const PHONE_FIRST: TemplateId[] = ['mobile-trio', 'app-store'];
+const shot = (id: SampleId) => ({ ...createScreenshotSlot(id), id: `shot-${id}` });
+/** Which screenshot goes in which slot: each template's slots in order, matched to the device it draws. */
+const SHOTS_FOR: Partial<Record<TemplateId, SampleId[]>> = {
+  // Device Mix draws desktop, tablet, phone, in that order.
+  'device-mix': ['sample-editor', 'sample-tablet', 'sample-phone-1'],
+  'mobile-trio': ['sample-phone-1', 'sample-phone-2', 'sample-phone-3'],
+  'app-store': ['sample-phone-1', 'sample-phone-2', 'sample-phone-3'],
+};
+const DESKTOP_SHOTS: SampleId[] = ['sample-editor', 'sample-dashboard', 'sample-phone-1'];
 /** The editor's own panels, as they appear in the editor screenshot. */
 const SAMPLE_LEGEND = [
   { label: 'Images', prop: '', off: false },
@@ -69,7 +78,7 @@ const SAMPLE_CONTENT: Partial<Record<TemplateId, Partial<Project['content']>>> =
     ],
   },
   features: {
-    features: ['Brand colour picked from your logo', 'All four styles compared side by side', 'LinkedIn carousel as a PDF', 'Nothing leaves your device'],
+    features: ['Brand colour picked from your logo', 'Every style compared side by side', 'LinkedIn carousel as a PDF', 'Nothing leaves your device'],
   },
   code: {
     codeFile: 'brand.ts',
@@ -89,9 +98,8 @@ const STORE_CAPTIONS = ['Every format at once', 'Your brand, from your logo', 'N
 function sampleFor(template: TemplateId, style: StyleId): Project {
   const content = { ...SAMPLE.content, ...SAMPLE_CONTENT[template] };
   const base = withStyle({ ...SAMPLE, content }, style);
-  if (template === 'annotated') return { ...base, template, screenshots: [{ ...SAMPLE.screenshots[0], legend: SAMPLE_LEGEND }] };
-  const shots = PHONE_FIRST.includes(template) ? [SAMPLE.screenshots[1], SAMPLE.screenshots[0], SAMPLE.screenshots[2]] : SAMPLE.screenshots;
-  return { ...base, template, screenshots: shots };
+  if (template === 'annotated') return { ...base, template, screenshots: [{ ...shot('sample-editor'), legend: SAMPLE_LEGEND }] };
+  return { ...base, template, screenshots: (SHOTS_FOR[template] ?? DESKTOP_SHOTS).map(shot) };
 }
 
 const CARD = { width: 264, height: 138 };
@@ -330,7 +338,7 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
                 {c.label}
               </button>
             ))}
-            <label className="flex items-center gap-2 text-xs text-muted sm:ml-auto">
+            <label className="flex items-center gap-2 whitespace-nowrap text-xs text-muted sm:ml-auto">
               Preview style
               <select
                 value={galleryStyle}
