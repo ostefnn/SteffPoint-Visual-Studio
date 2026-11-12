@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  carouselFormat,
   getStyle,
   STYLE_IDS,
   inkOn,
@@ -415,7 +416,7 @@ describe('LinkedIn carousel', () => {
     expect(p.carousel.slides).toHaveLength(CAROUSEL_MAX_SLIDES);
     expect(p.carousel.slides[0]).toMatchObject({ template: 'minimal', content: { title: 'T' }, screenshotIds: ['s1'] });
     expect(p.carousel.slides[1]).toMatchObject({ template: 'device-mix', screenshotIds: null });
-    expect(migrateProject({}).carousel).toEqual({ slides: [], pageNumbers: true });
+    expect(migrateProject({}).carousel).toEqual({ slides: [], pageNumbers: true, pageSize: '4:5' });
   });
 });
 
@@ -462,5 +463,26 @@ describe('style presets', () => {
     const pal = derivePalette(p.brand.primary, 'light', 'bold');
     expect(pal.bg).toBe('#facc15');
     expect(contrastRatio(pal.text, pal.bg)).toBeGreaterThan(4.5);
+  });
+});
+
+describe('carousel page size', () => {
+  it('defaults to 4:5, keeps a valid size and maps it to a format', () => {
+    const p = createProject();
+    expect(p.carousel.pageSize).toBe('4:5');
+    expect(carouselFormat(p)).toBe('linkedin-carousel');
+    expect(migrateProject({ carousel: { pageSize: '16:9' } }).carousel.pageSize).toBe('16:9');
+    expect(migrateProject({ carousel: { pageSize: '3:2' } }).carousel.pageSize).toBe('4:5');
+    p.carousel.pageSize = '1:1';
+    expect(carouselFormat(p)).toBe('square');
+    p.carousel.pageSize = '16:9';
+    expect(carouselFormat(p)).toBe('thumbnail');
+  });
+
+  it('advises against 16:9 pages', () => {
+    const p = createProject();
+    expect(analyzeCarousel(p).map((s) => s.id)).not.toContain('carousel-wide');
+    p.carousel.pageSize = '16:9';
+    expect(analyzeCarousel(p).map((s) => s.id)).toContain('carousel-wide');
   });
 });

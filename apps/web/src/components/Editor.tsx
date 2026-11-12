@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { buildCarouselSlides, CAROUSEL_FORMAT, resolveFormat, fitGrid, STYLE_IDS, STYLES, withStyle, type FormatPreset, type Project } from '@svs/visual-core';
+import { buildCarouselSlides, carouselFormat, resolveFormat, fitGrid, STYLE_IDS, STYLES, withStyle, type FormatPreset, type Project } from '@svs/visual-core';
 import { useEditor } from '../store/editor';
 import { notify, useToasts } from '../store/toasts';
 import { useProjectSession, type SaveState } from '../lib/useProjectSession';
@@ -193,7 +193,7 @@ function Canvas() {
   // While a carousel page is selected, the canvas shows that page at the carousel size.
   const slides = useMemo(() => (carouselPage === null ? [] : buildCarouselSlides(project)), [project, carouselPage]);
   const slide = carouselPage === null ? undefined : slides[carouselPage];
-  const format = slide ? resolveFormat(CAROUSEL_FORMAT) : resolveFormat(active, project.customFormat);
+  const format = slide ? resolveFormat(carouselFormat(project)) : resolveFormat(active, project.customFormat);
   const shown = slide ? slide.project : project;
   const pad = 32;
 

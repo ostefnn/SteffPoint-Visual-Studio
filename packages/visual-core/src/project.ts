@@ -186,9 +186,14 @@ export interface Variant {
   screenshotIds: string[] | null;
 }
 
+/** Page shape of the carousel PDF. 4:5 is the largest in the LinkedIn feed. */
+export type CarouselPageSize = '4:5' | '1:1' | '16:9';
+export const CAROUSEL_PAGE_SIZES: readonly CarouselPageSize[] = ['4:5', '1:1', '16:9'];
+
 export interface CarouselSettings {
   /** Custom pages. Empty = automatic pages (cover, one per screenshot, features). */
   slides: Variant[];
+  pageSize: CarouselPageSize;
   /** Write "2 / 5" in the kicker of every page after the cover (unless the page sets its own kicker). */
   pageNumbers: boolean;
 }
@@ -270,7 +275,7 @@ export function createProject(init: Partial<Pick<Project, 'name' | 'template'>> 
     devices: [...DEVICE_KINDS],
     deviceOrientation: { tablet: 'portrait', mobile: 'portrait' },
     desktopFrame: STYLES.minimal.defaults.desktopFrame,
-    carousel: { slides: [], pageNumbers: true },
+    carousel: { slides: [], pageNumbers: true, pageSize: '4:5' },
   };
 }
 
@@ -480,5 +485,5 @@ function migrateCarousel(raw: Record<string, unknown>, slotIds: Set<string>): Ca
           return { id: typeof v.id === 'string' && v.id ? v.id : uid('var'), template, content: overrides, screenshotIds: ids };
         })
     : [];
-  return { slides, pageNumbers: raw.pageNumbers !== false };
+  return { slides, pageNumbers: raw.pageNumbers !== false, pageSize: oneOf(raw.pageSize, CAROUSEL_PAGE_SIZES, '4:5') };
 }
