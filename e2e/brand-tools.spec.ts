@@ -31,6 +31,20 @@ test('a colourful logo sets the brand colour, offers its palette, and is undoabl
   await expect(page.getByRole('img', { name: 'Logo' })).toHaveCount(0);
 });
 
+test('the toast Undo restores the previous colour and keeps the logo', async ({ page }) => {
+  await newProject(page);
+  await page.getByRole('tab', { name: 'Brand' }).click();
+  const hex = page.getByRole('textbox', { name: 'Primary colour hex' });
+  const before = await hex.inputValue();
+  await uploadLogo(page, 'logo-brand.png');
+  await expect(hex).toHaveValue('#0f766e');
+  const toast = page.getByRole('status').filter({ hasText: 'Brand colour set to #0f766e' });
+  await toast.getByRole('button', { name: 'Undo' }).click();
+  await expect(hex).toHaveValue(before);
+  await expect(page.getByRole('img', { name: 'Logo' })).toBeVisible();
+  await expect(toast).toHaveCount(0);
+});
+
 test('a monochrome logo keeps the brand colour but lists its ink', async ({ page }) => {
   await newProject(page);
   await page.getByRole('tab', { name: 'Brand' }).click();
@@ -63,10 +77,20 @@ test('Compare Styles shows the content in all four styles and applies the one pi
     expect(b.x + b.width).toBeLessThanOrEqual(canvas.x + canvas.width + 1);
     expect(b.y + b.height).toBeLessThanOrEqual(canvas.y + canvas.height + 1);
   }
+  // Landscape: a 2 × 2 grid. The active cell is named plainly, without a suffix.
+  await expect(matrix).toHaveAttribute('data-columns', '2');
+  await expect(matrix.getByRole('radio', { name: 'Minimal', exact: true })).toBeVisible();
   await matrix.getByRole('radio', { name: /^Editorial/ }).click();
   await expect(matrix.getByRole('radio', { name: /^Editorial/ })).toHaveAttribute('aria-checked', 'true');
   await page.getByRole('tab', { name: 'Brand' }).click();
   await expect(page.getByRole('radio', { name: /^Editorial/ }).first()).toHaveAttribute('aria-checked', 'true');
+  // A tall format draws the four styles on one row, each larger than in a 2 × 2 grid would be.
+  await page.getByRole('button', { name: 'Preview Story 9:16' }).click();
+  await expect(matrix).toHaveAttribute('data-columns', '4');
+  // The pressed toggle is tinted, not a second primary (filled) button.
+  const bg = await toggle.evaluate((el) => getComputedStyle(el).backgroundColor);
+  const exportBg = await page.getByRole('button', { name: 'Export', exact: true }).evaluate((el) => getComputedStyle(el).backgroundColor);
+  expect(bg).not.toBe(exportBg);
   // Back to the single preview.
   await toggle.click();
   await expect(matrix).toHaveCount(0);

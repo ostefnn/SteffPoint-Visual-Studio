@@ -144,3 +144,34 @@ export function withStyle(project: Project, id: StyleId): Project {
     desktopFrame: st.defaults.desktopFrame,
   };
 }
+
+export interface GridFit {
+  columns: number;
+  rows: number;
+  /** Width and height of each item once scaled to fit its cell, in box units. */
+  width: number;
+  height: number;
+}
+
+/**
+ * Best arrangement for `count` items of one aspect ratio in a box: tries every column count
+ * and keeps the one where each item is drawn largest. Used by the Compare Styles matrix, so
+ * landscape formats get a 2 × 2 grid and tall ones (Story 9:16) a single row.
+ * `caption` is the height reserved under each item for its label.
+ */
+export function fitGrid(
+  count: number,
+  box: { width: number; height: number },
+  item: { width: number; height: number },
+  { gap = 12, padding = 16, caption = 0 }: { gap?: number; padding?: number; caption?: number } = {},
+): GridFit {
+  let best: GridFit = { columns: 1, rows: count, width: 0, height: 0 };
+  for (let columns = 1; columns <= count; columns++) {
+    const rows = Math.ceil(count / columns);
+    const cellW = (box.width - padding * 2 - gap * (columns - 1)) / columns;
+    const cellH = (box.height - padding * 2 - gap * (rows - 1)) / rows - caption;
+    const scale = Math.max(0, Math.min(cellW / item.width, cellH / item.height));
+    if (scale * item.width > best.width) best = { columns, rows, width: scale * item.width, height: scale * item.height };
+  }
+  return best;
+}

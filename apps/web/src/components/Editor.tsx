@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { buildCarouselSlides, CAROUSEL_FORMAT, resolveFormat, STYLE_IDS, STYLES, withStyle, type FormatPreset, type Project } from '@svs/visual-core';
+import { buildCarouselSlides, CAROUSEL_FORMAT, resolveFormat, fitGrid, STYLE_IDS, STYLES, withStyle, type FormatPreset, type Project } from '@svs/visual-core';
 import { useEditor } from '../store/editor';
 import { notify, useToasts } from '../store/toasts';
 import { useProjectSession, type SaveState } from '../lib/useProjectSession';
@@ -235,7 +235,7 @@ function Canvas() {
         <span className="ml-auto flex items-center gap-3">
           <Button
             size="sm"
-            variant={compare ? 'primary' : 'ghost'}
+            variant={compare ? 'selected' : 'ghost'}
             aria-pressed={compare}
             onClick={toggleCompareStyles}
             title="Show the same content in every style side by side"
@@ -288,10 +288,17 @@ function StyleMatrix({
   const pad = 16;
   const gap = 12;
   const label = 22;
-  const cellW = (width - pad * 2 - gap) / 2;
-  const cellH = (height - pad * 2 - gap) / 2 - label;
+  // 2 × 2 for landscape formats, one row for tall ones, one column for banners: whichever draws each style largest.
+  const fit = fitGrid(STYLE_IDS.length, { width, height }, format, { gap, padding: pad, caption: label });
   return (
-    <div role="radiogroup" aria-label="Compare styles" data-testid="style-matrix" className="grid grid-cols-2 place-items-center" style={{ gap, padding: pad }}>
+    <div
+      role="radiogroup"
+      aria-label="Compare styles"
+      data-testid="style-matrix"
+      data-columns={fit.columns}
+      className="grid place-items-center"
+      style={{ gap, padding: pad, gridTemplateColumns: `repeat(${fit.columns}, minmax(0, auto))` }}
+    >
       {STYLE_IDS.map((id) => {
         const on = project.brand.style === id;
         return (
@@ -308,14 +315,13 @@ function StyleMatrix({
               project={withStyle(project, id)}
               format={format}
               urls={urls}
-              maxWidth={cellW}
-              maxHeight={cellH}
+              maxWidth={fit.width}
+              maxHeight={fit.height}
               showSafeZones={showSafeZones}
-              className={cx('shadow-lg ring-1 transition', on ? 'ring-2 ring-accent' : 'ring-ink/5 group-hover:ring-field')}
+              className={cx('shadow-lg ring-1 transition-[box-shadow]', on ? 'ring-2 ring-accent' : 'ring-ink/5 group-hover:ring-field')}
             />
             <span className={cx('text-xs', on ? 'font-semibold text-ink' : 'text-muted')} style={{ height: label - 4 }}>
               {STYLES[id].name}
-              {on && ' · current'}
             </span>
           </button>
         );
@@ -339,6 +345,18 @@ function Toasts() {
           )}
         >
           {t.message}
+          {t.action && (
+            <button
+              type="button"
+              onClick={() => {
+                t.action!.run();
+                dismiss(t.id);
+              }}
+              className="rounded-md px-2 py-0.5 font-semibold underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-on-accent"
+            >
+              {t.action.label}
+            </button>
+          )}
           <button type="button" onClick={() => dismiss(t.id)} aria-label="Dismiss" className="opacity-70 hover:opacity-100">
             <Icon name="x" className="size-3.5" />
           </button>

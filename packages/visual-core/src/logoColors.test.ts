@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractLogoColors, pickBrandColor, withStyle, createProject, STYLES } from './index';
+import { extractLogoColors, fitGrid, pickBrandColor, withStyle, createProject, STYLES } from './index';
 
 /** RGBA buffer made of runs: [r, g, b, a, count]. */
 function pixels(...runs: [number, number, number, number, number][]): Uint8ClampedArray {
@@ -67,5 +67,34 @@ describe('withStyle', () => {
       expect(v.brand.primary).toBe('#0f766e');
     }
     expect(p.brand.style).not.toBe('soft'); // source untouched
+  });
+});
+
+describe('fitGrid', () => {
+  const box = { width: 830, height: 680 };
+  const opts = { gap: 12, padding: 16, caption: 22 };
+
+  it('puts four landscape items in a 2 × 2 grid', () => {
+    const f = fitGrid(4, box, { width: 1200, height: 627 }, opts);
+    expect([f.columns, f.rows]).toEqual([2, 2]);
+    expect(f.width).toBeCloseTo(393, 0);
+  });
+
+  it('puts four tall items on a single row', () => {
+    const f = fitGrid(4, box, { width: 1080, height: 1920 }, opts);
+    expect([f.columns, f.rows]).toEqual([4, 1]);
+    // Larger than the same items in a 2 × 2 grid.
+    const twoByTwo = Math.min((830 - 32 - 12) / 2 / 1080, ((680 - 32 - 12) / 2 - 22) / 1920) * 1080;
+    expect(f.width).toBeGreaterThan(twoByTwo);
+  });
+
+  it('stacks very wide items in a single column', () => {
+    const f = fitGrid(4, { width: 600, height: 900 }, { width: 1584, height: 396 }, opts);
+    expect([f.columns, f.rows]).toEqual([1, 4]);
+  });
+
+  it('never returns a negative size in a tiny box', () => {
+    const f = fitGrid(4, { width: 10, height: 10 }, { width: 100, height: 100 }, opts);
+    expect(f.width).toBeGreaterThanOrEqual(0);
   });
 });

@@ -35,7 +35,15 @@ export async function importImages(files: File[], target: 'screenshot' | 'logo')
         } else d.screenshots.push(slot);
       });
       if (target === 'screenshot') ed().selectShot(slot.id);
-      if (brandColor && brandColor !== previous) notify(`Brand colour set to ${brandColor} from the logo. Ctrl/Cmd+Z to undo.`);
+      if (brandColor && previous && brandColor !== previous) {
+        // Undo here restores only the colour and keeps the logo, whatever was edited since.
+        notify(`Brand colour set to ${brandColor} from the logo.`, 'info', {
+          label: 'Undo',
+          run: () => {
+            if (ed().project?.brand.primary === brandColor) ed().update((d) => void (d.brand.primary = previous));
+          },
+        });
+      }
       // The user now has content worth keeping: ask the browser not to evict it.
       void requestPersistence();
     } catch (e) {
