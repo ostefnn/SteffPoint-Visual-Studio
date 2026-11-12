@@ -171,6 +171,7 @@ const paths: Record<string, string> = {
   right: 'm9 18 6-6-6-6',
   image: 'M4 5h16v14H4zM4 15l4-4 5 5M14 13l2-2 4 4',
   search: 'M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14zM20 20l-4-4',
+  grid: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
 };
 
 export function Icon({ name, className = 'size-4', filled }: { name: keyof typeof paths | string; className?: string; filled?: boolean }) {

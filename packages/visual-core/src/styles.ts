@@ -6,7 +6,7 @@
  * so exports render the same on every computer. Soft is the original look,
  * kept as an option; it uses the project's heading font and system faces.
  */
-import type { BackgroundType } from './project';
+import type { BackgroundType, Project } from './project';
 import type { DesktopFrame } from './templates';
 import { BUNDLED_FONTS } from './typography';
 
@@ -129,4 +129,18 @@ export const STYLES: Record<StyleId, StyleSpec> = {
 
 export function getStyle(id: string | undefined): StyleSpec {
   return STYLES[id as StyleId] ?? STYLES.minimal;
+}
+
+/**
+ * The project as it looks in another style: the style plus the background and screenshot
+ * frame it brings (what picking it in the Style panel does). Content and brand colour are kept.
+ */
+export function withStyle(project: Project, id: StyleId): Project {
+  const st = STYLES[id];
+  return {
+    ...project,
+    brand: { ...project.brand, style: id },
+    background: { ...project.background, type: st.defaults.background },
+    desktopFrame: st.defaults.desktopFrame,
+  };
 }
