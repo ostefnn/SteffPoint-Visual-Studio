@@ -8,3 +8,4 @@ export * from './carousel';
 export * from './styles';
 export * from './legend';
 export * from './logoColors';
+export * from './brandKit';

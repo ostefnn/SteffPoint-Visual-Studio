@@ -33,6 +33,9 @@ import {
   clampArea,
   FORMAT_GROUPS,
   FORMAT_ORDER,
+  applyBrandKit,
+  brandKitFromProject,
+  migrateBrandKit,
 } from './index';
 
 describe('Tint and Technical palettes', () => {
@@ -657,5 +660,53 @@ describe('format groups', () => {
       expect(f.content.left + f.content.right).toBeLessThan(1);
       expect(f.content.top + f.content.bottom).toBeLessThan(1);
     }
+  });
+});
+
+describe('brand kits', () => {
+  const branded = () => {
+    const p = createProject();
+    p.assets.push({ id: 'logo1', name: 'logo.png', mime: 'image/png', width: 512, height: 512, size: 2048 });
+    p.brand = { ...p.brand, primary: '#0f766e', style: 'bold', logoAssetId: 'logo1', footer: true, radius: 0.2 };
+    p.background = { type: 'mesh', intensity: 0.3, angle: 90 };
+    p.desktopFrame = 'laptop';
+    p.content.link = 'example.com';
+    return p;
+  };
+
+  it('captures the identity, not the content', () => {
+    const kit = brandKitFromProject(branded(), '  Teal  ');
+    expect(kit.name).toBe('Teal');
+    expect(kit.brand).toMatchObject({ primary: '#0f766e', style: 'bold', footer: true, radius: 0.2 });
+    expect(kit.brand).not.toHaveProperty('logoAssetId');
+    expect(kit.logo).toEqual({ name: 'logo.png', mime: 'image/png', width: 512, height: 512, size: 2048 });
+    expect([kit.background.type, kit.desktopFrame, kit.link]).toEqual(['mesh', 'laptop', 'example.com']);
+  });
+
+  it('dresses another project, with the logo stored for it', () => {
+    const kit = brandKitFromProject(branded(), 'Teal');
+    const target = createProject();
+    target.content.title = 'Mine';
+    const logo = { id: 'new-logo', name: 'logo.png', mime: 'image/png', width: 512, height: 512, size: 2048 };
+    const out = applyBrandKit(target, kit, logo);
+    expect(out.brand).toMatchObject({ primary: '#0f766e', style: 'bold', logoAssetId: 'new-logo' });
+    expect(out.assets.map((a) => a.id)).toEqual(['new-logo']);
+    expect([out.content.title, out.content.link, out.desktopFrame]).toEqual(['Mine', 'example.com', 'laptop']);
+    // A kit without a logo removes none: the project keeps its own.
+    const noLogo = { ...kit, logo: null };
+    const own = { ...createProject(), brand: { ...createProject().brand, logoAssetId: 'mine' } };
+    expect(applyBrandKit(own, noLogo, null).brand.logoAssetId).toBe('mine');
+    expect(applyBrandKit(own, kit, null).brand.logoAssetId).toBe('mine');
+  });
+
+  it('validates stored kits', () => {
+    expect(migrateBrandKit(null)).toBeNull();
+    expect(migrateBrandKit({ name: 'no id' })).toBeNull();
+    const k = migrateBrandKit({ id: 'k', name: 'x'.repeat(60), brand: { primary: 'red', style: 'neon', footer: 'yes' }, desktopFrame: 'tv' })!;
+    expect(k.name).toHaveLength(40);
+    expect(k.brand).toMatchObject({ primary: createProject().brand.primary, style: 'minimal', footer: false });
+    expect(k.desktopFrame).toBe('plain');
+    const round = brandKitFromProject(branded(), 'Teal');
+    expect(migrateBrandKit(JSON.parse(JSON.stringify(round)))).toEqual(round);
   });
 });

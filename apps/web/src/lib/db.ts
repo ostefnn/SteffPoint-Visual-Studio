@@ -3,12 +3,14 @@
  * - projects:   Project JSON
  * - blobs:      image Blobs, keyed `${projectId}:${assetId}` so each project owns its files
  * - thumbnails: small JPEG Blob per project
+ * - brandKits:  saved brand identities (version 2)
+ * - kitLogos:   the logo image of each brand kit, keyed by kit id (version 2)
  *
  * Concurrency: every write of an existing project goes through `saveProjectGuarded`
  * (optimistic locking on `revision`), so a stale tab can never silently overwrite newer work.
  */
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
-import { migrateProject, type Project } from '@svs/visual-core';
+import { migrateBrandKit, migrateProject, type BrandKit, type Project } from '@svs/visual-core';
 
 /**
  * Binary data is stored as ArrayBuffer + MIME type rather than Blob: WebKit cannot store
@@ -25,6 +27,8 @@ interface SvsDB extends DBSchema {
   projects: { key: string; value: Project };
   blobs: { key: string; value: BinaryRecord };
   thumbnails: { key: string; value: BinaryRecord };
+  brandKits: { key: string; value: BrandKit };
+  kitLogos: { key: string; value: BinaryRecord };
 }
 
 async function toRecord(blob: Blob): Promise<StoredBinary> {
@@ -39,11 +43,22 @@ function fromRecord(r: BinaryRecord | undefined): Blob | undefined {
 let dbPromise: Promise<IDBPDatabase<SvsDB>> | null = null;
 
 function db() {
-  dbPromise ??= openDB<SvsDB>('steffpoint-visual-studio', 1, {
-    upgrade(d) {
-      d.createObjectStore('projects', { keyPath: 'id' });
-      d.createObjectStore('blobs');
-      d.createObjectStore('thumbnails');
+  dbPromise ??= openDB<SvsDB>('steffpoint-visual-studio', 2, {
+    upgrade(d, oldVersion) {
+      if (oldVersion < 1) {
+        d.createObjectStore('projects', { keyPath: 'id' });
+        d.createObjectStore('blobs');
+        d.createObjectStore('thumbnails');
+      }
+      if (oldVersion < 2) {
+        d.createObjectStore('brandKits', { keyPath: 'id' });
+        d.createObjectStore('kitLogos');
+      }
+    },
+    // Another tab is upgrading the database: let it, and reopen on next use.
+    blocking() {
+      void dbPromise?.then((x) => x.close());
+      dbPromise = null;
     },
   });
   return dbPromise;
@@ -177,6 +192,37 @@ export async function copyBlobs(fromId: string, toId: string): Promise<void> {
     const b = await d.get('blobs', k);
     if (b) await d.put('blobs', b, `${toId}:${k.slice(fromId.length + 1)}`);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Brand kits
+// ---------------------------------------------------------------------------
+
+export async function listBrandKits(): Promise<BrandKit[]> {
+  const all = await (await db()).getAll('brandKits');
+  return all
+    .map(migrateBrandKit)
+    .filter((k): k is BrandKit => !!k)
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export async function putBrandKit(kit: BrandKit, logo: Blob | null): Promise<void> {
+  const record = logo ? await toRecord(logo) : null;
+  const tx = (await db()).transaction(['brandKits', 'kitLogos'], 'readwrite');
+  await Promise.all([
+    tx.objectStore('brandKits').put(kit),
+    record ? tx.objectStore('kitLogos').put(record, kit.id) : tx.objectStore('kitLogos').delete(kit.id),
+    tx.done,
+  ]);
+}
+
+export async function getKitLogo(kitId: string): Promise<Blob | undefined> {
+  return fromRecord(await (await db()).get('kitLogos', kitId));
+}
+
+export async function deleteBrandKit(kitId: string): Promise<void> {
+  const tx = (await db()).transaction(['brandKits', 'kitLogos'], 'readwrite');
+  await Promise.all([tx.objectStore('brandKits').delete(kitId), tx.objectStore('kitLogos').delete(kitId), tx.done]);
 }
 
 // ---------------------------------------------------------------------------

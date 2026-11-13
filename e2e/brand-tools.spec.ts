@@ -96,3 +96,35 @@ test('Compare Styles shows the content in every style and applies the one picked
   await expect(matrix).toHaveCount(0);
   await expect(page.getByTestId('canvas').locator('h1', { hasText: 'Matrix title' })).toHaveCSS('font-family', /Instrument Serif/);
 });
+
+test('a brand kit saves the identity and dresses other projects, logo included', async ({ page }) => {
+  await newProject(page);
+  await page.getByRole('tab', { name: 'Brand' }).click();
+  await uploadLogo(page, 'logo-brand.png');
+  await expect(page.getByRole('textbox', { name: 'Primary colour hex' })).toHaveValue('#0f766e');
+  await page.getByRole('radio', { name: /^Bold/ }).click();
+  await page.getByRole('checkbox', { name: /Brand footer/ }).check();
+  await page.getByRole('textbox', { name: 'Website or handle' }).fill('example.com');
+  await page.getByRole('textbox', { name: 'Brand kit name' }).fill('Teal');
+  await page.getByRole('button', { name: 'Save Kit' }).click();
+  await expect(page.getByRole('list', { name: 'Brand kits' })).toContainText('Teal');
+
+  // A new project from the dashboard, with the kit chosen for new projects.
+  await page.getByRole('button', { name: 'Back to Projects' }).click();
+  await page.getByRole('combobox', { name: 'Brand kit' }).selectOption({ label: 'Teal' });
+  await page.getByRole('button', { name: 'New Project' }).first().click();
+  await expect(page.getByTestId('save-state')).toHaveText('Saved');
+  await page.getByRole('tab', { name: 'Brand' }).click();
+  await expect(page.getByRole('textbox', { name: 'Primary colour hex' })).toHaveValue('#0f766e');
+  await expect(page.getByRole('radio', { name: /^Bold/ })).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByRole('img', { name: 'Logo' })).toBeVisible();
+  await expect(page.getByTestId('canvas').locator('[data-footer]')).toContainText('example.com');
+
+  // Applying another identity, then the kit again, is one undo step each.
+  await page.getByRole('button', { name: 'Use #db2777' }).click();
+  await page.getByRole('list', { name: 'Brand kits' }).getByRole('button', { name: 'Apply' }).click();
+  await expect(page.getByRole('textbox', { name: 'Primary colour hex' })).toHaveValue('#0f766e');
+  // The toolbar's Undo (a toast may offer its own).
+  await page.locator('button[aria-label="Undo"][title]').click();
+  await expect(page.getByRole('textbox', { name: 'Primary colour hex' })).toHaveValue('#db2777');
+});

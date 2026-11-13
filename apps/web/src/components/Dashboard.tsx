@@ -11,11 +11,14 @@ import {
   uid,
   withStyle,
   type Project,
+  applyBrandKit,
+  type BrandKit,
   type StyleId,
   type TemplateCategory,
   type TemplateId,
 } from '@svs/visual-core';
-import { copyBlobs, createProjectRecord, deleteProject, getThumbnail, listProjects, patchProject } from '../lib/db';
+import { copyBlobs, createProjectRecord, deleteProject, getThumbnail, listBrandKits, listProjects, patchProject } from '../lib/db';
+import { getDefaultKitId, setDefaultKitId, withBrandKit } from '../lib/brandKits';
 import { buildProjectFile, importProjectFile } from '../lib/projectFile';
 import { importLegendBundle } from '../lib/legendImport';
 import { notify } from '../store/toasts';
@@ -118,9 +121,11 @@ const SAMPLE_CONTENT: Partial<Record<TemplateId, Partial<Project['content']>>> =
 /** Real App Store listing captions: one claim per screen, taken from the app's own features. */
 const STORE_CAPTIONS = ['Every format at once', 'Your brand, from your logo', 'Nothing leaves your device'];
 
-function sampleFor(template: TemplateId, style: StyleId): Project {
+function sampleFor(template: TemplateId, style: StyleId, kit?: BrandKit): Project {
   const content = { ...SAMPLE.content, ...SAMPLE_CONTENT[template] };
-  const base = withStyle({ ...SAMPLE, content }, style);
+  const styled = withStyle({ ...SAMPLE, content }, style);
+  // With a brand kit, previews wear it (without its logo, which is not loaded here).
+  const base = kit ? { ...applyBrandKit(styled, kit, null), content: styled.content } : styled;
   // Magnify the style list of the editor screenshot rather than its top edge.
   if (template === 'detail-zoom') return { ...base, template, screenshots: [{ ...shot('sample-editor'), focalX: 0.17, focalY: 0.42 }] };
   if (template === 'annotated') return { ...base, template, screenshots: [{ ...shot('sample-editor'), legend: SAMPLE_LEGEND }] };
@@ -133,8 +138,8 @@ const CARD = { width: 264, height: 138 };
  * A template card's picture. App Store is shown as what it makes: a row of portrait iPhone
  * screens with one caption each, as in a store listing. The others draw in LinkedIn landscape.
  */
-function TemplatePreview({ template, style }: { template: TemplateId; style: StyleId }) {
-  const project = sampleFor(template, style);
+function TemplatePreview({ template, style, kit }: { template: TemplateId; style: StyleId; kit?: BrandKit }) {
+  const project = sampleFor(template, style, kit);
   if (template === 'app-store') {
     const iphone = FORMAT_PRESETS['appstore-iphone'];
     return (
@@ -172,6 +177,9 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
   // The gallery previews every template in one style; a card opens in that same style.
   const [galleryStyle, setGalleryStyle] = useState<StyleId>(() => createProject().brand.style);
   const [error, setError] = useState<string | null>(null);
+  const [kits, setKits] = useState<BrandKit[]>([]);
+  const [kitId, setKitId] = useState<string | null>(getDefaultKitId);
+  const kit = kits.find((k) => k.id === kitId);
   const fileInput = useRef<HTMLInputElement>(null);
   const legendInput = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
@@ -179,10 +187,12 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
   const refresh = () => listProjects().then(setProjects).catch((e) => setError(String(e)));
   useEffect(() => {
     refresh();
+    listBrandKits().then(setKits).catch(() => setKits([]));
   }, []);
 
   const create = async (template: TemplateId = 'browser-hero') => {
-    const p = withStyle(createProject({ template, name: `Untitled ${new Date().toLocaleDateString()}` }), galleryStyle);
+    const fresh = createProject({ template, name: `Untitled ${new Date().toLocaleDateString()}` });
+    const p = kit ? await withBrandKit(fresh, kit) : withStyle(fresh, galleryStyle);
     await createProjectRecord(p);
     onOpen(p.id);
   };
@@ -363,10 +373,33 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
                 {c.label}
               </button>
             ))}
-            <label className="flex items-center gap-2 whitespace-nowrap text-xs text-muted sm:ml-auto">
+            {kits.length > 0 && (
+              <label className="flex items-center gap-2 whitespace-nowrap text-xs text-muted sm:ml-auto">
+                Brand kit
+                <select
+                  value={kit?.id ?? ''}
+                  onChange={(e) => {
+                    const id = e.target.value || null;
+                    setKitId(id);
+                    setDefaultKitId(id);
+                  }}
+                  className={cx(inputCls, 'h-8 w-40 py-0 text-xs text-ink')}
+                >
+                  <option value="">None</option>
+                  {kits.map((k) => (
+                    <option key={k.id} value={k.id}>
+                      {k.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <label className={cx('flex items-center gap-2 whitespace-nowrap text-xs text-muted', kits.length === 0 && 'sm:ml-auto')}>
               Preview style
               <select
-                value={galleryStyle}
+                value={kit ? kit.brand.style : galleryStyle}
+                disabled={!!kit}
+                title={kit ? 'The brand kit sets the style' : undefined}
                 onChange={(e) => setGalleryStyle(e.target.value as StyleId)}
                 className={cx(inputCls, 'h-8 w-36 py-0 text-xs text-ink')}
               >
@@ -386,7 +419,7 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
                   onClick={() => create(t.id)}
                   className="group block w-full overflow-hidden rounded-xl bg-surface text-left ring-1 ring-line transition hover:ring-2 hover:ring-accent"
                 >
-                  <TemplatePreview template={t.id} style={galleryStyle} />
+                  <TemplatePreview template={t.id} style={galleryStyle} kit={kit} />
                   <div className="p-3">
                     <p className="text-sm font-medium">{t.name}</p>
                     <p className="mt-0.5 text-xs text-muted">{t.description}</p>

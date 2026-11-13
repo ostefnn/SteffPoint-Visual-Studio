@@ -14,6 +14,8 @@ import {
   type BackgroundType,
   type HeadingFont,
   type LogoColor,
+  type BrandKit,
+  KIT_NAME_MAX,
   withStyle,
   type LogoSize,
 } from '@svs/visual-core';
@@ -22,6 +24,8 @@ import { applyStyle, imageFilesFrom, importImages, moveScreenshot, removeLogo, r
 import { Button, cx, Field, Icon, inputCls, Section, Segmented, Slider } from './ui';
 import { Stage } from './Stage';
 import { CarouselPanel } from './CarouselPanel';
+import { applyKitInEditor, saveKitFromEditor } from '../lib/brandKits';
+import { deleteBrandKit, listBrandKits } from '../lib/db';
 import { sampleLogoColorsFromUrl } from '../lib/logoColors';
 
 const NONE: never[] = [];
@@ -274,6 +278,7 @@ function BrandTab() {
 
   return (
     <>
+      <BrandKitSection />
       <StylePicker />
       <Section title="Colour">
         <div className="flex items-center gap-2">
@@ -431,6 +436,100 @@ function BrandTab() {
         </p>
       </Section>
     </>
+  );
+}
+
+/**
+ * Saved brand kits: apply one to this project in a single step (undo restores the previous look),
+ * save the current identity as a new kit, or update a kit with it.
+ */
+function BrandKitSection() {
+  const [kits, setKits] = useState<BrandKit[]>([]);
+  const [name, setName] = useState('');
+  const [busy, setBusy] = useState(false);
+  const reload = () => listBrandKits().then(setKits).catch(() => setKits([]));
+  useEffect(() => {
+    reload();
+  }, []);
+  const run = async (fn: () => Promise<unknown>) => {
+    setBusy(true);
+    try {
+      await fn();
+      await reload();
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Section title="Brand kit">
+      {kits.length > 0 ? (
+        <ul className="space-y-1.5" aria-label="Brand kits">
+          {kits.map((k) => (
+            <li key={k.id} className="flex items-center gap-2 rounded-lg bg-surface p-1.5 ring-1 ring-line">
+              <span className="size-5 flex-none rounded-full ring-1 ring-line" style={{ background: k.brand.primary }} aria-hidden="true" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-xs font-medium">{k.name}</span>
+                <span className="block text-[11px] text-muted">
+                  {STYLES[k.brand.style].name}
+                  {k.logo ? ' · logo' : ''}
+                  {k.brand.footer ? ' · footer' : ''}
+                </span>
+              </span>
+              <Button size="sm" variant="primary" className="h-7 px-2 text-[11px]" disabled={busy} onClick={() => run(() => applyKitInEditor(k))}>
+                Apply
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-1.5"
+                disabled={busy}
+                aria-label={`Update ${k.name} with this project's brand`}
+                title="Update the kit with this project's brand"
+                onClick={() => run(() => saveKitFromEditor(k.name, k))}
+              >
+                <Icon name="upload" className="size-3.5" />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-1.5 text-danger"
+                disabled={busy}
+                aria-label={`Delete ${k.name}`}
+                onClick={() => {
+                  if (confirm(`Delete the brand kit “${k.name}”? Projects that use it keep their look.`)) void run(() => deleteBrandKit(k.id));
+                }}
+              >
+                <Icon name="trash" className="size-3.5" />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-xs text-muted">Save this project’s style, colours, logo and footer as a kit to reuse them in one click.</p>
+      )}
+      <form
+        className="flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!name.trim()) return;
+          void run(async () => {
+            if (await saveKitFromEditor(name)) setName('');
+          });
+        }}
+      >
+        <input
+          value={name}
+          maxLength={KIT_NAME_MAX}
+          onChange={(e) => setName(e.target.value)}
+          aria-label="Brand kit name"
+          placeholder="Kit name, e.g. SteffPoint…"
+          className={inputCls}
+        />
+        <Button type="submit" size="sm" disabled={busy || !name.trim()} className="flex-none">
+          Save Kit
+        </Button>
+      </form>
+    </Section>
   );
 }
 

@@ -60,6 +60,7 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 | 🕶️ **Hide sensitive areas** | Drag over names, e-mail addresses or ids in a screenshot: they are covered by opaque bars in every image, the Detail Zoom lens included. Non destructive: the original stays in the project and in `project.json`. |
 | 🎯 **Crop & focal point** | Crop each edge, cover / contain, zoom in or out (0.5×–3×), and a focal point that stays visible when the layout changes between landscape, square and portrait. |
 | ✒️ **Styles** | One click sets typefaces, title scale, kicker, frames, shadows and background for every template: **Minimal** (default), **Editorial**, **Bold**, or **Soft** (the original look, kept as an option). Fonts are bundled, so exports look the same on every computer. |
+| 🧳 **Brand kits** | Save a project's style, colour, theme, logo, footer and link, background and desktop frame as a named kit (Brand tab). Apply it to any project in one click (one undo step), or pick it on the dashboard so every new project starts with it. Stored in the browser like projects. |
 | 🎨 **Brand** | One primary colour → derived palette (accents stay in your brand's hue outside Soft). Light / dark theme, corner radius, logo (small / medium / large); heading font and shadow in Soft. Importing a logo samples its dominant colours on a canvas: the main brand colour becomes the primary (one undo step), the others are offered as one-click swatches. |
 | 🌈 **Backgrounds** | Solid, gradient, soft glow, grid, mesh, with intensity and angle. |
 | 📐 **Multi-format preview** | Every format previewed live, side by side. |
@@ -366,7 +367,7 @@ Found a security issue? Please open a private security advisory on GitHub rather
 
 **V1 — Better Cover Studio** (this release): projects, IndexedDB, autosave, JSON, 16 templates (including Device Mix, App Store, Testimonial, Key Figures, Event, Annotated Panel with legend import), device and laptop frames, App Store formats, crop/zoom/focal point, brand with logo size, undo/redo, safe zones, custom sizes, PNG/JPEG/WebP, ZIP export, LinkedIn carousel PDF.
 
-**V2 — Visual Studio:** reusable Brand Kits, Asset Manager, variants beyond the carousel (Original / Dark / Minimal…, built on the same `Variant` model), more Before/After modes (split, slider), richer accessibility checks, FR / NL / EN interface.
+**V2 — Visual Studio:** Asset Manager, variants beyond the carousel (Original / Dark / Minimal…, built on the same `Variant` model), more Before/After modes (split, slider), richer accessibility checks, FR / NL / EN interface.
 
 **V3 — Visual Platform:** optional cloud sync and teams, batch generator (CSV/JSON), URL capture service, render API, CMS integrations, AI-assisted copy. Remote features will always be opt-in and clearly labelled.
 
