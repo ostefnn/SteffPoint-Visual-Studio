@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 const card = (page: import('@playwright/test').Page, name: string) =>
-  page.getByRole('listitem').filter({ has: page.getByText(name, { exact: true }) });
+  page.getByRole('region', { name: 'Start from a Template' }).getByRole('listitem').filter({ has: page.getByText(name, { exact: true }) });
 
 test('gallery cards show real facts and real code, never invented ones', async ({ page }) => {
   await page.goto('/');
@@ -47,4 +47,18 @@ test('phones and tablets in the gallery show real mobile screens, never a deskto
   for (const img of await page.locator('main img').all()) {
     await expect.poll(() => img.evaluate((e) => (e as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
   }
+});
+
+test('the dashboard shows finished examples that open their template', async ({ page }) => {
+  await page.goto('/');
+  const examples = page.getByRole('region', { name: 'Made with SteffPoint Visual Studio' }).getByRole('listitem');
+  await expect(examples).toHaveCount(3);
+  // The images are served with the app (CSP: same origin) and actually load.
+  for (const img of await examples.getByRole('img').all()) {
+    await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth)).toBeGreaterThan(0);
+  }
+  await examples.filter({ hasText: 'Features' }).getByRole('button').click();
+  await expect(page.getByTestId('save-state')).toHaveText('Saved');
+  await page.getByRole('tab', { name: 'Templates' }).click();
+  await expect(page.getByRole('button', { name: /^Features/ })).toHaveAttribute('aria-pressed', 'true');
 });

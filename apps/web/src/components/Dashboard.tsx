@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   createProject,
+  getTemplate,
   createScreenshotSlot,
   FORMAT_ORDER,
   FORMAT_PRESETS,
@@ -170,6 +171,37 @@ const GALLERY_GROUPS: { id: 'all' | 'screens' | 'words' | 'proof'; label: string
   { id: 'screens', label: 'Screenshots', categories: ['app-showcase', 'browser', 'mobile', 'product', 'before-after'] },
   { id: 'words', label: 'Text and announcements', categories: ['announcement', 'documentation', 'editorial', 'minimal'] },
   { id: 'proof', label: 'Quotes, figures and events', categories: ['social-proof', 'event'] },
+];
+
+/** Finished examples (fictional products), made with the app by scripts/capture-showcase.mjs. */
+const SHOWCASE: { file: string; template: TemplateId; format: string; style: StyleId; width: number; height: number; alt: string }[] = [
+  {
+    file: 'ledgerly-linkedin.webp',
+    template: 'browser-hero',
+    format: 'LinkedIn',
+    style: 'tint',
+    width: 1200,
+    height: 627,
+    alt: 'LinkedIn post for an invoicing app: headline on the left, its dashboard in a window on the right.',
+  },
+  {
+    file: 'tidepool-linkedin-4x5.webp',
+    template: 'mobile-trio',
+    format: 'LinkedIn 4:5',
+    style: 'bold',
+    width: 1080,
+    height: 1350,
+    alt: 'Portrait LinkedIn post on an orange ground: a big headline above a phone showing a weekly planner.',
+  },
+  {
+    file: 'ledgerly-features-square.webp',
+    template: 'features',
+    format: 'Square 1:1',
+    style: 'technical',
+    width: 1080,
+    height: 1080,
+    alt: 'Square changelog visual on a drafting grid: a title and four new features, each with a tick.',
+  },
 ];
 
 export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
@@ -385,9 +417,43 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
           )}
         </section>
 
-        <section>
+        <section aria-labelledby="showcase-title">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="showcase-title" className="text-base font-semibold">
+              {t('Made with SteffPoint Visual Studio')}
+            </h2>
+            <p className="text-xs text-muted">{t('Examples with fictional products. Click one to start from its template.')}</p>
+          </div>
+          <ul className="grid gap-4 sm:grid-cols-3">
+            {SHOWCASE.map((ex) => (
+              <li key={ex.file}>
+                <button
+                  type="button"
+                  onClick={() => create(ex.template)}
+                  className="group block w-full overflow-hidden rounded-xl bg-surface text-left ring-1 ring-line transition hover:ring-2 hover:ring-accent"
+                >
+                  <span className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-subtle p-3">
+                    <img
+                      src={`${import.meta.env.BASE_URL}showcase/${ex.file}`}
+                      alt={t(ex.alt)}
+                      width={ex.width}
+                      height={ex.height}
+                      loading="lazy"
+                      className="max-h-full max-w-full rounded shadow-md"
+                    />
+                  </span>
+                  <span className="block p-3 text-xs text-muted">
+                    <span className="font-medium text-ink">{t(getTemplate(ex.template).name)}</span> · {t(ex.format)} · {t(STYLES[ex.style].name)}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section aria-labelledby="gallery-title">
           <div className="mb-4 flex flex-wrap items-center gap-2">
-            <h2 className="mr-3 text-base font-semibold">{t('Start from a Template')}</h2>
+            <h2 id="gallery-title" className="mr-3 text-base font-semibold">{t('Start from a Template')}</h2>
             {GALLERY_GROUPS.map((c) => (
               <button
                 key={c.id}

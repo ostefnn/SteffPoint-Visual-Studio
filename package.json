@@ -16,7 +16,8 @@
     "test": "npm run test -w @svs/visual-core && node scripts/check-i18n.mjs",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "e2e": "playwright test",
-    "samples": "node scripts/capture-samples.mjs"
+    "samples": "node scripts/capture-samples.mjs",
+    "showcase": "node scripts/capture-showcase.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

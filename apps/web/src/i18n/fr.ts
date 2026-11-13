@@ -618,4 +618,9 @@ export const fr: Record<string, string> = {
   "Edit Text": "Modifier le texte",
   "Pages with example text: {pages}.": "Pages avec du texte d’exemple : {pages}.",
   "{field} still contains the example text. Replace it before publishing.": "Le champ « {field} » contient encore le texte d’exemple. Remplacez-le avant de publier.",
+  "LinkedIn post for an invoicing app: headline on the left, its dashboard in a window on the right.": "Publication LinkedIn pour une appli de facturation : le titre à gauche, son tableau de bord dans une fenêtre à droite.",
+  "Portrait LinkedIn post on an orange ground: a big headline above a phone showing a weekly planner.": "Publication LinkedIn en portrait sur fond orange : un grand titre au-dessus d’un téléphone qui affiche un agenda de la semaine.",
+  "Square changelog visual on a drafting grid: a title and four new features, each with a tick.": "Visuel carré de nouveautés sur une grille : un titre et quatre nouvelles fonctions, chacune cochée.",
+  "Made with SteffPoint Visual Studio": "Créé avec SteffPoint Visual Studio",
+  "Examples with fictional products. Click one to start from its template.": "Exemples avec des produits fictifs. Cliquez sur l’un d’eux pour partir de son template.",
 };

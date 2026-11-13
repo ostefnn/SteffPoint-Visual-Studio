@@ -51,6 +51,7 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 
 | | |
 |---|---|
+| 🖼️ **Examples** | The dashboard opens with three finished visuals made with the app (fictional products): click one to start from its template. |
 | 🗂️ **Projects** | Create, rename, duplicate, delete, favourite, search. Automatic thumbnails. Autosave. |
 | 💾 **Local storage** | Projects, images and thumbnails stored in IndexedDB. Close the tab, come back later, everything is there. |
 | 🧩 **21 templates** | Browser Hero, Device Mix, App Store, Browser Duo, Mobile Trio, Bento, Spotlight, Before / After, Detail Zoom, Cover, Testimonial, Key Figures, Event, Features, Steps, Comparison, Code, Annotated Panel, Editorial, Call to Action, Minimal. |
@@ -232,6 +233,7 @@ Open http://localhost:5173.
 | `npm test` | Unit tests (`packages/visual-core`, Vitest) and the translation check |
 | `npm run e2e` | End-to-end tests (Playwright) on Chromium, Firefox, WebKit, iPhone and iPad emulation |
 | `npm run samples` | Recapture the phone and tablet screens shown in the template gallery (`apps/web/public/samples`); needs `npm run build && npm run preview -w @svs/web -- --port 4173` running |
+| `npm run showcase` | Recaptures the dashboard examples (`apps/web/public/showcase`) and the app's link preview image (`apps/web/public/og-image.png`) from the fictional products in `scripts/showcase`; same server as `npm run samples` |
 | `npm run typecheck` | TypeScript check of all workspaces |
 
 Interface texts are written in English and wrapped in `t()` (`apps/web/src/i18n`); `fr.ts` and `nl.ts` map each English text to its translation. `npm test` fails if a text has no French or Dutch translation (`scripts/check-i18n.mjs`); texts built at run time are listed in `i18n/extra-keys.json`.
@@ -249,7 +251,7 @@ One-time setup:
 1. **Settings → Pages → Build and deployment → Source: _GitHub Actions_.**
 2. Push to `main`. The site is published at `https://<owner>.github.io/<repo>/`.
 
-The workflow sets `BASE_PATH=/<repo>/` so assets resolve under the project sub-path. Routing uses the URL hash (`#/p/<id>`), so reloads never 404.
+The workflow sets `BASE_PATH=/<repo>/` so assets resolve under the project sub-path, and `SITE_URL` (the public address) so link previews on LinkedIn, Teams or Slack show `og-image.png`. Routing uses the URL hash (`#/p/<id>`), so reloads never 404.
 
 > GitHub Pages on a **private** repository requires a paid GitHub plan.
 
@@ -258,6 +260,7 @@ The workflow sets `BASE_PATH=/<repo>/` so assets resolve under the project sub-p
 ```bash
 npm run build                                   # site at root, e.g. Netlify, Vercel, Cloudflare Pages
 BASE_PATH=/some/sub/path/ npm run build         # site served under a sub-path
+SITE_URL=https://example.com/ npm run build     # adds the absolute og:image URL for link previews
 ```
 
 Publish `apps/web/dist`. No server configuration or rewrites are needed.

@@ -618,4 +618,9 @@ export const nl: Record<string, string> = {
   "Edit Text": "Tekst bewerken",
   "Pages with example text: {pages}.": "Pagina’s met voorbeeldtekst: {pages}.",
   "{field} still contains the example text. Replace it before publishing.": "Het veld ‘{field}’ bevat nog de voorbeeldtekst. Vervang die vóór het publiceren.",
+  "LinkedIn post for an invoicing app: headline on the left, its dashboard in a window on the right.": "LinkedIn-post voor een factuurapp: de kop links, het dashboard in een venster rechts.",
+  "Portrait LinkedIn post on an orange ground: a big headline above a phone showing a weekly planner.": "Staande LinkedIn-post op een oranje achtergrond: een grote kop boven een telefoon met een weekplanner.",
+  "Square changelog visual on a drafting grid: a title and four new features, each with a tick.": "Vierkante visual met nieuwe functies op een raster: een titel en vier nieuwe functies, elk met een vinkje.",
+  "Made with SteffPoint Visual Studio": "Gemaakt met SteffPoint Visual Studio",
+  "Examples with fictional products. Click one to start from its template.": "Voorbeelden met fictieve producten. Klik erop om met die template te beginnen.",
 };
