@@ -13,6 +13,8 @@ import { FormatStrip } from './FormatStrip';
 import { ExportDialog } from './ExportDialog';
 
 import { t } from '../i18n';
+import { canCopyImages, copyImage } from '../lib/clipboard';
+import { renderToBlob } from '../lib/exporter';
 import { openHelp } from '../store/help';
 
 function isTextField(t: EventTarget | null) {
@@ -194,6 +196,7 @@ function Canvas() {
   const showSafe = useEditor((s) => s.showSafeZones);
   const carouselPage = useEditor((s) => s.carouselPage);
   const compare = useEditor((s) => s.compareStyles);
+  const [copying, setCopying] = useState(false);
   const [ref, size] = useElementSize<HTMLDivElement>();
   const { update, toggleSafeZones, toggleCompareStyles, setCarouselPage } = useEditor.getState();
   // While a carousel page is selected, the canvas shows that page at the carousel size.
@@ -239,6 +242,26 @@ function Canvas() {
           </span>
         )}
         <span className="ml-auto flex items-center gap-3">
+          {canCopyImages() && !compare && (
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={copying}
+              onClick={() => {
+                setCopying(true);
+                // Sharp in a feed, without a huge clipboard image for the tallest formats.
+                const scale = Math.max(1, Math.min(2, 3000 / Math.max(format.width, format.height)));
+                const id = slide ? carouselFormat(project) : active;
+                copyImage(() => renderToBlob(shown, urls, id, { scale, type: 'png' }))
+                  .then(() => notify(t('Image copied. Paste it into a post, a chat or an e-mail.')))
+                  .catch(() => notify(t('The browser refused to copy the image. Use Export instead.'), 'error'))
+                  .finally(() => setCopying(false));
+              }}
+              title={t('Copy this format as an image')}
+            >
+              <Icon name="copy" />{' '}{copying ? t('Copying…') : t('Copy Image')}
+            </Button>
+          )}
           <Button
             size="sm"
             variant={compare ? 'selected' : 'ghost'}

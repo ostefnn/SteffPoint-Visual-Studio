@@ -604,4 +604,9 @@ export const nl: Record<string, string> = {
   "Check every format in the strip under the preview and tick the ones to export.": "Controleer elk formaat in de strook onder het voorbeeld en vink aan welke je wilt exporteren.",
   "Click Export: one image, a ZIP of every format, or a LinkedIn carousel PDF.": "Klik op Exporteren: één afbeelding, een ZIP met elk formaat of een LinkedIn-carrousel als pdf.",
   "Editor theme": "Editorthema",
+  "Copy Image": "Afbeelding kopiëren",
+  "Copying…": "Kopiëren…",
+  "Copy this format as an image": "Dit formaat als afbeelding kopiëren",
+  "Image copied. Paste it into a post, a chat or an e-mail.": "Afbeelding gekopieerd. Plak ze in een post, een chat of een e-mail.",
+  "The browser refused to copy the image. Use Export instead.": "De browser weigerde de afbeelding te kopiëren. Gebruik in de plaats Exporteren.",
 };
