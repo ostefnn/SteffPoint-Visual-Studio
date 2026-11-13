@@ -204,6 +204,15 @@ export function analyzeProject(project: Project, format: FormatPreset, exportSca
     }
   }
 
+  if (tpl.id === 'detail-zoom' && project.screenshots[0]) {
+    const s = project.screenshots[0];
+    if (s.focalX === 0.5 && s.focalY === 0) {
+      out.push({ id: 'zoom-focal', level: 'info', message: 'Click the detail to magnify on the screenshot’s focal point (Image panel).' });
+    }
+  }
+  if (tpl.id === 'cover' && !project.screenshots.length) {
+    out.push({ id: 'cover-image', level: 'info', message: 'Add an image: Cover draws it full bleed behind the title.' });
+  }
   if (tpl.id === 'steps') {
     const filled = content.steps.filter((st) => st.title.trim());
     if (filled.length < 2) out.push({ id: 'steps-few', level: 'warning', message: 'Add at least two steps, each with a title.' });

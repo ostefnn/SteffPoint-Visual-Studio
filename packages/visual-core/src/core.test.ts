@@ -30,6 +30,7 @@ import {
   TEMPLATES,
   applyVariant,
   compareMark,
+  clampArea,
 } from './index';
 
 describe('Tint and Technical palettes', () => {
@@ -180,7 +181,7 @@ describe('rules', () => {
   it('suggests a phone template for portrait screenshots', () => {
     const p = createProject({ template: 'browser-hero' });
     p.assets.push({ id: 'a', name: 'phone.png', mime: 'image/png', width: 1170, height: 2532, size: 1 });
-    p.screenshots.push({ id: 's', assetId: 'a', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '', legend: [] });
+    p.screenshots.push({ id: 's', assetId: 'a', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '', legend: [], redact: [] });
     const s = analyzeProject(p, FORMAT_PRESETS.linkedin).find((x) => x.id === 'tpl-orientation');
     expect(s?.action?.template).toBe('mobile-trio');
   });
@@ -197,7 +198,7 @@ describe('rules', () => {
   it('warns about small images', () => {
     const p = createProject({ template: 'spotlight' });
     p.assets.push({ id: 'a', name: 'tiny.png', mime: 'image/png', width: 300, height: 200, size: 1 });
-    p.screenshots.push({ id: 's', assetId: 'a', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '', legend: [] });
+    p.screenshots.push({ id: 's', assetId: 'a', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '', legend: [], redact: [] });
     expect(analyzeProject(p, FORMAT_PRESETS.linkedin, 2).map((s) => s.id)).toContain('shot-small');
   });
 });
@@ -241,8 +242,8 @@ describe('device mix', () => {
     p.devices = ['tablet', 'mobile'];
     p.assets.push({ id: 'a', name: 'a.png', mime: 'image/png', width: 1600, height: 1000, size: 1 });
     p.assets.push({ id: 'b', name: 'wide.png', mime: 'image/png', width: 1600, height: 900, size: 1 });
-    p.screenshots.push({ id: 's1', assetId: 'a', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '', legend: [] });
-    p.screenshots.push({ id: 's2', assetId: 'b', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '', legend: [] });
+    p.screenshots.push({ id: 's1', assetId: 'a', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '', legend: [], redact: [] });
+    p.screenshots.push({ id: 's2', assetId: 'b', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '', legend: [], redact: [] });
     expect(analyzeProject(p, FORMAT_PRESETS.linkedin).map((s) => s.id)).toContain('device-fit-1'); // wide shot, upright phone
     p.deviceOrientation.mobile = 'landscape';
     expect(analyzeProject(p, FORMAT_PRESETS.linkedin).map((s) => s.id)).not.toContain('device-fit-1');
@@ -253,8 +254,8 @@ describe('device mix', () => {
     p.devices = ['desktop', 'mobile'];
     p.assets.push({ id: 'a', name: 'phone.png', mime: 'image/png', width: 1170, height: 2532, size: 1 });
     p.assets.push({ id: 'b', name: 'phone2.png', mime: 'image/png', width: 1170, height: 2532, size: 1 });
-    p.screenshots.push({ id: 's1', assetId: 'a', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '', legend: [] });
-    p.screenshots.push({ id: 's2', assetId: 'b', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '', legend: [] });
+    p.screenshots.push({ id: 's1', assetId: 'a', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '', legend: [], redact: [] });
+    p.screenshots.push({ id: 's2', assetId: 'b', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '', legend: [], redact: [] });
     const ids = analyzeProject(p, FORMAT_PRESETS.linkedin).map((s) => s.id);
     expect(ids).toContain('device-fit-0');
     expect(ids).not.toContain('device-fit-1');
@@ -600,5 +601,36 @@ describe('carousel page content, steps and comparison', () => {
     const q = createProject({ template: 'comparison' });
     q.content.compare = { columns: ['', 'Ours'], rows: [{ label: 'Speed', cells: ['', 'yes'] }] };
     expect(analyzeProject(q, FORMAT_PRESETS.linkedin).map((s) => s.id)).toEqual(expect.arrayContaining(['compare-few', 'compare-header', 'compare-empty']));
+  });
+});
+
+describe('hidden areas, Detail Zoom and Cover', () => {
+  it('keeps hidden areas inside the image and drops invalid ones', () => {
+    expect(clampArea({ x: 0.9, y: -1, w: 0.5, h: 0.2 })).toEqual({ x: 0.9, y: 0, w: expect.closeTo(0.1, 6), h: 0.2 });
+    expect(clampArea({ x: 0.1, y: 0.1, w: 0, h: 0.5 })).toBeNull();
+    expect(clampArea({ x: 'a', y: 0, w: 1, h: 1 })).toBeNull();
+    const m = migrateProject({
+      assets: [{ id: 'a', name: 'a.png', mime: 'image/png', width: 10, height: 10, size: 1 }],
+      screenshots: [{ assetId: 'a', redact: [{ x: 0.1, y: 0.1, w: 0.2, h: 0.1 }, { x: 2 }, 'box', ...Array(20).fill({ x: 0, y: 0, w: 0.1, h: 0.1 })] }],
+    });
+    expect(m.screenshots[0].redact).toHaveLength(12);
+    expect(m.screenshots[0].redact[0]).toEqual({ x: 0.1, y: 0.1, w: 0.2, h: 0.1 });
+    expect(migrateProject({ assets: [{ id: 'a' }], screenshots: [{ assetId: 'a' }] }).screenshots[0].redact).toEqual([]);
+  });
+
+  it('clamps the magnification', () => {
+    expect(createProject().content.magnify).toBe(2.5);
+    expect(migrateProject({ content: { magnify: 40 } }).content.magnify).toBe(5);
+    expect(migrateProject({ content: { magnify: 'big' } }).content.magnify).toBe(2.5);
+  });
+
+  it('asks for a focal point to magnify and an image for the cover', () => {
+    const p = createProject({ template: 'detail-zoom' });
+    p.assets.push({ id: 'a', name: 'a', mime: 'image/png', width: 1600, height: 1000, size: 1 });
+    p.screenshots.push(createScreenshotSlot('a'));
+    expect(analyzeProject(p, FORMAT_PRESETS.linkedin).map((s) => s.id)).toContain('zoom-focal');
+    p.screenshots[0].focalX = 0.2;
+    expect(analyzeProject(p, FORMAT_PRESETS.linkedin).map((s) => s.id)).not.toContain('zoom-focal');
+    expect(analyzeProject(createProject({ template: 'cover' }), FORMAT_PRESETS.linkedin).map((s) => s.id)).toContain('cover-image');
   });
 });

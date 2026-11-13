@@ -36,6 +36,7 @@ import {
   type LegendItem,
   compareMark,
   type Step,
+  type Area,
   type LayoutSettings,
   type TemplateId,
   type Project,
@@ -52,6 +53,10 @@ const HW = {
   onDark: '#ffffff',
   codeTab: '#c9cdd8',
   lidGradient: 'linear-gradient(#d9dce1, #b4b8bf 60%, #8e939b)',
+  /** Bars that hide sensitive areas of a screenshot: opaque, so nothing can be recovered. */
+  redact: '#2a2e38',
+  /** Cover's veil over the photo. */
+  veil: '8, 10, 14',
 } as const;
 
 interface Ctx {
@@ -312,6 +317,7 @@ function isStacked(id: TemplateId, o: Orientation, wide: boolean): boolean {
     case 'minimal':
     case 'testimonial':
     case 'cta': // places its text itself
+    case 'cover':
       return false; // text only: the position aligns the text block instead
     default:
       return o !== 'landscape' && !wide;
@@ -572,22 +578,78 @@ function ImageBox({ ctx, slot, index }: { ctx: Ctx; slot?: ScreenshotSlot; index
   const cw = W * (1 - crop.left - crop.right);
   const ch = H * (1 - crop.top - crop.bottom);
   const S = `${slot.fit === 'cover' ? 'max' : 'min'}(100cqw / ${n(cw)}, 100cqh / ${n(ch)}) * ${n(slot.zoom)}`;
+  const place: CSSProperties = {
+    position: 'absolute',
+    width: `calc(${S} * ${W})`,
+    height: `calc(${S} * ${H})`,
+    left: `calc((100cqw - ${S} * ${n(cw)}) * ${n(slot.focalX)} - ${S} * ${n(W * crop.left)})`,
+    top: `calc((100cqh - ${S} * ${n(ch)}) * ${n(slot.focalY)} - ${S} * ${n(H * crop.top)})`,
+  };
   return (
     <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', background, containerType: 'size' }}>
-      <img
-        src={url}
-        alt=""
-        draggable={false}
-        style={{
-          position: 'absolute',
-          display: 'block',
-          maxWidth: 'none',
-          width: `calc(${S} * ${W})`,
-          height: `calc(${S} * ${H})`,
-          left: `calc((100cqw - ${S} * ${n(cw)}) * ${n(slot.focalX)} - ${S} * ${n(W * crop.left)})`,
-          top: `calc((100cqh - ${S} * ${n(ch)}) * ${n(slot.focalY)} - ${S} * ${n(H * crop.top)})`,
-        }}
-      />
+      <img src={url} alt="" draggable={false} style={{ ...place, display: 'block', maxWidth: 'none' }} />
+      <Redactions areas={slot.redact} place={place} />
+    </div>
+  );
+}
+
+/** Opaque bars over the hidden areas, laid over an image placed by `place`. */
+function Redactions({ areas, place }: { areas?: Area[]; place: CSSProperties }) {
+  if (!areas?.length) return null;
+  return (
+    <div data-redactions="" style={{ ...place, pointerEvents: 'none' }}>
+      {areas.map((a, i) => (
+        <span
+          key={i}
+          style={{
+            position: 'absolute',
+            left: `${a.x * 100}%`,
+            top: `${a.y * 100}%`,
+            width: `${a.w * 100}%`,
+            height: `${a.h * 100}%`,
+            background: HW.redact,
+            borderRadius: 2,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * A round lens showing the screenshot's focal point enlarged: `scale` on-screen pixels per source
+ * pixel, focal point in the centre. Hidden areas stay hidden in the lens.
+ */
+function Lens({ ctx, slot, size, scale, style }: { ctx: Ctx; slot: ScreenshotSlot; size: number; scale: number; style: CSSProperties }) {
+  const asset = ctx.p.assets.find((a) => a.id === slot.assetId);
+  const url = ctx.urls[slot.assetId];
+  const { pal, u } = ctx;
+  if (!asset || !url) return null;
+  const crop = slot.crop ?? NO_CROP;
+  const px = asset.width * (crop.left + slot.focalX * (1 - crop.left - crop.right));
+  const py = asset.height * (crop.top + slot.focalY * (1 - crop.top - crop.bottom));
+  const place: CSSProperties = {
+    position: 'absolute',
+    left: size / 2 - scale * px,
+    top: size / 2 - scale * py,
+    width: scale * asset.width,
+    height: scale * asset.height,
+  };
+  return (
+    <div
+      data-lens=""
+      style={{
+        ...style,
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        overflow: 'hidden',
+        background: pal.surface,
+        boxShadow: `0 0 0 ${u * 0.6}px ${pal.surface}, 0 0 0 ${u * 1.05}px ${pal.primary}${ctx.shadow === 'none' ? '' : `, ${ctx.shadow}`}`,
+      }}
+    >
+      <img src={url} alt="" draggable={false} style={{ ...place, display: 'block', maxWidth: 'none' }} />
+      <Redactions areas={slot.redact} place={place} />
     </div>
   );
 }
@@ -2394,6 +2456,114 @@ function Annotated(ctx: Ctx) {
   );
 }
 
+// --- Detail Zoom and Cover ------------------------------------------------------------
+
+/**
+ * The whole screenshot, and a lens that enlarges its focal point. A ring on the screenshot marks
+ * the area shown in the lens. Mirror and text position are handled here: the lens must stay
+ * over the right spot, so the boxes cannot be mirrored one by one.
+ */
+function DetailZoom(ctx: Ctx) {
+  const { w, h, o, u, pal, wide } = ctx;
+  const slot = ctx.shots[0];
+  const ratio = shotRatio(ctx, slot, 1.6);
+  const mirror = ctx.layout.mirror;
+  let text: CSSProperties;
+  let area: { x: number; y: number; w: number; h: number };
+  let align: 'left' | 'center' = 'left';
+  if (o === 'landscape') {
+    text = leftColumn(ctx, wide ? 0.3 : 0.34);
+    const x = w * (wide ? 0.38 : 0.42);
+    area = { x, y: h * 0.08, w: w * 0.96 - x, h: h * 0.84 };
+    if (mirror) {
+      text = mirrorX(text, w);
+      area = { ...area, x: w - area.x - area.w };
+    }
+  } else {
+    align = 'center';
+    text = topBlock(ctx);
+    const portrait = o === 'portrait';
+    area = { x: w * 0.06, y: h * (portrait ? 0.4 : 0.42), w: w * 0.88, h: h * (portrait ? 0.46 : 0.54) };
+    if (ctx.flipY) {
+      text = mirrorY(text, ctx, false);
+      area = { ...area, y: h - area.y - area.h };
+    }
+  }
+  // The screenshot keeps its proportions; the lens may overhang it.
+  const fw = Math.min(area.w * 0.86, area.h * 0.86 * ratio);
+  const fh = fw / ratio;
+  const fl = area.x + (area.w - fw) / 2;
+  const ft = area.y + (area.h - fh) / 2;
+  const asset = slot && ctx.p.assets.find((a) => a.id === slot.assetId);
+  const crop = slot?.crop ?? NO_CROP;
+  const cw = asset ? asset.width * (1 - crop.left - crop.right) : 1;
+  const magnify = ctx.p.content.magnify || 2.5;
+  // Source pixel → screen pixel in the card (fit cover at the card's own ratio, then zoom).
+  const scale = (fw / cw) * (slot?.zoom ?? 1);
+  const fx = slot?.focalX ?? 0.5;
+  const fy = slot?.focalY ?? 0.5;
+  const L = Math.min(Math.min(fw, fh) * 0.66, Math.min(w, h) * 0.5);
+  const ring = L / magnify;
+  const spotX = fl + fx * fw;
+  const spotY = ft + fy * fh;
+  // The lens overhangs a corner of the screenshot: on the side away from the text, and away from the
+  // spot along the other axis, so it covers neither. Kept on the canvas.
+  const margin = u * 2;
+  const right = o === 'landscape' ? !mirror : fx < 0.5;
+  const below = o === 'landscape' ? fy < 0.5 : !ctx.flipY;
+  const lx = clamp(right ? fl + fw - L * 0.45 : fl - L * 0.55, margin, w - L - margin);
+  const ly = clamp(below ? ft + fh - L * 0.55 : ft - L * 0.45, margin, h - L - margin);
+  return (
+    <div style={{ position: 'absolute', inset: 0 }}>
+      <TextBlock ctx={ctx} align={align} style={text} scale={o === 'landscape' ? 0.95 : 0.9} subtitle={o !== 'square'} />
+      <Card ctx={ctx} index={0} style={abs(fl, ft, fw, fh, { position: 'absolute' })} />
+      {slot && asset && (
+        <>
+          <span
+            data-zoom-ring=""
+            style={abs(spotX - ring / 2, spotY - ring / 2, ring, ring, {
+              borderRadius: '50%',
+              boxSizing: 'border-box',
+              border: `${Math.max(2, u * 0.45)}px solid ${pal.primary}`,
+              boxShadow: `0 0 0 ${Math.max(1, u * 0.25)}px ${withAlpha(pal.surface, 0.9)}`,
+            })}
+          />
+          <Lens ctx={ctx} slot={slot} size={L} scale={scale * magnify} style={abs(lx, ly, L, L)} />
+        </>
+      )}
+    </div>
+  );
+}
+
+/** A full-bleed image under a dark veil; the headline sits on the veil (bottom, or top with Text position Top). */
+function Cover(ctx: Ctx) {
+  const { w, h, o, wide, pal } = ctx;
+  const top = ctx.layout.textPosition === 'top';
+  const hasShot = !!ctx.shots[0];
+  const v = HW.veil;
+  const veil = `linear-gradient(${top ? 180 : 0}deg, rgba(${v},0.86) 0%, rgba(${v},0.55) 35%, rgba(${v},0) ${o === 'portrait' ? 65 : 80}%)`;
+  const on = HW.onDark;
+  return (
+    <>
+      <div style={abs(0, 0, w, h, { background: hasShot ? HW.bezel : `linear-gradient(135deg, ${pal.primary}, ${mix(pal.primary, pal.accent, 0.6)})` })}>
+        {hasShot && <ImageBox ctx={ctx} slot={ctx.shots[0]} index={0} />}
+      </div>
+      <div style={abs(0, 0, w, h, { background: veil })} />
+      <TextBlock
+        ctx={ctx}
+        scale={wide ? 0.85 : 1.05}
+        colors={{ text: on, muted: withAlpha(on, 0.86), kickerBg: withAlpha(on, 0.18), kickerText: on }}
+        style={{
+          position: 'absolute',
+          left: w * (wide ? 0.04 : 0.07),
+          right: w * (wide ? 0.4 : 0.12),
+          [top ? 'top' : 'bottom']: h * (o === 'portrait' ? 0.16 : 0.09),
+        }}
+      />
+    </>
+  );
+}
+
 // --- Call to Action ---------------------------------------------------------------
 
 // Links can hold any character: encode them as UTF-8 rather than the library's default Latin-1.
@@ -2513,6 +2683,8 @@ const TEMPLATE_COMPONENTS: Record<string, (ctx: Ctx) => ReactNode> = {
   'before-after': BeforeAfter,
   editorial: Editorial,
   cta: Cta,
+  'detail-zoom': DetailZoom,
+  cover: Cover,
   steps: Steps,
   comparison: ComparisonTemplate,
   minimal: Minimal,

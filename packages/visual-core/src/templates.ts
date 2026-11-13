@@ -17,6 +17,8 @@ export type TemplateId =
   | 'bento'
   | 'spotlight'
   | 'before-after'
+  | 'detail-zoom'
+  | 'cover'
   | 'editorial'
   | 'cta'
   | 'minimal';
@@ -65,6 +67,7 @@ export const MIRROR_TEMPLATES: readonly TemplateId[] = [
   'cta',
   'steps',
   'comparison',
+  'detail-zoom',
 ];
 /**
  * Templates whose screens can be tilted. Full-bleed images, grids, legends and text-only
@@ -172,6 +175,22 @@ export const TEMPLATES: TemplateDefinition[] = [
     description: 'Two screenshots side by side to show a transformation.',
     shotKind: 'any',
     slots: { ...text, screenshots: { min: 2, max: 2 } },
+  },
+  {
+    id: 'detail-zoom',
+    name: 'Detail Zoom',
+    category: 'product',
+    description: 'One screenshot with a lens that magnifies the detail that matters (its focal point).',
+    shotKind: 'any',
+    slots: { ...text, screenshots: { min: 1, max: 1 } },
+  },
+  {
+    id: 'cover',
+    name: 'Cover',
+    category: 'editorial',
+    description: 'A full-bleed image under a dark veil, with the headline on top. Article and video covers.',
+    shotKind: 'any',
+    slots: { ...text, screenshots: { min: 0, max: 1 } },
   },
   {
     id: 'editorial',

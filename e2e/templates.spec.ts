@@ -167,6 +167,31 @@ test('Call to Action draws a scannable QR code and the brand footer', async ({ p
   await expect(canvas.locator('[data-footer]')).toContainText('Swipe');
 });
 
+test('Hidden areas are covered in the export, and in the Detail Zoom lens', async ({ page }) => {
+  await newProject(page);
+  await addScreenshot(page, 'desktop-magenta.png');
+  await useTemplate(page, 'Spotlight');
+  expectColor((await probePng(page, await exportLinkedIn(page), [0.5, 0.75])).rgb, MAGENTA);
+
+  // Drag across the middle of the screenshot.
+  const area = page.getByTestId('redact-area');
+  await area.scrollIntoViewIfNeeded();
+  const b = (await area.boundingBox())!;
+  await page.mouse.move(b.x + b.width * 0.05, b.y + b.height * 0.05);
+  await page.mouse.down();
+  await page.mouse.move(b.x + b.width * 0.95, b.y + b.height * 0.95, { steps: 4 });
+  await page.mouse.up();
+  await expect(page.getByRole('button', { name: 'Show area 1 again' })).toBeVisible();
+  expectColor((await probePng(page, await exportLinkedIn(page), [0.5, 0.75])).rgb, [42, 46, 56]);
+
+  await useTemplate(page, 'Detail Zoom');
+  await expect(page.getByTestId('canvas').locator('[data-lens] [data-redactions]')).toHaveCount(1);
+
+  // Removing the area shows the screenshot again.
+  await page.getByRole('button', { name: 'Show area 1 again' }).click();
+  await expect(page.getByTestId('canvas').locator('[data-redactions]')).toHaveCount(0);
+});
+
 test('Crop and zoom out reshape the screenshot in the export', async ({ page }) => {
   await newProject(page);
   await addScreenshot(page, 'split-cyan-magenta.png'); // left half cyan, right half magenta

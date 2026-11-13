@@ -121,6 +121,8 @@ const STORE_CAPTIONS = ['Every format at once', 'Your brand, from your logo', 'N
 function sampleFor(template: TemplateId, style: StyleId): Project {
   const content = { ...SAMPLE.content, ...SAMPLE_CONTENT[template] };
   const base = withStyle({ ...SAMPLE, content }, style);
+  // Magnify the style list of the editor screenshot rather than its top edge.
+  if (template === 'detail-zoom') return { ...base, template, screenshots: [{ ...shot('sample-editor'), focalX: 0.17, focalY: 0.42 }] };
   if (template === 'annotated') return { ...base, template, screenshots: [{ ...shot('sample-editor'), legend: SAMPLE_LEGEND }] };
   return { ...base, template, screenshots: (SHOTS_FOR[template] ?? DESKTOP_SHOTS).map(shot) };
 }

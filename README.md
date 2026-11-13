@@ -53,10 +53,11 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 |---|---|
 | 🗂️ **Projects** | Create, rename, duplicate, delete, favourite, search. Automatic thumbnails. Autosave. |
 | 💾 **Local storage** | Projects, images and thumbnails stored in IndexedDB. Close the tab, come back later, everything is there. |
-| 🧩 **19 templates** | Browser Hero, Device Mix, App Store, Browser Duo, Mobile Trio, Bento, Spotlight, Before / After, Testimonial, Key Figures, Event, Features, Steps, Comparison, Code, Annotated Panel, Editorial, Call to Action, Minimal. |
+| 🧩 **21 templates** | Browser Hero, Device Mix, App Store, Browser Duo, Mobile Trio, Bento, Spotlight, Before / After, Detail Zoom, Cover, Testimonial, Key Figures, Event, Features, Steps, Comparison, Code, Annotated Panel, Editorial, Call to Action, Minimal. |
 | 🔗 **Brand footer** | Optional line along the bottom of every visual with your logo and website or handle; carousel pages add “Swipe →” except the last. |
 | 🧭 **Layout** | Works on every template: **Mirror** (text on the other side), **text position** (above or below the screens; beside them, aligned to the top or bottom), **text alignment** (left, centre, right) and **screens** straight, tilted or in 3D. *Auto* keeps each template's own layout. Shared by every format and carousel page. |
 | 🖼️ **Screenshots** | Up to 4 per project. Add by click, drag & drop anywhere, or paste (Ctrl/Cmd+V). Desktop screenshots can sit in a browser, a macOS window, no frame, or a laptop. |
+| 🕶️ **Hide sensitive areas** | Drag over names, e-mail addresses or ids in a screenshot: they are covered by opaque bars in every image, the Detail Zoom lens included. Non destructive: the original stays in the project and in `project.json`. |
 | 🎯 **Crop & focal point** | Crop each edge, cover / contain, zoom in or out (0.5×–3×), and a focal point that stays visible when the layout changes between landscape, square and portrait. |
 | ✒️ **Styles** | One click sets typefaces, title scale, kicker, frames, shadows and background for every template: **Minimal** (default), **Editorial**, **Bold**, or **Soft** (the original look, kept as an option). Fonts are bundled, so exports look the same on every computer. |
 | 🎨 **Brand** | One primary colour → derived palette (accents stay in your brand's hue outside Soft). Light / dark theme, corner radius, logo (small / medium / large); heading font and shadow in Soft. Importing a logo samples its dominant colours on a canvas: the main brand colour becomes the primary (one undo step), the others are offered as one-click swatches. |
@@ -101,6 +102,8 @@ Projects created before styles existed open in **Soft**, unchanged. Picking a st
 | **Bento** | Feature overview | 1–3 |
 | **Spotlight** | One hero screenshot with a brand glow | 1 |
 | **Before / After** | Redesigns, SharePoint/SPFx makeovers, UX improvements | 2 |
+| **Detail Zoom** | The whole screenshot plus a lens that magnifies its focal point (1.5×–5×), so a detail stays legible in a feed | 1 |
+| **Cover** | Article, video and news covers: the image full bleed under a dark veil, the headline on top | 0–1 |
 | **Testimonial** | Customer quote with photo (or initials), name and role | 0–1 (photo) |
 | **Key Figures** | 2–4 big numbers: users, ratings, time saved | 0 |
 | **Event** | Webinars, meetups, launches: date, time, place, speakers and a call to action | 0–3 (speaker photos) |
@@ -265,7 +268,8 @@ Exported `project.json` / `*.svs.json`:
     "assets": [{ "id": "ast_…", "name": "home.png", "mime": "image/png", "width": 1600, "height": 1000, "size": 123456 }],
     "screenshots": [{
       "id": "shot_…", "assetId": "ast_…", "fit": "cover", "zoom": 1, "focalX": 0.5, "focalY": 0,
-      "crop": { "top": 0, "right": 0, "bottom": 0, "left": 0 }
+      "crop": { "top": 0, "right": 0, "bottom": 0, "left": 0 },
+      "redact": [{ "x": 0.62, "y": 0.04, "w": 0.2, "h": 0.05 }]
     }],
     "exportPresets": ["linkedin", "open-graph", "square"],
     "carousel": {

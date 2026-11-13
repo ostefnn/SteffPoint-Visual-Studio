@@ -87,6 +87,30 @@ export interface ScreenshotSlot {
   caption: string;
   /** Numbered fields drawn in the image, for the Annotated Panel template. Item i answers badge i + 1. */
   legend: LegendItem[];
+  /**
+   * Areas covered in every rendered image (names, e-mails, tenant ids…), as fractions of the
+   * whole image. Non destructive: the original stays in the project and in project.json.
+   */
+  redact: Area[];
+}
+
+/** A rectangle as fractions (0 – 1) of an image's width and height. */
+export interface Area {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+export const MAX_REDACTIONS = 12;
+
+export function clampArea(a: Partial<Record<keyof Area, unknown>>): Area | null {
+  const f = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : NaN);
+  const x = f(a.x);
+  const y = f(a.y);
+  const w = Math.min(f(a.w), 1 - x);
+  const h = Math.min(f(a.h), 1 - y);
+  return [x, y, w, h].some(Number.isNaN) || w < 0.002 || h < 0.002 ? null : { x, y, w, h };
 }
 
 export interface Crop {
@@ -100,6 +124,7 @@ export const NO_CROP: Crop = { top: 0, right: 0, bottom: 0, left: 0 };
 /** Each edge can trim up to this fraction, so at least 10% of the image always remains. */
 export const CROP_MAX = 0.45;
 export const ZOOM_RANGE = { min: 0.5, max: 3 } as const;
+export const MAGNIFY_RANGE = { min: 1.5, max: 5 } as const;
 
 export function clampCrop(c: Partial<Record<keyof Crop, unknown>> | undefined): Crop {
   const f = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? Math.min(CROP_MAX, Math.max(0, v)) : 0);
@@ -186,6 +211,8 @@ export interface Content {
   steps: Step[];
   /** Comparison template. */
   compare: Comparison;
+  /** Detail Zoom: how much the lens enlarges the focal point of the screenshot. */
+  magnify: number;
 }
 
 export interface Step {
@@ -354,6 +381,7 @@ export function createProject(init: Partial<Pick<Project, 'name' | 'template'>> 
           { label: 'Replace with a real criterion', cells: ['no', 'yes'] },
         ],
       },
+      magnify: 2.5,
     },
     brand: { primary: '#2b59c3', theme: 'light', headingFont: 'sans', radius: 0.5, shadow: 0.5, logoAssetId: null, logoSize: 'medium', style: 'minimal', footer: false },
     background: { type: STYLES.minimal.defaults.background, intensity: 0.6, angle: 135 },
@@ -385,7 +413,7 @@ export function screenshotRange(p: Pick<Project, 'template' | 'devices'>): { min
 }
 
 export function createScreenshotSlot(assetId: string): ScreenshotSlot {
-  return { id: uid('shot'), assetId, fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { ...NO_CROP }, caption: '', legend: [] };
+  return { id: uid('shot'), assetId, fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { ...NO_CROP }, caption: '', legend: [], redact: [] };
 }
 
 // ---------------------------------------------------------------------------
@@ -467,6 +495,12 @@ export function migrateProject(raw: unknown): Project {
           crop: clampCrop(obj(s.crop)),
           caption: str(s.caption, '', LIMITS.caption).replace(/\n/g, ' '),
           legend: normalizeLegend(s.legend),
+          redact: Array.isArray(s.redact)
+            ? s.redact
+                .map((a) => clampArea(obj(a)))
+                .filter((a): a is Area => !!a)
+                .slice(0, MAX_REDACTIONS)
+            : [],
         }))
     : [];
 
@@ -601,6 +635,7 @@ function migrateContent(content: Record<string, unknown>, d: Content): Content {
           .map((st) => ({ title: line(st.title, LIMITS.stepTitle), text: line(st.text, LIMITS.stepText) }))
       : d.steps,
     compare: migrateComparison(content.compare, d.compare),
+    magnify: num(content.magnify, d.magnify, MAGNIFY_RANGE.min, MAGNIFY_RANGE.max),
   };
 }
 

@@ -28,6 +28,10 @@ import {
   type LegendItem,
   CONTENT_KEYS,
   type Content,
+  clampArea,
+  MAGNIFY_RANGE,
+  MAX_REDACTIONS,
+  type Area,
   type TextAlign,
   type TextPosition,
   type Tilt,
@@ -356,6 +360,20 @@ function ContentSection() {
           ))}
         </fieldset>
       )}
+      {template === 'detail-zoom' && (
+        <>
+          <Slider
+            label="Magnification"
+            min={MAGNIFY_RANGE.min}
+            max={MAGNIFY_RANGE.max}
+            step={0.1}
+            value={content.magnify}
+            format={(v) => `${v.toFixed(1)}×`}
+            onChange={(v) => write((d) => void (d.magnify = v), 'magnify')}
+          />
+          <p className="text-[11px] text-muted">The lens shows the screenshot’s focal point: click the detail in the Image panel.</p>
+        </>
+      )}
       {template === 'steps' && (
         <fieldset className="space-y-3">
           <legend className="mb-1 text-xs font-medium text-muted">Steps (up to {LIMITS.stepItems}, in order)</legend>
@@ -675,6 +693,13 @@ function ImageSection() {
           }, `focal-${shot.id}`)
         }
       />
+      <RedactPicker
+        key={`redact-${shot.id}`}
+        url={urls[shot.assetId]}
+        asset={assets?.find((a) => a.id === shot.assetId)}
+        areas={shot.redact ?? []}
+        onChange={(areas) => set('redact', areas)}
+      />
       <Segmented
         label="Fit"
         value={shot.fit}
@@ -877,6 +902,113 @@ function FocalPicker({
       </div>
       <p className="mt-1 text-[11px] text-muted">This area stays visible when the layout changes between formats.</p>
     </div>
+  );
+}
+
+/**
+ * Hide sensitive areas (names, e-mails, ids): drag a box on the screenshot, or add one and drag it
+ * into place. The bars are drawn in every image; the original screenshot is not changed.
+ */
+function RedactPicker({
+  url,
+  asset,
+  areas,
+  onChange,
+}: {
+  url?: string;
+  asset?: { width: number; height: number };
+  areas: Area[];
+  onChange: (areas: Area[]) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [draft, setDraft] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
+  const full = areas.length >= MAX_REDACTIONS;
+  const at = (e: React.PointerEvent) => {
+    const r = ref.current!.getBoundingClientRect();
+    return { x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)) };
+  };
+  const toArea = (d: NonNullable<typeof draft>) =>
+    clampArea({ x: Math.min(d.x0, d.x1), y: Math.min(d.y0, d.y1), w: Math.abs(d.x1 - d.x0), h: Math.abs(d.y1 - d.y0) });
+  const shown = draft ? toArea(draft) : null;
+  if (!url) return null;
+  return (
+    <fieldset className="space-y-1.5">
+      <legend className="flex w-full items-center justify-between text-xs font-medium text-muted">
+        Hide sensitive areas
+        {areas.length > 0 && (
+          <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[11px]" onClick={() => onChange([])}>
+            Clear
+          </Button>
+        )}
+      </legend>
+      <div className="checker flex justify-center rounded-lg p-1">
+        <div
+          ref={ref}
+          data-testid="redact-area"
+          aria-label="Drag over the screenshot to hide an area"
+          onPointerDown={(e) => {
+            if (full) return;
+            e.currentTarget.setPointerCapture(e.pointerId);
+            const p = at(e);
+            setDraft({ x0: p.x, y0: p.y, x1: p.x, y1: p.y });
+          }}
+          onPointerMove={(e) => {
+            if (!draft) return;
+            const p = at(e);
+            setDraft({ ...draft, x1: p.x, y1: p.y });
+          }}
+          onPointerUp={() => {
+            const a = draft && toArea(draft);
+            setDraft(null);
+            // Ignore clicks: an area needs a little width and height.
+            if (a && a.w > 0.01 && a.h > 0.01) onChange([...areas, a]);
+          }}
+          className={cx('relative touch-none select-none overflow-hidden', full ? 'cursor-not-allowed' : 'cursor-crosshair')}
+        >
+          {asset && asset.width > 0 && asset.height > 0 ? (
+            <img
+              src={url}
+              alt=""
+              draggable={false}
+              width={asset.width}
+              height={asset.height}
+              style={{ width: Math.min(asset.width, (FOCAL_MAX_HEIGHT * asset.width) / asset.height) }}
+              className="block h-auto max-w-full"
+            />
+          ) : (
+            <img src={url} alt="" draggable={false} className="block max-h-48 max-w-full" />
+          )}
+          {[...areas, ...(shown ? [shown] : [])].map((a, i) => (
+            <span
+              key={i}
+              className={cx('pointer-events-none absolute rounded-[2px]', i === areas.length ? 'bg-ink/50 ring-1 ring-surface' : 'bg-ink/85')}
+              style={{ left: `${a.x * 100}%`, top: `${a.y * 100}%`, width: `${a.w * 100}%`, height: `${a.h * 100}%` }}
+            />
+          ))}
+        </div>
+      </div>
+      {areas.length > 0 && (
+        <ul className="flex flex-wrap gap-1">
+          {areas.map((_, i) => (
+            <li key={i}>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 px-1.5 text-[11px]"
+                aria-label={`Show area ${i + 1} again`}
+                onClick={() => onChange(areas.filter((_, j) => j !== i))}
+              >
+                Area {i + 1} <Icon name="x" className="size-3" />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="text-[11px] text-muted">
+        Drag over names, e-mail addresses or ids to cover them in every exported image. The original screenshot is kept in the project and in
+        its project.json backup.
+      </p>
+    </fieldset>
   );
 }
 
