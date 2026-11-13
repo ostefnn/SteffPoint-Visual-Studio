@@ -16,6 +16,7 @@ export type TemplateId =
   | 'spotlight'
   | 'before-after'
   | 'editorial'
+  | 'cta'
   | 'minimal';
 
 export type TemplateCategory =
@@ -59,6 +60,7 @@ export const MIRROR_TEMPLATES: readonly TemplateId[] = [
   'features',
   'code',
   'annotated',
+  'cta',
 ];
 /**
  * Templates whose screens can be tilted. Full-bleed images, grids, legends and text-only
@@ -222,6 +224,14 @@ export const TEMPLATES: TemplateDefinition[] = [
     description: 'A settings panel with numbered fields and its legend: one page per group, ideal for a PDF guide.',
     shotKind: 'any',
     slots: { ...text, screenshots: { min: 1, max: 1 } },
+  },
+  {
+    id: 'cta',
+    name: 'Call to Action',
+    category: 'announcement',
+    description: 'A closing page: one action, a button, your link and an optional QR code.',
+    shotKind: 'any',
+    slots: { ...text, screenshots: { min: 0, max: 0 } },
   },
   {
     id: 'minimal',

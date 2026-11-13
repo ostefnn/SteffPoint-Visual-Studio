@@ -75,9 +75,9 @@ test('reorder carousel pages by drag and drop', async ({ page }) => {
   await newProject(page);
   await page.getByRole('tab', { name: 'Carousel' }).click();
   await page.getByRole('button', { name: 'Customize Pages' }).click();
-  await page.getByRole('button', { name: 'Add Page' }).click(); // Minimal, last
+  await page.getByRole('button', { name: 'Add Page' }).click(); // Call to Action, last
   const before = await pages(page).allInnerTexts();
   await pages(page).last().dragTo(pages(page).first());
-  await expect(pages(page).first()).toContainText('Minimal');
+  await expect(pages(page).first()).toContainText('Call to Action');
   expect((await pages(page).allInnerTexts()).length).toBe(before.length);
 });

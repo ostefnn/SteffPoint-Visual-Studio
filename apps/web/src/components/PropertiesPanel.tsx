@@ -59,6 +59,7 @@ function ContentSection() {
   const devices = useEditor((s) => s.project?.devices);
   const orientation = useEditor((s) => s.project?.deviceOrientation);
   const desktopFrame = useEditor((s) => s.project?.desktopFrame);
+  const brandFooter = useEditor((s) => s.project?.brand.footer);
   const { update } = useEditor.getState();
   if (!content || !template) return null;
   const showsDesktop =
@@ -77,7 +78,8 @@ function ContentSection() {
     | 'eventDate'
     | 'eventTime'
     | 'eventPlace'
-    | 'cta';
+    | 'cta'
+    | 'link';
   const maxLen: Record<TextKey, number> = {
     kicker: LIMITS.kicker,
     title: LIMITS.title,
@@ -92,6 +94,7 @@ function ContentSection() {
     eventTime: LIMITS.eventField,
     eventPlace: LIMITS.eventField,
     cta: LIMITS.cta,
+    link: LIMITS.link,
   };
   // Single-line fields drop newlines; the quote keeps them.
   const set = (key: TextKey) => (e: { target: { value: string } }) =>
@@ -181,6 +184,31 @@ function ContentSection() {
             </div>
           ))}
         </fieldset>
+      )}
+      {template === 'cta' && (
+        <>
+          <Field label="Button">
+            <input value={content.cta} onChange={set('cta')} className={inputCls} placeholder="e.g. Try it free…" />
+          </Field>
+          <Field label="Link" hint={count(content.link, LIMITS.link)}>
+            <input value={content.link} onChange={set('link')} className={inputCls} placeholder="e.g. steffpoint.com/visual-studio…" />
+          </Field>
+          <label className="flex items-center gap-2 text-xs font-medium text-ink">
+            <input
+              type="checkbox"
+              checked={content.qr}
+              onChange={(e) => update((d) => void (d.content.qr = e.target.checked))}
+              className="size-4 accent-accent"
+            />
+            QR code of the link
+          </label>
+          <p className="text-[11px] text-muted">Use the full address (https://…) so a phone opens it when scanning.</p>
+        </>
+      )}
+      {template !== 'cta' && brandFooter && (
+        <Field label="Link (footer)" hint={count(content.link, LIMITS.link)}>
+          <input value={content.link} onChange={set('link')} className={inputCls} placeholder="e.g. steffpoint.com, @steffpoint…" />
+        </Field>
       )}
       {template === 'event' && (
         <>

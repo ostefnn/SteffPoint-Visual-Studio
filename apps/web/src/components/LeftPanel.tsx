@@ -265,6 +265,7 @@ function BrandTab() {
   const spec = getStyle(brand.style);
   const logoUrl = brand.logoAssetId ? urls[brand.logoAssetId] : undefined;
   const logoColors = useLogoColors(logoUrl);
+  const link = useEditor((s) => s.project?.content.link ?? '');
 
   const setPrimary = (c: string) => {
     setHex(c);
@@ -403,6 +404,31 @@ function BrandTab() {
             e.target.value = '';
           }}
         />
+      </Section>
+      <Section title="Footer">
+        <label className="flex items-center gap-2 text-xs font-medium text-ink">
+          <input
+            type="checkbox"
+            checked={brand.footer}
+            onChange={(e) => update((d) => void (d.brand.footer = e.target.checked))}
+            className="size-4 accent-accent"
+          />
+          Brand footer on every visual
+        </label>
+        {brand.footer && (
+          <Field label="Website or handle" hint={`${link.length}/${LIMITS.link}`}>
+            <input
+              value={link}
+              maxLength={LIMITS.link}
+              onChange={(e) => update((d) => void (d.content.link = e.target.value.replace(/\n/g, ' ')), 'content-link')}
+              className={inputCls}
+              placeholder="e.g. steffpoint.com, @steffpoint…"
+            />
+          </Field>
+        )}
+        <p className="text-xs text-muted">
+          A line along the bottom with your logo and link. The logo moves there from the title, and carousel pages invite people to swipe.
+        </p>
       </Section>
     </>
   );

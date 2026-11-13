@@ -73,7 +73,7 @@ export function CarouselPanel() {
   };
   const addPage = () => {
     // A closing page by default: the most common missing piece of a carousel.
-    editSlides((list) => [...list, createVariant({ template: 'minimal', screenshotIds: [] })]);
+    editSlides((list) => [...list, createVariant({ template: 'cta', screenshotIds: [] })]);
     setCarouselPage(slides.length);
   };
   const duplicate = (i: number) => {

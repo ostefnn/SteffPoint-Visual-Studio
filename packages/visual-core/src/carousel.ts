@@ -96,13 +96,16 @@ export function buildCarouselSlides(project: Project): CarouselSlide[] {
       auto,
       label: slideLabel(project, v),
       variant: v,
-      project: numbered ? { ...page, content: { ...page.content, kicker: `${i + 1} / ${total}` } } : page,
+      project: {
+        ...(numbered ? { ...page, content: { ...page.content, kicker: `${i + 1} / ${total}` } } : page),
+        carouselPage: { index: i, total },
+      },
     };
   });
 }
 
 /** Templates that read as a closing / call-to-action page. */
-const CLOSING_TEMPLATES: TemplateId[] = ['minimal', 'event'];
+const CLOSING_TEMPLATES: TemplateId[] = ['cta', 'minimal', 'event'];
 
 /** Deterministic advice for the carousel as a whole. Informative only. */
 export function analyzeCarousel(project: Project): Suggestion[] {
@@ -136,7 +139,7 @@ export function analyzeCarousel(project: Project): Suggestion[] {
     out.push({
       id: 'carousel-cta',
       level: 'info',
-      message: 'End with a call to action, for example a Minimal or Event page with your link.',
+      message: 'End with a call to action: add a Call to Action page with your link.',
     });
   }
   return out;

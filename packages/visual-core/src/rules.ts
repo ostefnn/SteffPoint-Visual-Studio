@@ -204,6 +204,24 @@ export function analyzeProject(project: Project, format: FormatPreset, exportSca
     }
   }
 
+  if (tpl.id === 'cta') {
+    if (!content.cta.trim() && !content.link.trim()) {
+      out.push({ id: 'cta-empty', level: 'warning', message: 'Add a button text or a link: a call to action needs something to do.' });
+    }
+    if (content.qr && !content.link.trim()) out.push({ id: 'cta-qr', level: 'warning', message: 'Add a link to draw the QR code.' });
+    if (content.qr && /^@/.test(content.link.trim())) {
+      out.push({ id: 'cta-qr-handle', level: 'info', message: 'The QR code encodes the handle as text. Use a full address (https://…) so phones open it.' });
+    }
+  }
+  if (brand.footer) {
+    if (!content.link.trim() && !brand.logoAssetId) {
+      out.push({ id: 'footer-empty', level: 'info', message: 'The brand footer is on but has no logo or link to show.' });
+    }
+    if (format.safe.bottom > 0.1) {
+      out.push({ id: 'footer-covered', level: 'info', message: `In ${format.label}, app controls can cover the bottom of the image, where the footer sits.` });
+    }
+  }
+
   // --- Format specific ---------------------------------------------------------
   if (format.id === 'story' && title.length > 40) {
     out.push({ id: 'story-title', level: 'info', message: 'Stories are viewed quickly: keep the title under 40 characters.' });

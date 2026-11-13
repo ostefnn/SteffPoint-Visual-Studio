@@ -525,3 +525,38 @@ describe('layout options', () => {
     for (const id of ['editorial', 'bento', 'annotated', 'stats', 'features', 'minimal'] as const) expect(TILT_TEMPLATES).not.toContain(id);
   });
 });
+
+describe('brand footer and call to action', () => {
+  it('migrates the link, QR and footer with safe defaults', () => {
+    const p = migrateProject({});
+    expect([p.content.link, p.content.qr, p.brand.footer]).toEqual(['', false, false]);
+    const q = migrateProject({ brand: { footer: true }, content: { link: '  https://example.com/a\nb  ', qr: true } });
+    expect([q.content.link, q.content.qr, q.brand.footer]).toEqual(['https://example.com/a b', true, true]);
+    expect(migrateProject({ content: { link: 'x'.repeat(200), qr: 'yes' } }).content).toMatchObject({ link: 'x'.repeat(80), qr: false });
+  });
+
+  it('tells each carousel page where it is, without saving it', () => {
+    const p = createProject();
+    const slides = buildCarouselSlides(p);
+    expect(slides.map((s) => s.project.carouselPage)).toEqual(slides.map((_, i) => ({ index: i, total: slides.length })));
+    expect(migrateProject({ ...p, carouselPage: { index: 1, total: 3 } })).not.toHaveProperty('carouselPage');
+  });
+
+  it('checks the call to action and the footer', () => {
+    const p = createProject({ template: 'cta' });
+    p.content.cta = '';
+    p.content.qr = true;
+    const ids = analyzeProject(p, FORMAT_PRESETS.linkedin).map((s) => s.id);
+    expect(ids).toEqual(expect.arrayContaining(['cta-empty', 'cta-qr']));
+    p.brand.footer = true;
+    expect(analyzeProject(p, FORMAT_PRESETS.story).map((s) => s.id)).toEqual(expect.arrayContaining(['footer-empty', 'footer-covered']));
+  });
+
+  it('suggests a Call to Action page to close a carousel', () => {
+    const p = createProject();
+    p.carousel.slides = [createVariant({ template: 'minimal' }), createVariant({ template: 'spotlight' }), createVariant({ template: 'features' })];
+    expect(analyzeCarousel(p).map((s) => s.id)).toContain('carousel-cta');
+    p.carousel.slides.push(createVariant({ template: 'cta' }));
+    expect(analyzeCarousel(p).map((s) => s.id)).not.toContain('carousel-cta');
+  });
+});

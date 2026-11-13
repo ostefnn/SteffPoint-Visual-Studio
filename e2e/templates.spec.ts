@@ -140,6 +140,33 @@ test('Text position Bottom puts the text below the screens in stacked formats', 
   await expect.poll(async () => (await centre(title)) > (await centre(shot))).toBe(true);
 });
 
+test('Call to Action draws a scannable QR code and the brand footer', async ({ page }) => {
+  await newProject(page);
+  await useTemplate(page, 'Call to Action');
+  const canvas = page.getByTestId('canvas');
+  await page.getByRole('textbox', { name: 'Button', exact: true }).fill('Open the app');
+  await page.getByRole('textbox', { name: 'Link', exact: false }).first().fill('https://example.com/app');
+  await expect(canvas).toContainText('Open the app');
+  await expect(canvas).toContainText('https://example.com/app');
+  await expect(canvas.locator('[data-qr]')).toHaveCount(0);
+  await page.getByRole('checkbox', { name: /QR code/ }).check();
+  await expect(canvas.locator('[data-qr] path')).toHaveAttribute('d', /^M\d/);
+
+  // The footer takes the link: it is not written twice.
+  await page.getByRole('tab', { name: 'Brand' }).click();
+  await page.getByRole('checkbox', { name: /Brand footer/ }).check();
+  await expect(canvas.locator('[data-footer]')).toContainText('https://example.com/app');
+  await expect(canvas.getByText('https://example.com/app')).toHaveCount(1);
+
+  // On a carousel page that is not the last, the footer invites people to swipe.
+  await page.getByRole('tab', { name: 'Carousel' }).click();
+  await page.getByRole('button', { name: 'Customize Pages' }).click();
+  await page.getByRole('button', { name: 'Add Page' }).click();
+  await expect(canvas.locator('[data-footer]')).not.toContainText('Swipe');
+  await page.getByRole('button', { name: /^Page 1:/ }).click();
+  await expect(canvas.locator('[data-footer]')).toContainText('Swipe');
+});
+
 test('Crop and zoom out reshape the screenshot in the export', async ({ page }) => {
   await newProject(page);
   await addScreenshot(page, 'split-cyan-magenta.png'); // left half cyan, right half magenta

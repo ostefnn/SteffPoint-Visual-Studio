@@ -53,7 +53,8 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 |---|---|
 | 🗂️ **Projects** | Create, rename, duplicate, delete, favourite, search. Automatic thumbnails. Autosave. |
 | 💾 **Local storage** | Projects, images and thumbnails stored in IndexedDB. Close the tab, come back later, everything is there. |
-| 🧩 **16 templates** | Browser Hero, Device Mix, App Store, Browser Duo, Mobile Trio, Bento, Spotlight, Before / After, Testimonial, Key Figures, Event, Features, Code, Annotated Panel, Editorial, Minimal. |
+| 🧩 **17 templates** | Browser Hero, Device Mix, App Store, Browser Duo, Mobile Trio, Bento, Spotlight, Before / After, Testimonial, Key Figures, Event, Features, Code, Annotated Panel, Editorial, Call to Action, Minimal. |
+| 🔗 **Brand footer** | Optional line along the bottom of every visual with your logo and website or handle; carousel pages add “Swipe →” except the last. |
 | 🧭 **Layout** | Works on every template: **Mirror** (text on the other side), **text position** (above or below the screens; beside them, aligned to the top or bottom), **text alignment** (left, centre, right) and **screens** straight, tilted or in 3D. *Auto* keeps each template's own layout. Shared by every format and carousel page. |
 | 🖼️ **Screenshots** | Up to 4 per project. Add by click, drag & drop anywhere, or paste (Ctrl/Cmd+V). Desktop screenshots can sit in a browser, a macOS window, no frame, or a laptop. |
 | 🎯 **Crop & focal point** | Crop each edge, cover / contain, zoom in or out (0.5×–3×), and a focal point that stays visible when the layout changes between landscape, square and portrait. |
@@ -107,6 +108,7 @@ Projects created before styles existed open in **Soft**, unchanged. Picking a st
 | **Code** | Code snippet in an editor window, with light syntax colouring | 0 |
 | **Annotated Panel** | A settings panel (or any UI) with numbered call-outs, next to its legend: field name, property, greyed when disabled. Import a capture report to get one page per group | 1 |
 | **Editorial** | Articles, announcements, blog covers | 0–1 |
+| **Call to Action** | Closing page: a button, your link and an optional QR code (encoded locally) | 0 |
 | **Minimal** | Text-only announcements | 0 |
 
 Every template adapts its layout to landscape, square, portrait and very wide (banner) formats.
@@ -253,9 +255,10 @@ Exported `project.json` / `*.svs.json`:
       "kicker": "New release", "title": "Cockpit SteffPoint", "subtitle": "One cockpit. All my environments.",
       "quote": "…", "author": "…", "authorRole": "…",
       "stats": [{ "value": "10k+", "label": "Visuals exported" }],
-      "eventDate": "…", "eventTime": "…", "eventPlace": "…", "cta": "…"
+      "eventDate": "…", "eventTime": "…", "eventPlace": "…", "cta": "…",
+      "link": "https://example.com", "qr": false
     },
-    "brand": { "primary": "#0078d4", "theme": "light", "headingFont": "sans", "radius": 0.5, "shadow": 0.5, "logoAssetId": null, "logoSize": "medium" },
+    "brand": { "primary": "#0078d4", "theme": "light", "headingFont": "sans", "radius": 0.5, "shadow": 0.5, "logoAssetId": null, "logoSize": "medium", "style": "minimal", "footer": false },
     "background": { "type": "glow", "intensity": 0.6, "angle": 135 },
     "assets": [{ "id": "ast_…", "name": "home.png", "mime": "image/png", "width": 1600, "height": 1000, "size": 123456 }],
     "screenshots": [{

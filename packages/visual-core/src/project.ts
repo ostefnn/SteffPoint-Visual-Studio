@@ -43,6 +43,8 @@ export const LIMITS = {
   /** Event template. */
   eventField: 50,
   cta: 30,
+  /** Website or handle, shown in the brand footer and on the Call to Action page. */
+  link: 80,
   /** Enough for one image per page of a full carousel. */
   screenshots: 12,
   fileBytes: 20 * 1024 * 1024,
@@ -104,6 +106,8 @@ export interface Brand {
   logoSize: LogoSize;
   /** Style preset (see styles.ts). Projects created before styles existed open as Soft. */
   style: StyleId;
+  /** A footer line on every visual: logo and link (and "Swipe" on carousel pages). */
+  footer: boolean;
 }
 
 /** Where the text block sits. `auto` keeps the template's own placement. */
@@ -162,7 +166,12 @@ export interface Content {
   eventDate: string;
   eventTime: string;
   eventPlace: string;
+  /** Button text (Event, Call to Action). */
   cta: string;
+  /** Website, page or handle. Shown in the brand footer and the Call to Action page. */
+  link: string;
+  /** Call to Action: draw a QR code of the link. */
+  qr: boolean;
 }
 
 export interface Stat {
@@ -197,6 +206,11 @@ export interface Project {
   carousel: CarouselSettings;
   /** Mirror, text position and alignment, tilt. Shared by the carousel pages. */
   layout: LayoutSettings;
+  /**
+   * Runtime only, never saved: set on the project of a carousel page so the footer can invite
+   * people to swipe. `migrateProject` drops it.
+   */
+  carouselPage?: { index: number; total: number };
 }
 
 /** Text a variant can replace. A missing key inherits the project's text. */
@@ -295,8 +309,10 @@ export function createProject(init: Partial<Pick<Project, 'name' | 'template'>> 
       eventTime: 'Start to end time',
       eventPlace: 'Place or link',
       cta: 'Register',
+      link: '',
+      qr: false,
     },
-    brand: { primary: '#2b59c3', theme: 'light', headingFont: 'sans', radius: 0.5, shadow: 0.5, logoAssetId: null, logoSize: 'medium', style: 'minimal' },
+    brand: { primary: '#2b59c3', theme: 'light', headingFont: 'sans', radius: 0.5, shadow: 0.5, logoAssetId: null, logoSize: 'medium', style: 'minimal', footer: false },
     background: { type: STYLES.minimal.defaults.background, intensity: 0.6, angle: 135 },
     assets: [],
     screenshots: [],
@@ -459,6 +475,8 @@ export function migrateProject(raw: unknown): Project {
       eventTime: str(content.eventTime, d.content.eventTime, LIMITS.eventField).replace(/\n/g, ' '),
       eventPlace: str(content.eventPlace, d.content.eventPlace, LIMITS.eventField).replace(/\n/g, ' '),
       cta: str(content.cta, d.content.cta, LIMITS.cta).replace(/\n/g, ' '),
+      link: str(content.link, d.content.link, LIMITS.link).replace(/\s+/g, ' ').trim(),
+      qr: content.qr === true,
     },
     brand: {
       primary: isHexColor(brand.primary) ? brand.primary : d.brand.primary,
@@ -470,6 +488,7 @@ export function migrateProject(raw: unknown): Project {
       logoSize: oneOf(brand.logoSize, LOGO_SIZES, d.brand.logoSize),
       // Projects saved before styles existed keep their original (Soft) look.
       style: legacy ? 'soft' : oneOf(brand.style, STYLE_IDS, d.brand.style),
+      footer: brand.footer === true,
     },
     background: {
       type: oneOf(bg.type, ['solid', 'gradient', 'glow', 'grid', 'mesh'] as const, legacy ? STYLES.soft.defaults.background : d.background.type),

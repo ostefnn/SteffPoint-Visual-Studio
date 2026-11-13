@@ -39,6 +39,7 @@ import {
   type Project,
   type ScreenshotSlot,
 } from '@svs/visual-core';
+import qrcode from 'qrcode-generator';
 
 /** Colours of the drawn device hardware: the token block for everything that is not brand-derived. */
 const HW = {
@@ -78,6 +79,8 @@ interface Ctx {
   stacked: boolean;
   /** Stacked layout drawn upside down: the text goes to the other end. */
   flipY: boolean;
+  /** The brand footer is drawn: the logo moves there from the text block. */
+  footer: boolean;
 }
 
 interface ShadowLayer {
@@ -105,9 +108,13 @@ export interface CompositionProps {
   urls: Record<string, string>;
 }
 
-export function Composition({ project, width, height, urls }: CompositionProps) {
+export function Composition({ project, width, height: fullHeight, urls }: CompositionProps) {
   const spec = getStyle(project.brand.style);
   const pal = derivePalette(project.brand.primary, project.brand.theme, spec.id);
+  const footer = footerContent(project, urls);
+  // The footer gets its own band, so templates (and frames that bleed off the bottom) stop above it.
+  const footerH = footer ? Math.round((Math.min(width, fullHeight) / 100) * (width / fullHeight > 2.2 ? 9 : 7)) : 0;
+  const height = fullHeight - footerH;
   const u = Math.min(width, height) / 100;
   const s = project.brand.shadow;
   const dark = project.brand.theme === 'dark';
@@ -148,6 +155,7 @@ export function Composition({ project, width, height, urls }: CompositionProps) 
     layout: DEFAULT_LAYOUT,
     stacked: false,
     flipY: false,
+    footer: !!footer,
   };
   const id = getTemplate(project.template).id;
   const layout = project.layout ?? DEFAULT_LAYOUT;
@@ -163,7 +171,7 @@ export function Composition({ project, width, height, urls }: CompositionProps) 
     <div
       style={{
         width,
-        height,
+        height: fullHeight,
         position: 'relative',
         overflow: 'hidden',
         fontFamily: spec.body ?? BODY_STACK,
@@ -171,7 +179,14 @@ export function Composition({ project, width, height, urls }: CompositionProps) 
         ...backgroundStyle(ctx),
       }}
     >
-      {arrange(Template(ctx), ctx)}
+      {footer ? (
+        <>
+          <div style={{ position: 'absolute', left: 0, top: 0, width, height, overflow: 'hidden' }}>{arrange(Template(ctx), ctx)}</div>
+          <Footer ctx={ctx} band={footerH} {...footer} />
+        </>
+      ) : (
+        arrange(Template(ctx), ctx)
+      )}
     </div>
   );
 }
@@ -229,6 +244,58 @@ function backgroundStyle({ p, pal, u, style }: Ctx): CSSProperties {
 }
 
 // ---------------------------------------------------------------------------
+// Brand footer
+// ---------------------------------------------------------------------------
+
+/** What the brand footer shows, or null when it is off or has nothing to show. */
+function footerContent(p: Project, urls: Record<string, string>) {
+  if (!p.brand.footer) return null;
+  const logo = p.brand.logoAssetId && urls[p.brand.logoAssetId] ? urls[p.brand.logoAssetId] : null;
+  const link = p.content.link.trim();
+  const page = p.carouselPage;
+  const swipe = !!page && page.index < page.total - 1;
+  return logo || link || swipe ? { logo, link, swipe } : null;
+}
+
+/** A quiet line along the bottom edge: logo and link on the left, "Swipe" on carousel pages. */
+function Footer({ ctx, band, logo, link, swipe }: { ctx: Ctx; band: number; logo: string | null; link: string; swipe: boolean }) {
+  const { w, pal } = ctx;
+  const fs = band * 0.3;
+  const side = w * (ctx.wide ? 0.04 : 0.06);
+  return (
+    <div
+      data-footer=""
+      style={{
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        height: band,
+        boxSizing: 'border-box',
+        padding: `0 ${side}px ${band * 0.18}px`,
+        display: 'flex',
+        alignItems: 'center',
+        gap: fs,
+        fontSize: fs,
+        fontWeight: 550,
+        color: pal.textMuted,
+      }}
+    >
+      {logo && <img src={logo} alt="" draggable={false} style={{ height: band * 0.42, width: 'auto', maxWidth: band * 2.6, objectFit: 'contain', display: 'block' }} />}
+      {link && <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{link}</span>}
+      {swipe && (
+        <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: fs * 0.4, color: pal.text, whiteSpace: 'nowrap' }}>
+          Swipe
+          <svg aria-hidden="true" viewBox="0 0 24 24" width={fs * 1.2} height={fs * 1.2} fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </span>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Layout options: mirror, text position, tilt
 // ---------------------------------------------------------------------------
 
@@ -242,6 +309,7 @@ function isStacked(id: TemplateId, o: Orientation, wide: boolean): boolean {
       return !wide;
     case 'minimal':
     case 'testimonial':
+    case 'cta': // places its text itself
       return false; // text only: the position aligns the text block instead
     default:
       return o !== 'landscape' && !wide;
@@ -851,6 +919,7 @@ function TextBlock({
   subtitle = true,
   showTitle = true,
   children,
+  after,
 }: {
   ctx: Ctx;
   align?: 'left' | 'center';
@@ -863,6 +932,8 @@ function TextBlock({
   /** Templates whose main text is not the title (Testimonial) turn it off. */
   showTitle?: boolean;
   children?: ReactNode;
+  /** Drawn after the subtitle (the Call to Action button). */
+  after?: ReactNode;
 }) {
   const { u, o, pal, p } = ctx;
   const c: TextColors = { text: pal.text, muted: pal.textMuted, kickerBg: pal.primarySoft, kickerText: pal.primaryStrong, ...colors };
@@ -893,7 +964,7 @@ function TextBlock({
         }),
       }}
     >
-      <Logo ctx={ctx} height={logoHeight(u, p.brand.logoSize ?? 'medium', scale)} />
+      {!ctx.footer && <Logo ctx={ctx} height={logoHeight(u, p.brand.logoSize ?? 'medium', scale)} />}
       {kicker.trim() && <Kicker ctx={ctx} text={kicker} legacy={kickerStyle} scale={scale} colors={c} />}
       {showTitle && title.trim() && (
         <h1
@@ -933,6 +1004,7 @@ function TextBlock({
           {sub}
         </p>
       )}
+      {after}
     </div>
   );
 }
@@ -2139,6 +2211,108 @@ function Annotated(ctx: Ctx) {
   );
 }
 
+// --- Call to Action ---------------------------------------------------------------
+
+// Links can hold any character: encode them as UTF-8 rather than the library's default Latin-1.
+qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
+
+/** A QR code on a white tile with its quiet zone, dark on light whatever the theme so phones read it. */
+function QrCode({ ctx, text, size, style }: { ctx: Ctx; text: string; size: number; style?: CSSProperties }) {
+  let d = '';
+  let n = 21;
+  try {
+    const qr = qrcode(0, 'M');
+    qr.addData(text);
+    qr.make();
+    n = qr.getModuleCount();
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (qr.isDark(r, c)) d += `M${c} ${r}h1v1h-1z`;
+  } catch {
+    return null; // too long to encode: the link is still written next to it
+  }
+  const pad = size * 0.07;
+  return (
+    <div
+      data-qr=""
+      style={{
+        width: size,
+        height: size,
+        boxSizing: 'border-box',
+        padding: pad,
+        background: HW.onDark,
+        borderRadius: Math.min(ctx.radius, size * 0.06),
+        border: ctx.edge,
+        boxShadow: smallCardShadow(ctx),
+        flex: 'none',
+        ...style,
+      }}
+    >
+      <svg viewBox={`0 0 ${n} ${n}`} width="100%" height="100%" shapeRendering="crispEdges" style={{ display: 'block' }}>
+        <path d={d} fill={HW.bezel} />
+      </svg>
+    </div>
+  );
+}
+
+function Cta(ctx: Ctx) {
+  const { w, h, u, o, pal, p, wide } = ctx;
+  const { cta, link } = p.content;
+  const url = link.trim();
+  const showQr = p.content.qr && !!url;
+  // With the footer on, the link is already written there.
+  const showLink = !!url && !ctx.footer;
+  const fs = u * (o === 'portrait' ? 3.6 : wide ? 4.6 : o === 'square' ? 3.4 : 3.2);
+  const button = cta.trim() && (
+    <span
+      style={{
+        fontSize: fs,
+        fontWeight: 700,
+        padding: `${fs * 0.6}px ${fs * 1.3}px`,
+        borderRadius: ctx.style.kicker === 'label' ? 0 : fs * 3,
+        background: ctx.style.brandBackground ? BOLD_INK : pal.primary,
+        color: ctx.style.brandBackground ? HW.onDark : pal.onPrimary,
+        border: ctx.style.edge === 'thick' ? ctx.edge : undefined,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {cta}
+    </span>
+  );
+  const action = (button || showLink) && (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'inherit', gap: fs * 0.7, marginTop: fs * 0.5 }}>
+      {button}
+      {showLink && <span style={{ fontSize: fs * 0.82, fontWeight: 600, color: pal.text, overflowWrap: 'anywhere' }}>{url}</span>}
+    </div>
+  );
+  if (o === 'landscape' && showQr) {
+    const size = Math.min(h * (wide ? 0.74 : 0.56), w * 0.28);
+    return (
+      <>
+        <TextBlock ctx={ctx} style={leftColumn(ctx, wide ? 0.6 : 0.5)} scale={wide ? 0.85 : 1} after={action} />
+        <QrCode ctx={ctx} text={url} size={size} style={abs(w * (wide ? 0.84 : 0.77) - size / 2, (h - size) / 2, size, size)} />
+      </>
+    );
+  }
+  // One centred column: the text and its button, then the QR code.
+  const pos = ctx.layout.textPosition;
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        padding: `${h * (o === 'portrait' ? 0.12 : 0.08)}px ${w * 0.1}px`,
+        display: 'flex',
+        flexDirection: pos === 'bottom' && showQr ? 'column-reverse' : 'column',
+        alignItems: 'center',
+        justifyContent: pos === 'auto' || showQr ? 'center' : pos === 'top' ? 'flex-start' : 'flex-end',
+        gap: u * 5,
+      }}
+    >
+      <TextBlock ctx={ctx} align="center" scale={wide ? 0.85 : 1.05} after={action} style={{ alignSelf: 'stretch' }} />
+      {showQr && <QrCode ctx={ctx} text={url} size={Math.min(w * 0.36, h * (o === 'portrait' ? 0.24 : 0.3))} />}
+    </div>
+  );
+}
+
 const TEMPLATE_COMPONENTS: Record<string, (ctx: Ctx) => ReactNode> = {
   'browser-hero': BrowserHero,
   'browser-duo': BrowserDuo,
@@ -2155,5 +2329,6 @@ const TEMPLATE_COMPONENTS: Record<string, (ctx: Ctx) => ReactNode> = {
   spotlight: Spotlight,
   'before-after': BeforeAfter,
   editorial: Editorial,
+  cta: Cta,
   minimal: Minimal,
 };

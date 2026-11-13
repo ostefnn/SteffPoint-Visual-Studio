@@ -80,6 +80,12 @@ const SAMPLE_CONTENT: Partial<Record<TemplateId, Partial<Project['content']>>> =
   features: {
     features: ['Brand colour picked from your logo', 'Every style compared side by side', 'LinkedIn carousel as a PDF', 'Nothing leaves your device'],
   },
+  cta: {
+    // The app's own public address, from the README.
+    cta: 'Open the app',
+    link: 'https://ostefnn.github.io/SteffPoint-Visual-Studio/',
+    qr: true,
+  },
   code: {
     codeFile: 'brand.ts',
     code: [
