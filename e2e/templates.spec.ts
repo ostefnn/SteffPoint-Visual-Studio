@@ -353,3 +353,28 @@ test('portrait formats show the whole screenshot width, right under the text', a
   // (light ground: high green, unlike the cyan or magenta halves).
   expect((await probePng(page, story, [0.5, 0.92])).rgb[1]).toBeGreaterThan(200);
 });
+
+test('App Store keeps a phone screen in a phone, even in LinkedIn 4:5', async ({ page }) => {
+  await newProject(page);
+  await addScreenshot(page, 'panel-tall.png');
+  await useTemplate(page, 'App Store');
+  await page.getByRole('button', { name: 'Preview LinkedIn 4:5' }).click();
+  const canvas = page.getByTestId('canvas');
+  await expect(canvas.locator('[data-device="mobile"]')).toHaveCount(1);
+  await expect(canvas.locator('[data-device="tablet"]')).toHaveCount(0);
+});
+
+test('Steps in a square keeps the title right above the steps, with its subtitle', async ({ page }) => {
+  await newProject(page);
+  await useTemplate(page, 'Steps');
+  await page.getByRole('textbox', { name: 'Subtitle', exact: true }).fill('How it works.');
+  await page.getByRole('button', { name: 'Preview Square 1:1' }).click();
+  const canvas = page.getByTestId('canvas');
+  await expect(canvas).toContainText('How it works.');
+  const text = (await canvas.getByText('How it works.').boundingBox())!;
+  const steps = (await canvas.locator('[data-steps]').boundingBox())!;
+  const stage = (await canvas.locator('[role=img]').first().boundingBox())!;
+  // The text block ends just above the steps: no gap wider than a tenth of the canvas.
+  expect(steps.y - (text.y + text.height)).toBeGreaterThan(0);
+  expect(steps.y - (text.y + text.height)).toBeLessThan(stage.height * 0.1);
+});

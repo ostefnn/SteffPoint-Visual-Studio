@@ -851,7 +851,7 @@ function PhoneFrame({
     ? { left: width * 0.035, top: '50%', width: width * 0.075, height: width * 0.3, marginTop: -width * 0.15 }
     : { top: width * 0.035, left: '50%', width: width * 0.3, height: width * 0.075, marginLeft: -width * 0.15 };
   return (
-    <div
+    <div data-device="mobile"
       style={{
         ...style,
         borderRadius: width * 0.16,
@@ -885,7 +885,7 @@ function TabletFrame({
   const bezel = width * 0.04;
   const camera: CSSProperties = landscape ? { left: bezel / 2, top: '50%' } : { top: bezel / 2, left: '50%' };
   return (
-    <div
+    <div data-device="tablet"
       style={{
         ...style,
         borderRadius: width * 0.07,
@@ -1641,17 +1641,21 @@ function AppStore(ctx: Ctx) {
       style={{ position: 'absolute', left: w * 0.08, right: w * 0.08, top: h * (r < 0.95 ? 0.06 : 0.07) }}
     />
   );
+  // The format picks the device: tall canvases get a phone, near-square ones a tablet, wide ones a
+  // window. A phone screen always stays in a phone, whatever the format (never stretched into a tablet).
+  const shot = shotRatio(ctx, ctx.shots[0], 0);
+  const kind: DeviceKind = (shot > 0 && shot < 0.65) || r < 0.6 ? 'mobile' : r < 0.95 ? 'tablet' : 'desktop';
+  // Where the device starts: under the caption, which takes more of the height on squarer canvases.
+  const top = h * (r < 0.6 ? 0.33 : r < 0.95 ? 0.41 : r > 1.15 ? 0.47 : 0.53);
   let device: ReactNode;
-  if (r < 0.6) {
-    const pw = w * 0.74;
-    device = <PhoneFrame ctx={ctx} index={0} width={pw} style={abs((w - pw) / 2, h * 0.33, pw, pw / DEVICE_RATIO.mobile)} />;
-  } else if (r < 0.95) {
-    const tw = w * 0.84;
-    device = <TabletFrame ctx={ctx} index={0} width={tw} style={abs((w - tw) / 2, h * 0.41, tw, tw / DEVICE_RATIO.tablet)} />;
+  if (kind === 'mobile') {
+    const pw = w * (r < 0.6 ? 0.74 : r < 0.95 ? 0.6 : r <= 1.15 ? 0.5 : 0.3);
+    device = <PhoneFrame ctx={ctx} index={0} width={pw} style={abs((w - pw) / 2, top, pw, pw / DEVICE_RATIO.mobile)} />;
+  } else if (kind === 'tablet') {
+    const tw = w * (r < 0.95 ? 0.84 : r <= 1.15 ? 0.7 : 0.5);
+    device = <TabletFrame ctx={ctx} index={0} width={tw} style={abs((w - tw) / 2, top, tw, tw / DEVICE_RATIO.tablet)} />;
   } else {
-    // The caption takes more of the height on square canvases, so the window starts lower there.
     const dw = w * (r > 1.15 ? 0.8 : 0.86);
-    const top = h * (r > 1.15 ? 0.47 : 0.53);
     device = <BrowserFrame ctx={ctx} index={0} style={abs((w - dw) / 2, top, dw, dw * 0.625)} />;
   }
   return (
@@ -2021,7 +2025,13 @@ function Features(ctx: Ctx) {
  * Text above a content-sized block (list, table) in square and portrait formats. One flex column,
  * so a long title pushes the block down instead of running into it; Text position Bottom reverses it.
  */
-function stackText(ctx: Ctx, body: ReactNode, textScale = 1) {
+/**
+ * Square and portrait: the text above the content (below it when flipped), the two kept together and
+ * centred on the canvas, so no gap opens between the title and what it introduces. `fit` narrows the
+ * content to its own width and centres it (a short list under a centred title); otherwise it spans the
+ * width (cards, tables).
+ */
+function stackText(ctx: Ctx, body: ReactNode, textScale = 1, fit = false) {
   const { w, h, u, o } = ctx;
   const portrait = o === 'portrait';
   return (
@@ -2034,16 +2044,28 @@ function stackText(ctx: Ctx, body: ReactNode, textScale = 1) {
         bottom: h * (portrait ? 0.1 : 0.05),
         display: 'flex',
         flexDirection: ctx.flipY ? 'column-reverse' : 'column',
-        gap: u * (portrait ? 5 : 3.5),
+        justifyContent: 'center',
+        gap: u * (portrait ? 5 : 4),
       }}
     >
-      <TextBlock ctx={ctx} align="center" style={{ flex: 'none' }} subtitle={portrait} scale={textScale} />
-      <div style={{ flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>{body}</div>
+      <TextBlock ctx={ctx} align="center" style={{ flex: 'none' }} subtitle={portrait || o === 'square'} scale={textScale} />
+      <div
+        style={{
+          flex: '0 1 auto',
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          ...(fit && { width: 'fit-content', maxWidth: '100%', alignSelf: 'center' }),
+        }}
+      >
+        {body}
+      </div>
     </div>
   );
 }
 
-function placeBeside(ctx: Ctx, body: ReactNode, textScale = 1) {
+function placeBeside(ctx: Ctx, body: ReactNode, textScale = 1, fit = false) {
   const { w, h, o, wide } = ctx;
   const box = (style: CSSProperties) => (
     <div style={{ position: 'absolute', display: 'flex', flexDirection: 'column', justifyContent: 'center', ...style }}>{body}</div>
@@ -2064,7 +2086,7 @@ function placeBeside(ctx: Ctx, body: ReactNode, textScale = 1) {
       </>
     );
   }
-  return stackText(ctx, body, textScale);
+  return stackText(ctx, body, textScale, fit);
 }
 
 /** Brand-coloured disc (black on Bold's brand ground). */
@@ -2112,6 +2134,8 @@ function Steps(ctx: Ctx) {
     <div data-steps="" style={{ display: 'grid', gridTemplateColumns: row ? `repeat(${Math.max(1, items.length)}, minmax(0, 1fr))` : '1fr', gap: size * (row ? 1.4 : 1.15) }}>
       {items.map(step)}
     </div>,
+    1,
+    true,
   );
 }
 

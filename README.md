@@ -121,7 +121,7 @@ New projects start in **Tint**; existing projects keep the style they were saved
 | **Call to Action** | Closing page: a button, your link and an optional QR code (encoded locally) | 0 |
 | **Minimal** | Text-only announcements | 0 |
 
-Every template adapts its layout to landscape, square, portrait and very wide (banner) formats. In portrait formats (Story, LinkedIn 4:5, carousel pages), Browser Hero, Spotlight and Detail Zoom show the whole screenshot at its own proportions, right under the text, the pair centred on the canvas.
+Every template adapts its layout to landscape, square, portrait and very wide (banner) formats. In portrait formats (Story, LinkedIn 4:5, carousel pages), Browser Hero, Spotlight and Detail Zoom show the whole screenshot at its own proportions, right under the text, the pair centred on the canvas. Features, Steps, Key Figures and Comparison keep their title and subtitle right above their content in square and portrait formats. App Store keeps a phone screenshot in a phone, whatever the format.
 
 ## Output formats
 
