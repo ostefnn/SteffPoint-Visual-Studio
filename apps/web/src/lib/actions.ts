@@ -11,11 +11,11 @@ export function imageFilesFrom(list: FileList | File[] | null | undefined): File
   return [...(list ?? [])].filter((f) => f.type.startsWith('image/'));
 }
 
-export async function importImages(files: File[], target: 'screenshot' | 'logo'): Promise<void> {
+export async function importImages(files: File[], target: 'screenshot' | 'logo' | 'background'): Promise<void> {
   const ed = useEditor.getState;
   const project = ed().project;
   if (!project) return;
-  for (const file of target === 'logo' ? files.slice(0, 1) : files) {
+  for (const file of target === 'screenshot' ? files : files.slice(0, 1)) {
     if (target === 'screenshot' && (ed().project?.screenshots.length ?? 0) >= LIMITS.screenshots) {
       notify(t('A project holds up to {n} screenshots.', { n: LIMITS.screenshots }), 'error');
       break;
@@ -33,6 +33,12 @@ export async function importImages(files: File[], target: 'screenshot' | 'logo')
         if (target === 'logo') {
           d.brand.logoAssetId = asset.id;
           if (brandColor) d.brand.primary = brandColor;
+        } else if (target === 'background') {
+          // A first photo starts mostly veiled, so the title stays readable.
+          if (d.background.type !== 'image') d.background.intensity = 0.3;
+          d.background.imageAssetId = asset.id;
+          d.background.type = 'image';
+          pruneAssets(d); // the previous background photo, if any
         } else d.screenshots.push(slot);
       });
       if (target === 'screenshot') ed().selectShot(slot.id);
@@ -53,9 +59,14 @@ export async function importImages(files: File[], target: 'screenshot' | 'logo')
   }
 }
 
-/** Drop assets that are no longer used by any slot or the logo. */
-function pruneAssets(d: { assets: { id: string }[]; screenshots: { assetId: string }[]; brand: { logoAssetId: string | null } }) {
-  const used = new Set([...d.screenshots.map((s) => s.assetId), d.brand.logoAssetId]);
+/** Drop assets that are no longer used by any slot, the logo or the background. */
+function pruneAssets(d: {
+  assets: { id: string }[];
+  screenshots: { assetId: string }[];
+  brand: { logoAssetId: string | null };
+  background: { imageAssetId: string | null };
+}) {
+  const used = new Set([...d.screenshots.map((s) => s.assetId), d.brand.logoAssetId, d.background.imageAssetId]);
   d.assets = d.assets.filter((a) => used.has(a.id));
 }
 
@@ -96,6 +107,14 @@ export function moveScreenshot(id: string, delta: -1 | 1) {
   });
 }
 
+export function removeBackgroundImage() {
+  useEditor.getState().update((d) => {
+    d.background.imageAssetId = null;
+    if (d.background.type === 'image') d.background.type = 'solid';
+    pruneAssets(d);
+  });
+}
+
 export function removeLogo() {
   useEditor.getState().update((d) => {
     d.brand.logoAssetId = null;
@@ -108,7 +127,8 @@ export function applyStyle(id: StyleId) {
   useEditor.getState().update((d) => {
     if (d.brand.style === id) return;
     d.brand.style = id;
-    d.background.type = STYLES[id].defaults.background;
+    // A chosen photo stays: the style's own ground would silently replace it.
+    if (!(d.background.type === 'image' && d.background.imageAssetId)) d.background.type = STYLES[id].defaults.background;
     d.desktopFrame = STYLES[id].defaults.desktopFrame;
   });
 }

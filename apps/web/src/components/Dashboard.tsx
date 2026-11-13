@@ -29,6 +29,7 @@ import { PrivacyBadge } from './PrivacyBadge';
 import { StorageStatus } from './StorageStatus';
 
 import { getLang, LANGS, localizeContent, setLang, t, type Lang } from '../i18n';
+import { openHelp } from '../store/help';
 
 /**
  * Gallery previews show real material, never invented proof: screenshots of SteffPoint Visual
@@ -280,6 +281,9 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
             <p className="text-xs text-muted">{t('Create once. Publish everywhere.')}</p>
           </div>
           <PrivacyBadge />
+          <Button variant="ghost" onClick={openHelp} aria-label={t('Help')} title={t('Help (?)')}>
+            <span aria-hidden="true" className="flex size-5 items-center justify-center rounded-full text-sm font-semibold ring-1 ring-field">?</span>
+          </Button>
           <select
             value={getLang()}
             onChange={(e) => setLang(e.target.value as Lang)}
@@ -384,7 +388,7 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
                 aria-pressed={category === c.id}
                 className={cx(
                   'h-8 rounded-full px-3 text-xs font-medium ring-1 transition-transform duration-100 ease-out motion-safe:active:scale-[0.97]',
-                  category === c.id ? 'bg-ink text-on-accent ring-ink' : 'bg-surface text-ink-soft ring-line hover:bg-panel',
+                  category === c.id ? 'bg-inverse text-on-inverse ring-inverse' : 'bg-surface text-ink-soft ring-line hover:bg-panel',
                 )}
               >
                 {t(c.label)}

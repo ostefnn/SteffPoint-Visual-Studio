@@ -985,7 +985,7 @@ function RedactPicker({
           {[...areas, ...(shown ? [shown] : [])].map((a, i) => (
             <span
               key={i}
-              className={cx('pointer-events-none absolute rounded-[2px]', i === areas.length ? 'bg-ink/50 ring-1 ring-surface' : 'bg-ink/85')}
+              className={cx('pointer-events-none absolute rounded-[2px]', i === areas.length ? 'bg-[#2a2e38]/50 ring-1 ring-surface' : 'bg-[#2a2e38]')}
               style={{ left: `${a.x * 100}%`, top: `${a.y * 100}%`, width: `${a.w * 100}%`, height: `${a.h * 100}%` }}
             />
           ))}

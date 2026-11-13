@@ -216,20 +216,38 @@ export function Composition({ project, width: canvasW, height: canvasH, urls, co
 // Backgrounds
 // ---------------------------------------------------------------------------
 
-function backgroundStyle({ p, pal, u, style }: Ctx): CSSProperties {
+function backgroundStyle({ p, pal, u, style, urls }: Ctx): CSSProperties {
   if (style.brandBackground) return { background: pal.bg };
-  const { type, intensity: i, angle } = p.background;
-  const peak = backgroundPeak(pal, type, i);
+  const { type, intensity: i, angle, secondary, imageAssetId } = p.background;
+  const peak = backgroundPeak(pal, type, i, secondary);
+  // The second colour, when chosen, replaces the derived accent.
+  const second = secondary ?? pal.accent;
   switch (type) {
     case 'solid':
       return { background: pal.bg };
+    case 'image': {
+      const url = imageAssetId ? urls[imageAssetId] : undefined;
+      if (!url) return { background: pal.bg };
+      // A veil of the ground colour keeps text readable; Intensity sets how much of the photo shows.
+      const veil = withAlpha(pal.bg, 0.9 - 0.75 * i);
+      return {
+        backgroundColor: pal.bg,
+        backgroundImage: `linear-gradient(${veil}, ${veil}), url("${url}")`,
+        backgroundSize: 'cover, cover',
+        backgroundPosition: 'center, center',
+      };
+    }
     case 'gradient':
-      return { background: `linear-gradient(${angle}deg, ${pal.bg} 0%, ${pal.bg} 25%, ${peak} 100%)` };
+      return {
+        background: secondary
+          ? `linear-gradient(${angle}deg, ${mix(pal.bg, pal.primary, 0.08 + 0.3 * i)} 0%, ${peak} 100%)`
+          : `linear-gradient(${angle}deg, ${pal.bg} 0%, ${pal.bg} 25%, ${peak} 100%)`,
+      };
     case 'glow':
       return {
         background: [
           `radial-gradient(ellipse 55% 65% at 88% 12%, ${withAlpha(pal.primary, 0.1 + 0.32 * i)}, transparent 70%)`,
-          `radial-gradient(ellipse 45% 55% at 8% 100%, ${withAlpha(pal.accent, 0.06 + 0.22 * i)}, transparent 70%)`,
+          `radial-gradient(ellipse 45% 55% at 8% 100%, ${withAlpha(second, (secondary ? 0.1 : 0.06) + 0.24 * i)}, transparent 70%)`,
           pal.bg,
         ].join(', '),
       };
@@ -256,8 +274,8 @@ function backgroundStyle({ p, pal, u, style }: Ctx): CSSProperties {
       return {
         background: [
           `radial-gradient(ellipse 60% 70% at 0% 0%, ${withAlpha(pal.primary, 0.15 + 0.35 * i)}, transparent 65%)`,
-          `radial-gradient(ellipse 60% 70% at 100% 20%, ${withAlpha(pal.accent, 0.12 + 0.3 * i)}, transparent 65%)`,
-          `radial-gradient(ellipse 70% 60% at 50% 110%, ${withAlpha(shiftHue(pal.primary, -35), 0.12 + 0.3 * i)}, transparent 65%)`,
+          `radial-gradient(ellipse 60% 70% at 100% 20%, ${withAlpha(second, 0.12 + 0.3 * i)}, transparent 65%)`,
+          `radial-gradient(ellipse 70% 60% at 50% 110%, ${withAlpha(secondary ? mix(pal.primary, secondary, 0.5) : shiftHue(pal.primary, -35), 0.12 + 0.3 * i)}, transparent 65%)`,
           pal.bg,
         ].join(', '),
       };

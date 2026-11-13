@@ -31,7 +31,8 @@ export function brandKitFromProject(project: Project, name: string, id = uid('ki
     name: name.trim().slice(0, KIT_NAME_MAX) || 'Brand kit',
     updatedAt: Date.now(),
     brand,
-    background: { ...project.background },
+    // A background photo belongs to the project's files: the kit keeps the ground without it.
+    background: { ...project.background, imageAssetId: null, type: project.background.type === 'image' ? 'solid' : project.background.type },
     desktopFrame: project.desktopFrame,
     link: project.content.link,
     logo: logo ? { name: logo.name, mime: logo.mime, width: logo.width, height: logo.height, size: logo.size } : null,

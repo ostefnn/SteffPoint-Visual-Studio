@@ -62,7 +62,8 @@ export const LIMITS = {
 
 export const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'] as const;
 
-export type BackgroundType = 'solid' | 'gradient' | 'glow' | 'grid' | 'mesh';
+export type BackgroundType = 'solid' | 'gradient' | 'glow' | 'grid' | 'mesh' | 'image';
+export const BACKGROUND_TYPES: readonly BackgroundType[] = ['solid', 'gradient', 'glow', 'grid', 'mesh', 'image'];
 
 export interface AssetRef {
   id: string;
@@ -175,6 +176,10 @@ export const DEFAULT_LAYOUT: LayoutSettings = { mirror: false, textPosition: 'au
 
 export interface Background {
   type: BackgroundType;
+  /** Image background: an asset of the project, drawn full bleed under a veil of the ground colour. */
+  imageAssetId: string | null;
+  /** A second colour for gradient, glow and mesh grounds; null uses the brand's own accent. */
+  secondary: string | null;
   intensity: number; // 0 – 1
   angle: number; // degrees
 }
@@ -384,7 +389,7 @@ export function createProject(init: Partial<Pick<Project, 'name' | 'template'>> 
       magnify: 2.5,
     },
     brand: { primary: '#2b59c3', theme: 'light', headingFont: 'sans', radius: 0.5, shadow: 0.5, logoAssetId: null, logoSize: 'medium', style: 'minimal', footer: false },
-    background: { type: STYLES.minimal.defaults.background, intensity: 0.6, angle: 135 },
+    background: { type: STYLES.minimal.defaults.background, intensity: 0.6, angle: 135, imageAssetId: null, secondary: null },
     assets: [],
     screenshots: [],
     exportPresets: ['linkedin', 'open-graph', 'square', 'story', 'github'],
@@ -538,9 +543,11 @@ export function migrateProject(raw: unknown): Project {
       footer: brand.footer === true,
     },
     background: {
-      type: oneOf(bg.type, ['solid', 'gradient', 'glow', 'grid', 'mesh'] as const, legacy ? STYLES.soft.defaults.background : d.background.type),
+      type: oneOf(bg.type, BACKGROUND_TYPES, legacy ? STYLES.soft.defaults.background : d.background.type),
       intensity: num(bg.intensity, d.background.intensity, 0, 1),
       angle: num(bg.angle, d.background.angle, 0, 360),
+      imageAssetId: typeof bg.imageAssetId === 'string' && assetIds.has(bg.imageAssetId) ? bg.imageAssetId : null,
+      secondary: isHexColor(bg.secondary) ? (bg.secondary as string).toLowerCase() : null,
     },
     assets,
     screenshots,

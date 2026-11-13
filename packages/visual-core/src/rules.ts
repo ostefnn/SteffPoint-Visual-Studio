@@ -60,7 +60,15 @@ export function analyzeProject(project: Project, format: FormatPreset, exportSca
 
   // --- Contrast (WCAG AA) ----------------------------------------------------
   // Test against the most tinted part of the background (worst case).
-  const peak = backgroundPeak(pal, getStyle(brand.style).brandBackground ? 'solid' : project.background.type, project.background.intensity);
+  const brandGround = getStyle(brand.style).brandBackground;
+  const peak = backgroundPeak(pal, brandGround ? 'solid' : project.background.type, project.background.intensity, project.background.secondary);
+  if (!brandGround && project.background.type === 'image' && project.background.imageAssetId) {
+    out.push({
+      id: 'contrast-image',
+      level: 'info',
+      ...msg('Text over a photo cannot be checked automatically. If it is hard to read, lower the photo visibility in the Background tab.'),
+    });
+  }
   const worst = (fg: string) => Math.min(contrastRatio(fg, pal.bg), contrastRatio(fg, peak));
   const titleContrast = worst(pal.text);
   if (titleContrast < 4.5) {

@@ -60,6 +60,87 @@
   --color-crop-dim: rgb(9 9 11 / 0.55);
   --color-zone-dim: rgb(224 36 94 / 0.16);
   --color-handle-edge: rgb(0 0 0 / 0.4);
+
+  /* Toasts and selected chips: a dark block in light mode, a light one in dark mode. */
+  --color-inverse: #15171c;
+  --color-on-inverse: #ffffff;
+}
+
+/*
+ * Dark editor: follows the system unless the user picked Light or Dark in Help (data-theme on <html>).
+ * Same token names, so every component follows. Exported visuals are not affected.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-canvas: #111318;
+    --color-panel: #16181e;
+    --color-surface: #1d2027;
+    --color-subtle: #252830;
+    --color-subtle-strong: #30343d;
+    --color-ink: #eceef2;
+    --color-ink-soft: #ccd0d8;
+    --color-muted: #a1a6b1;
+    --color-faint: #878d99;
+    --color-line: #30343d;
+    --color-field: #747a87;
+    --color-accent: #4a72dd;
+    --color-accent-strong: #5d82e6;
+    --color-accent-soft: #1f2b4a;
+    --color-accent-deep: #b4c8ff;
+    --color-accent-line: #3d5598;
+    --color-danger: #d24a4a;
+    --color-danger-soft: #3b1f21;
+    --color-danger-line: #74302f;
+    --color-warn: #f0a640;
+    --color-warn-soft: #3a2c12;
+    --color-warn-ink: #f5d08a;
+    --color-warn-line: #6b5220;
+    --color-ok: #5cc890;
+    --color-ok-soft: #15301f;
+    --color-ok-line: #2b5c3d;
+    --color-inverse: #eceef2;
+    --color-on-inverse: #15171c;
+    --color-checker-a: #2a2d33;
+    --color-checker-b: #33363d;
+    --color-tap: rgb(124 156 255 / 0.16);
+    --color-handle-edge: rgb(255 255 255 / 0.45);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --color-canvas: #111318;
+  --color-panel: #16181e;
+  --color-surface: #1d2027;
+  --color-subtle: #252830;
+  --color-subtle-strong: #30343d;
+  --color-ink: #eceef2;
+  --color-ink-soft: #ccd0d8;
+  --color-muted: #a1a6b1;
+  --color-faint: #878d99;
+  --color-line: #30343d;
+  --color-field: #747a87;
+  --color-accent: #4a72dd;
+  --color-accent-strong: #5d82e6;
+  --color-accent-soft: #1f2b4a;
+  --color-accent-deep: #b4c8ff;
+  --color-accent-line: #3d5598;
+  --color-danger: #d24a4a;
+  --color-danger-soft: #3b1f21;
+  --color-danger-line: #74302f;
+  --color-warn: #f0a640;
+  --color-warn-soft: #3a2c12;
+  --color-warn-ink: #f5d08a;
+  --color-warn-line: #6b5220;
+  --color-ok: #5cc890;
+  --color-ok-soft: #15301f;
+  --color-ok-line: #2b5c3d;
+  --color-inverse: #eceef2;
+  --color-on-inverse: #15171c;
+  --color-checker-a: #2a2d33;
+  --color-checker-b: #33363d;
+  --color-tap: rgb(124 156 255 / 0.16);
+  --color-handle-edge: rgb(255 255 255 / 0.45);
+  color-scheme: dark;
 }
 
 html,
