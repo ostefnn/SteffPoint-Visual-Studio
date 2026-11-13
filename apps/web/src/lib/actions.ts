@@ -4,6 +4,7 @@ import { useEditor } from '../store/editor';
 import { notify } from '../store/toasts';
 import { ImportError, readImageFile } from './assets';
 import { describeStorageError, putBlob, requestPersistence } from './db';
+import { addPreviews } from './previews';
 import { sampleLogoColors } from './logoColors';
 import { t } from '../i18n';
 
@@ -24,6 +25,7 @@ export async function importImages(files: File[], target: 'screenshot' | 'logo' 
       const { asset, blob } = await readImageFile(file, file.name || 'pasted image');
       await putBlob(project.id, asset.id, blob);
       ed().addUrl(asset.id, URL.createObjectURL(blob));
+      void addPreviews([{ id: asset.id, blob }]);
       const slot = createScreenshotSlot(asset.id);
       // A new logo dresses the project in its colour, in the same undo step as the import.
       const brandColor = target === 'logo' ? pickBrandColor(await sampleLogoColors(blob).catch(() => [])) : null;

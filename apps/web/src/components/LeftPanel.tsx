@@ -106,7 +106,7 @@ export function LeftPanel({ className }: { className?: string }) {
 
 function TemplatesTab() {
   const project = useEditor((s) => s.project)!;
-  const urls = useEditor((s) => s.urls);
+  const urls = useEditor((s) => s.previewUrls); // small previews: reduced copies (lib/previews)
   const { update } = useEditor.getState();
   return (
     <div className="grid grid-cols-2 gap-3 p-3">
@@ -136,7 +136,7 @@ function TemplatesTab() {
 function ImagesTab() {
   const screenshots = useEditor((s) => s.project?.screenshots ?? NONE);
   const assets = useEditor((s) => s.project?.assets ?? NONE);
-  const urls = useEditor((s) => s.urls);
+  const urls = useEditor((s) => s.previewUrls); // small previews: reduced copies (lib/previews)
   const selected = useEditor((s) => s.selectedShotId);
   const { selectShot } = useEditor.getState();
   const input = useRef<HTMLInputElement>(null);
@@ -222,7 +222,7 @@ const FONTS: { value: HeadingFont; label: string }[] = [
 /** Style presets: one choice sets typefaces, kicker, frames, shadows and background treatment. */
 function StylePicker() {
   const project = useEditor((s) => s.project);
-  const urls = useEditor((s) => s.urls);
+  const urls = useEditor((s) => s.previewUrls); // small previews: reduced copies (lib/previews)
   if (!project) return null;
   const current = project.brand.style;
   return (
@@ -267,7 +267,7 @@ function StylePicker() {
 
 function BrandTab() {
   const brand = useEditor((s) => s.project?.brand) ?? DEFAULT_BRAND;
-  const urls = useEditor((s) => s.urls);
+  const urls = useEditor((s) => s.previewUrls); // small previews: reduced copies (lib/previews)
   const { update } = useEditor.getState();
   const [hex, setHex] = useState(brand.primary);
   useEffect(() => setHex(brand.primary), [brand.primary]); // keep in sync with undo/redo
@@ -569,7 +569,7 @@ const TWO_COLOUR: readonly BackgroundType[] = ['gradient', 'glow', 'mesh'];
 
 function BackgroundTab() {
   const project = useEditor((s) => s.project)!;
-  const urls = useEditor((s) => s.urls);
+  const urls = useEditor((s) => s.previewUrls); // small previews: reduced copies (lib/previews)
   const bg = project.background;
   const { update } = useEditor.getState();
   const spec = getStyle(project.brand.style);

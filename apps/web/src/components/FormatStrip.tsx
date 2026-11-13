@@ -8,7 +8,7 @@ import { t } from '../i18n';
 /** Multi-format preview: the same composition in every ratio at once. */
 export function FormatStrip() {
   const project = useEditor((s) => s.project);
-  const urls = useEditor((s) => s.urls);
+  const urls = useEditor((s) => s.previewUrls); // small previews: reduced copies (lib/previews)
   const active = useEditor((s) => s.activeFormat);
   const { setActiveFormat, update } = useEditor.getState();
   if (!project) return null;

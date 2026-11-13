@@ -1,7 +1,7 @@
 {
   "name": "steffpoint-visual-studio",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "license": "MIT",
   "author": "O. Steffen (https://github.com/ostefnn)",
   "type": "module",

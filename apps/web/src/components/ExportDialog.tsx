@@ -29,6 +29,8 @@ import { t } from '../i18n';
 export function ExportDialog({ onClose }: { onClose: () => void }) {
   const project = useEditor((s) => s.project)!;
   const urls = useEditor((s) => s.urls);
+  // The slide thumbnails are small: they use the reduced copies; exports use the originals.
+  const previewUrls = useEditor((s) => s.previewUrls);
   const [formats, setFormats] = useState<FormatId[]>(project.exportPresets.length ? project.exportPresets : ['linkedin']);
   const [type, setType] = useState<ImageType>('png');
   const [scale, setScale] = useState(2);
@@ -236,7 +238,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
           <ol className="flex gap-2 overflow-x-auto pb-1" aria-label={t('Carousel slides')}>
             {slides.map((s, i) => (
               <li key={i} className="flex-none">
-                <Stage project={s.project} format={carouselFormat} urls={urls} maxWidth={72} maxHeight={90} className="rounded shadow-sm ring-1 ring-ink/5" />
+                <Stage project={s.project} format={carouselFormat} urls={previewUrls} maxWidth={72} maxHeight={90} className="rounded shadow-sm ring-1 ring-ink/5" />
                 <span className="mt-1 block w-[72px] truncate text-[11px] text-muted" title={s.label}>
                   {i + 1}. {s.label}
                 </span>

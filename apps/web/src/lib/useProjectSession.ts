@@ -15,6 +15,7 @@ import { useEditor } from '../store/editor';
 import { notify } from '../store/toasts';
 import { collectGarbage, describeStorageError, getBlob, getProject, holdProjectLock, putThumbnail, saveProjectGuarded } from './db';
 import { renderThumbnail } from './exporter';
+import { addPreviews } from './previews';
 import { t } from '../i18n';
 
 const SAVE_DELAY = 400;
@@ -89,9 +90,13 @@ export function useProjectSession(projectId: string) {
       const p = await getProject(projectId);
       if (!p) return !cancelled && setStatus('missing');
       const urls: Record<string, string> = {};
+      const blobs: { id: string; blob: Blob }[] = [];
       for (const a of p.assets) {
         const b = await getBlob(p.id, a.id);
-        if (b) urls[a.id] = URL.createObjectURL(b);
+        if (b) {
+          urls[a.id] = URL.createObjectURL(b);
+          blobs.push({ id: a.id, blob: b });
+        }
       }
       if (cancelled) return Object.values(urls).forEach((u) => URL.revokeObjectURL(u));
       base.current = p.revision;
@@ -101,6 +106,8 @@ export function useProjectSession(projectId: string) {
       useEditor.getState().open(p, urls);
       setSaveState('saved');
       setStatus('ready');
+      // Reduced copies for the small previews, in the background.
+      void addPreviews(blobs);
     })();
 
     return () => {
@@ -149,7 +156,8 @@ export function useProjectSession(projectId: string) {
     const t1 = changed && !conflict.current ? setTimeout(() => void persist(), SAVE_DELAY) : undefined;
     const t2 = setTimeout(async () => {
       try {
-        await putThumbnail(project.id, await renderThumbnail(project, useEditor.getState().urls));
+        // The reduced copies are enough for a 480 px thumbnail, and much lighter to embed.
+        await putThumbnail(project.id, await renderThumbnail(project, useEditor.getState().previewUrls));
       } catch {
         /* thumbnails are best effort */
       }

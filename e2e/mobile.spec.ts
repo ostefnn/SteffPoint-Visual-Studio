@@ -34,3 +34,25 @@ test('the dashboard does not download the export engine', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'New Project' }).first()).toBeVisible();
   expect(loaded.some((u) => /jszip|pdf-lib|legendImport/.test(u))).toBe(false);
 });
+
+test('small previews use reduced copies of large images; the export keeps the original', async ({ page, isMobile }) => {
+  await newProject(page);
+  // A 2000 × 2000 photo: larger than the 1024 px previews.
+  const big = await page.evaluate(async () => {
+    const c = document.createElement('canvas');
+    c.width = c.height = 2000;
+    const g = c.getContext('2d')!;
+    g.fillStyle = '#ff00aa';
+    g.fillRect(0, 0, 2000, 2000);
+    const blob: Blob = await new Promise((r) => c.toBlob((b) => r(b!), 'image/jpeg', 0.9));
+    return Array.from(new Uint8Array(await blob.arrayBuffer()));
+  });
+  await page.getByRole('tab', { name: 'Images' }).click();
+  await page.locator('[role=tabpanel] input[type=file][multiple]').setInputFiles({ name: 'photo.jpg', mimeType: 'image/jpeg', buffer: Buffer.from(big) });
+  await expect(page.getByTestId('save-state')).toHaveText('Saved');
+  const widths = (sel: string) =>
+    page.locator(sel).evaluateAll((els) => els.filter((e) => (e as HTMLImageElement).src.startsWith('blob:')).map((e) => (e as HTMLImageElement).naturalWidth));
+  await expect.poll(async () => Math.max(...(await widths('[aria-label="Formats"] img')))).toBe(1024);
+  // The main preview: the original on a desktop, the reduced copy on a phone.
+  await expect.poll(async () => (await widths('[data-testid=canvas] img'))[0]).toBe(isMobile && page.viewportSize()!.width < 1024 ? 1024 : 2000);
+});
