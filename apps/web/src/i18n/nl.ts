@@ -609,4 +609,5 @@ export const nl: Record<string, string> = {
   "Copy this format as an image": "Dit formaat als afbeelding kopiëren",
   "Image copied. Paste it into a post, a chat or an e-mail.": "Afbeelding gekopieerd. Plak ze in een post, een chat of een e-mail.",
   "The browser refused to copy the image. Use Export instead.": "De browser weigerde de afbeelding te kopiëren. Gebruik in de plaats Exporteren.",
+  "Swipe": "Volgende",
 };
