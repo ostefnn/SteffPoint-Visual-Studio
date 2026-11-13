@@ -604,4 +604,10 @@ export const fr: Record<string, string> = {
   "Check every format in the strip under the preview and tick the ones to export.": "Vérifiez chaque format dans la bande sous l’aperçu et cochez ceux à exporter.",
   "Click Export: one image, a ZIP of every format, or a LinkedIn carousel PDF.": "Cliquez sur Exporter : une image, un ZIP de tous les formats ou un PDF de carrousel LinkedIn.",
   "Editor theme": "Thème de l’éditeur",
+  "Copy Image": "Copier l’image",
+  "Copying…": "Copie…",
+  "Copy this format as an image": "Copier ce format comme image",
+  "Image copied. Paste it into a post, a chat or an e-mail.": "Image copiée. Collez-la dans une publication, une conversation ou un e-mail.",
+  "The browser refused to copy the image. Use Export instead.": "Le navigateur a refusé de copier l’image. Utilisez plutôt Exporter.",
+  "Swipe": "Suivant",
 };

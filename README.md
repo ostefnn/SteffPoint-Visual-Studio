@@ -67,6 +67,7 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 | 🔲 **Compare Styles** | A matrix on the canvas renders the same content in every style at the current format, laid out so each is drawn as large as possible; click one to apply it. |
 | 🛟 **Safe zones** | Overlay showing where platform UI may cover your visual (e.g. stories, profile banners). |
 | ↩️ **Undo / redo** | Bounded history (60 steps); rapid edits like typing or sliders are merged into one step. |
+| 📋 **Copy Image** | Copies the format on screen (or the carousel page) as a PNG, to paste straight into LinkedIn, Teams or an e-mail without downloading anything. |
 | 📦 **Export** | PNG, JPEG or WebP at 1×, 2× or 3×. One image, or a ZIP with every selected format plus `project.json`. |
 | 🗂️ **LinkedIn carousel** | A multi-page PDF for a LinkedIn document post, with 4:5 (default), 1:1 or 16:9 pages. Automatic pages (cover, one per screenshot, features), or your own: a template per page, page-specific content (texts, features, steps, figures, table… choose **This page** in the Content panel) and screenshots, add, duplicate, reorder (drag, buttons or Alt+↑/↓). Up to 12 pages, with carousel-specific advice. |
 | 💡 **Smart suggestions** | Deterministic checks, no AI: title length, WCAG AA contrast, legibility in feeds, wrong template or device for the screenshot orientation, images or logo too small for the export size, missing quote author, figures or event date. Informative only, never blocks export. |

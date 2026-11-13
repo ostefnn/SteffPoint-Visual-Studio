@@ -43,6 +43,8 @@ import {
   type ScreenshotSlot,
 } from '@svs/visual-core';
 import qrcode from 'qrcode-generator';
+// The words drawn in a visual ("Swipe") follow the interface language, like the placeholder content.
+import { t } from '../i18n';
 
 /** Colours of the drawn device hardware: the token block for everything that is not brand-derived. */
 const HW = {
@@ -324,7 +326,7 @@ function Footer({ ctx, band, logo, link, swipe }: { ctx: Ctx; band: number; logo
       {link && <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{link}</span>}
       {swipe && (
         <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: fs * 0.4, color: pal.text, whiteSpace: 'nowrap' }}>
-          Swipe
+          {t('Swipe')}
           <svg aria-hidden="true" viewBox="0 0 24 24" width={fs * 1.2} height={fs * 1.2} fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
             <path d="M5 12h14M13 6l6 6-6 6" />
           </svg>
@@ -1770,12 +1772,7 @@ function Stats(ctx: Ctx) {
       </>
     );
   }
-  return (
-    <>
-      <TextBlock ctx={ctx} align="center" style={topBlock(ctx)} subtitle={portrait} />
-      {grid({ left: w * 0.07, right: w * 0.07, top: h * (portrait ? 0.4 : 0.38), bottom: h * (portrait ? 0.16 : 0.07) })}
-    </>
-  );
+  return stackText(ctx, grid({ position: 'relative' }));
 }
 
 const EVENT_ICONS = {
@@ -1953,18 +1950,38 @@ function Features(ctx: Ctx) {
       </>
     );
   }
-  const portrait = o === 'portrait';
-  return (
-    <>
-      <TextBlock ctx={ctx} align="center" style={topBlock(ctx)} subtitle={portrait} />
-      {list({ left: w * 0.07, right: w * 0.07, top: h * (portrait ? 0.4 : 0.4), bottom: h * (portrait ? 0.2 : 0.06) })}
-    </>
-  );
+  return stackText(ctx, list({ position: 'relative' }));
 }
 
 // --- Steps and Comparison --------------------------------------------------------
 
 /** Positions a content-sized block (list, table) beside or below the text, like Features does. */
+/**
+ * Text above a content-sized block (list, table) in square and portrait formats. One flex column,
+ * so a long title pushes the block down instead of running into it; Text position Bottom reverses it.
+ */
+function stackText(ctx: Ctx, body: ReactNode, textScale = 1) {
+  const { w, h, u, o } = ctx;
+  const portrait = o === 'portrait';
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: w * 0.07,
+        right: w * 0.07,
+        top: h * (portrait ? 0.11 : 0.07),
+        bottom: h * (portrait ? 0.1 : 0.05),
+        display: 'flex',
+        flexDirection: ctx.flipY ? 'column-reverse' : 'column',
+        gap: u * (portrait ? 5 : 3.5),
+      }}
+    >
+      <TextBlock ctx={ctx} align="center" style={{ flex: 'none' }} subtitle={portrait} scale={textScale} />
+      <div style={{ flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>{body}</div>
+    </div>
+  );
+}
+
 function placeBeside(ctx: Ctx, body: ReactNode, textScale = 1) {
   const { w, h, o, wide } = ctx;
   const box = (style: CSSProperties) => (
@@ -1986,13 +2003,7 @@ function placeBeside(ctx: Ctx, body: ReactNode, textScale = 1) {
       </>
     );
   }
-  const portrait = o === 'portrait';
-  return (
-    <>
-      <TextBlock ctx={ctx} align="center" style={topBlock(ctx)} subtitle={portrait} scale={textScale} />
-      {box({ left: w * 0.07, right: w * 0.07, top: h * (portrait ? 0.38 : 0.37), bottom: h * (portrait ? 0.16 : 0.05) })}
-    </>
-  );
+  return stackText(ctx, body, textScale);
 }
 
 /** Brand-coloured disc (black on Bold's brand ground). */

@@ -31,7 +31,7 @@ test('a background photo and a second colour reach the export', async ({ page })
   await page.getByRole('textbox', { name: 'Second colour hex' }).fill('#000000');
 
   await page.locator('input[aria-label="Background image"]').setInputFiles(path.join(FIXTURES, 'desktop-magenta.png'));
-  await expect(page.getByRole('button', { name: /Image/ })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'Image', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('slider', { name: /Photo visibility/ }).fill('1');
 
   await page.getByRole('button', { name: 'Export', exact: true }).click();
