@@ -38,6 +38,7 @@ Runs entirely in your browser: **your images never leave your device.**
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [License & credits](#license--credits)
+- [Changelog](CHANGELOG.md)
 
 ## Why
 
