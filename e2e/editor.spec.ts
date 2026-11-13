@@ -12,7 +12,8 @@ test('project survives a reload', async ({ page }) => {
   await page.getByRole('tab', { name: 'Images' }).click();
   await expect(page.locator('[role=tabpanel] li img')).toHaveCount(1);
   // The image blob itself came back from IndexedDB.
-  await expect.poll(() => page.locator('[role=tabpanel] li img').evaluate((i: HTMLImageElement) => i.naturalWidth)).toBe(1600);
+  // The original file (1600 px) is back: the main preview draws it (the list shows a reduced copy).
+  await expect.poll(() => page.locator('[data-testid=canvas] img').first().evaluate((i: HTMLImageElement) => i.naturalWidth)).toBe(1600);
 });
 
 test('save indicator never claims "Saved" for an unwritten edit', async ({ page }) => {
@@ -87,7 +88,8 @@ test('project JSON round trip through import', async ({ page }) => {
   await page.locator('input[type=file][accept*=json]').setInputFiles(await download.path());
   await expect(titleBox(page)).toHaveValue('Round trip');
   await page.getByRole('tab', { name: 'Images' }).click();
-  await expect.poll(() => page.locator('[role=tabpanel] li img').evaluate((i: HTMLImageElement) => i.naturalWidth)).toBe(1600);
+  // The original file (1600 px) is back: the main preview draws it (the list shows a reduced copy).
+  await expect.poll(() => page.locator('[data-testid=canvas] img').first().evaluate((i: HTMLImageElement) => i.naturalWidth)).toBe(1600);
 });
 
 test('editor tabs follow the ARIA tabs keyboard pattern', async ({ page }) => {

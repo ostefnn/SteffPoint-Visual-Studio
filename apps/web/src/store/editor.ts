@@ -20,8 +20,15 @@ interface EditorState {
    * so the UI never shows "Saved" for an edit that has not been written yet.
    */
   unsaved: boolean;
-  /** Object URLs for the current project's assets, keyed by asset id. */
+  /** Object URLs for the current project's assets, keyed by asset id (original files). */
   urls: Record<string, string>;
+  /**
+   * The URLs small previews use: a reduced copy of each large image (lib/previews), else the
+   * original. Exports and the main preview use `urls`.
+   */
+  previewUrls: Record<string, string>;
+  /** Object URLs of the reduced copies only, to revoke them. */
+  smallUrls: Record<string, string>;
   selectedShotId: string | null;
   activeFormat: FormatId;
   showSafeZones: boolean;
@@ -37,6 +44,7 @@ interface EditorState {
   redo(): void;
   markSaved(saved: Project): void;
   addUrl(assetId: string, url: string): void;
+  addPreview(assetId: string, url: string): void;
   selectShot(id: string | null): void;
   setActiveFormat(id: FormatId): void;
   toggleSafeZones(): void;
@@ -52,6 +60,8 @@ export const useEditor = create<EditorState>((set, get) => ({
   lastAt: 0,
   unsaved: false,
   urls: {},
+  previewUrls: {},
+  smallUrls: {},
   selectedShotId: null,
   activeFormat: 'linkedin',
   showSafeZones: false,
@@ -60,10 +70,13 @@ export const useEditor = create<EditorState>((set, get) => ({
 
   open(project, urls) {
     revokeAll(get().urls);
+    revokeAll(get().smallUrls);
     set({
       project,
       unsaved: false,
       urls,
+      previewUrls: { ...urls },
+      smallUrls: {},
       past: [],
       future: [],
       lastKey: null,
@@ -75,7 +88,8 @@ export const useEditor = create<EditorState>((set, get) => ({
 
   close() {
     revokeAll(get().urls);
-    set({ project: null, urls: {}, past: [], future: [], selectedShotId: null });
+    revokeAll(get().smallUrls);
+    set({ project: null, urls: {}, previewUrls: {}, smallUrls: {}, past: [], future: [], selectedShotId: null });
   },
 
   update(mutate, coalesceKey) {
@@ -114,7 +128,15 @@ export const useEditor = create<EditorState>((set, get) => ({
     if (get().project === saved) set({ unsaved: false });
   },
   addUrl(assetId, url) {
-    set({ urls: { ...get().urls, [assetId]: url } });
+    const { urls, previewUrls, smallUrls } = get();
+    set({ urls: { ...urls, [assetId]: url }, previewUrls: { ...previewUrls, [assetId]: smallUrls[assetId] ?? url } });
+  },
+  addPreview(assetId, url) {
+    const { previewUrls, smallUrls, urls } = get();
+    // A preview made for an asset of a project that is no longer open is dropped.
+    if (!urls[assetId]) return URL.revokeObjectURL(url);
+    if (smallUrls[assetId]) URL.revokeObjectURL(smallUrls[assetId]);
+    set({ previewUrls: { ...previewUrls, [assetId]: url }, smallUrls: { ...smallUrls, [assetId]: url } });
   },
   selectShot(id) {
     set({ selectedShotId: id });

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.1 (2026-11-13)
+
+- **iPhone: no more crash with large photos.** Safari on iPhone could close the editor tab ("A problem repeatedly occurred") once a project held a few large images (for example two 2000 × 2000 photos): the editor drew the full-size files in dozens of small previews and embedded them in the thumbnail rendered after each edit. Small previews (format strip, templates, styles, backgrounds, carousel, Images list, focal point) and the dashboard thumbnail now use a copy of at most 1024 px. On phones and small tablets the main preview uses it too. Exports and Copy Image always use the original file.
+
 ## 1.0.0 (2026-11-13)
 
 First major version. Projects, brand kits and `project.json` files from 0.x open unchanged: the project file format is still schema 1.0, and every saved project keeps its style, layout and export formats.

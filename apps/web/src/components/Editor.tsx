@@ -216,6 +216,10 @@ function TopBar({ saveState, onExit, onExport }: { saveState: SaveState; onExit:
 function Canvas() {
   const project = useEditor((s) => s.project)!;
   const urls = useEditor((s) => s.urls);
+  const previewUrls = useEditor((s) => s.previewUrls);
+  // Phones and small tablets draw the main preview from the reduced copies too (it is about 1100 device
+  // pixels wide at most): no full-size photo stays decoded there. Copy Image and exports use the originals.
+  const canvasUrls = useMemo(() => (window.matchMedia('(max-width: 1023px)').matches ? previewUrls : urls), [urls, previewUrls]);
   const active = useEditor((s) => s.activeFormat);
   const showSafe = useEditor((s) => s.showSafeZones);
   const carouselPage = useEditor((s) => s.carouselPage);
@@ -311,13 +315,13 @@ function Canvas() {
         style={{ '--canvas-ratio': compare ? '4 / 3' : `${format.width + 120} / ${format.height + 120}` } as CSSProperties}
         data-testid="canvas"
       >
-        {size.width > 0 && compare && <StyleMatrix project={shown} format={format} urls={urls} width={size.width} height={size.height} showSafeZones={showSafe} />}
+        {size.width > 0 && compare && <StyleMatrix project={shown} format={format} urls={previewUrls} width={size.width} height={size.height} showSafeZones={showSafe} />}
         {size.width > 0 && !compare && (
           <div className="relative">
             <Stage
               project={shown}
               format={format}
-              urls={urls}
+              urls={canvasUrls}
               maxWidth={size.width - pad * 2}
               maxHeight={size.height - pad * 2}
               showSafeZones={showSafe}

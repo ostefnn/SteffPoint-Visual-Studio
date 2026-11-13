@@ -20,7 +20,8 @@ test('closing a stale tab does not delete images added in another tab', async ({
   await a.waitForTimeout(500);
   await b.reload();
   await b.getByRole('tab', { name: 'Images' }).click();
-  await expect.poll(() => b.locator('[role=tabpanel] li img').evaluate((i: HTMLImageElement) => i.naturalWidth)).toBe(1600);
+  // The original file (1600 px) is back: the main preview draws it (the list shows a reduced copy).
+  await expect.poll(() => b.locator('[data-testid=canvas] img').first().evaluate((i: HTMLImageElement) => i.naturalWidth)).toBe(1600);
 });
 
 test('concurrent edits raise a conflict instead of overwriting', async ({ context }) => {

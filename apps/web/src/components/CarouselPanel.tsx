@@ -33,7 +33,7 @@ const TEXT_LIMIT = { kicker: LIMITS.kicker, title: LIMITS.title, subtitle: LIMIT
 
 export function CarouselPanel() {
   const project = useEditor((s) => s.project)!;
-  const urls = useEditor((s) => s.urls);
+  const urls = useEditor((s) => s.previewUrls); // small previews: reduced copies (lib/previews)
   const page = useEditor((s) => s.carouselPage);
   const { update, setCarouselPage } = useEditor.getState();
   const slides = useMemo(() => buildCarouselSlides(project), [project]);
@@ -252,7 +252,7 @@ function PageEditor({
   onRemove: () => void;
 }) {
   const project = useEditor((s) => s.project)!;
-  const urls = useEditor((s) => s.urls);
+  const urls = useEditor((s) => s.previewUrls); // small previews: reduced copies (lib/previews)
   const { update } = useEditor.getState();
 
   const edit = (fn: (v: Variant) => void, key?: string) =>

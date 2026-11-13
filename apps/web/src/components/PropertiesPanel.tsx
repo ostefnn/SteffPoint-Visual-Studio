@@ -636,7 +636,7 @@ function LayoutSection() {
 function ImageSection() {
   const shots = useEditor((s) => s.project?.screenshots);
   const selectedId = useEditor((s) => s.selectedShotId);
-  const urls = useEditor((s) => s.urls);
+  const urls = useEditor((s) => s.previewUrls); // small previews: reduced copies (lib/previews)
   const assets = useEditor((s) => s.project?.assets);
   const template = useEditor((s) => s.project?.template);
   const devices = useEditor((s) => s.project?.devices);
