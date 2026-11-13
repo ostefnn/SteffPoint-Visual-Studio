@@ -623,4 +623,10 @@ export const nl: Record<string, string> = {
   "Square changelog visual on a drafting grid: a title and four new features, each with a tick.": "Vierkante visual met nieuwe functies op een raster: een titel en vier nieuwe functies, elk met een vinkje.",
   "Made with SteffPoint Visual Studio": "Gemaakt met SteffPoint Visual Studio",
   "Examples with fictional products. Click one to start from its template.": "Voorbeelden met fictieve producten. Klik erop om met die template te beginnen.",
+  "Create once. Publish everywhere: LinkedIn, Microsoft 365 and more.": "Eén keer maken. Overal publiceren: LinkedIn, Microsoft 365 en meer.",
+  "Show All {n} Templates": "Alle {n} templates tonen",
+  "Recommended": "Aanbevolen",
+  "Your projects are kept in this browser.": "Je projecten worden in deze browser bewaard.",
+  "This project only lives in this browser. Keep a copy as a JSON file.": "Dit project bestaat alleen in deze browser. Bewaar een kopie als JSON-bestand.",
+  "Save a Copy": "Kopie opslaan",
 };

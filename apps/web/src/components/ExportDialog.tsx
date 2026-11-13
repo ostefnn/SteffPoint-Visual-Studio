@@ -15,7 +15,11 @@ import {
 const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 import { useEditor } from '../store/editor';
 import { exportPack, type ImageType } from '../lib/exporter';
-import { downloadBlob } from '../lib/download';
+import { downloadBlob, slugify } from '../lib/download';
+import { requestPersistence } from '../lib/db';
+import { noteBackup, noteExportWithoutBackup } from '../lib/backups';
+import { buildProjectFile } from '../lib/projectFile';
+import { notify } from '../store/toasts';
 import { exportCarouselPdf } from '../lib/carouselPdf';
 import { Stage } from './Stage';
 import { Button, cx, Icon, Segmented, Slider } from './ui';
@@ -59,12 +63,31 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
         setProgress({ done, total }),
       );
       downloadBlob(blob, filename);
+      afterExport(includeProject);
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setProgress(null);
     }
+  };
+
+  /**
+   * After a successful export the project clearly has value: ask the browser to keep the data
+   * (silent in most browsers), and after a few exports without project.json, suggest a backup once.
+   */
+  const afterExport = (withBackup: boolean) => {
+    void requestPersistence();
+    if (withBackup) return noteBackup(project.id);
+    if (!noteExportWithoutBackup(project.id)) return;
+    notify(t('This project only lives in this browser. Keep a copy as a JSON file.'), 'info', {
+      label: t('Save a Copy'),
+      run: async () => {
+        const p = useEditor.getState().project ?? project;
+        downloadBlob(await buildProjectFile(p), `${slugify(p.name)}.svs.json`);
+        noteBackup(p.id);
+      },
+    });
   };
 
   const busy = progress !== null;
@@ -98,6 +121,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
         setProgress({ done, total }),
       );
       downloadBlob(blob, filename);
+      afterExport(false);
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

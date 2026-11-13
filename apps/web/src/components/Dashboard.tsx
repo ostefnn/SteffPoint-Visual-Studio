@@ -21,6 +21,7 @@ import {
 import { copyBlobs, createProjectRecord, deleteProject, getThumbnail, listBrandKits, listProjects, patchProject } from '../lib/db';
 import { getDefaultKitId, setDefaultKitId, withBrandKit } from '../lib/brandKits';
 import { buildProjectFile, importProjectFile } from '../lib/projectFile';
+import { noteBackup } from '../lib/backups';
 import { importLegendBundle } from '../lib/legendImport';
 import { notify } from '../store/toasts';
 import { downloadBlob, slugify } from '../lib/download';
@@ -166,7 +167,11 @@ function TemplatePreview({ template, style, kit }: { template: TemplateId; style
 }
 
 /** Four filters instead of one per category: most categories hold one or two templates. */
-const GALLERY_GROUPS: { id: 'all' | 'screens' | 'words' | 'proof'; label: string; categories: TemplateCategory[] }[] = [
+/** Templates shown first: the ones LinkedIn and Microsoft 365 posts use most. The others stay under All. */
+const RECOMMENDED: TemplateId[] = ['browser-hero', 'before-after', 'annotated', 'features', 'steps', 'cta'];
+
+const GALLERY_GROUPS: { id: 'recommended' | 'all' | 'screens' | 'words' | 'proof'; label: string; categories: TemplateCategory[] }[] = [
+  { id: 'recommended', label: 'Recommended', categories: [] },
   { id: 'all', label: 'All', categories: [] },
   { id: 'screens', label: 'Screenshots', categories: ['app-showcase', 'browser', 'mobile', 'product', 'before-after'] },
   { id: 'words', label: 'Text and announcements', categories: ['announcement', 'documentation', 'editorial', 'minimal'] },
@@ -208,7 +213,7 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [query, setQuery] = useState('');
   const [favOnly, setFavOnly] = useState(false);
-  const [category, setCategory] = useState<(typeof GALLERY_GROUPS)[number]['id']>('all');
+  const [category, setCategory] = useState<(typeof GALLERY_GROUPS)[number]['id']>('recommended');
   // The gallery previews every template in one style; a card opens in that same style.
   const [galleryStyle, setGalleryStyle] = useState<StyleId>(() => createProject().brand.style);
   const [error, setError] = useState<string | null>(null);
@@ -264,6 +269,7 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
     },
     exportJson: async (p: Project) => {
       downloadBlob(await buildProjectFile(p), `${slugify(p.name)}.svs.json`);
+      noteBackup(p.id);
     },
   };
 
@@ -301,7 +307,10 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
   };
 
   const group = GALLERY_GROUPS.find((g) => g.id === category) ?? GALLERY_GROUPS[0];
-  const templates = TEMPLATES.filter((t) => group.id === 'all' || group.categories.includes(t.category));
+  const templates =
+    group.id === 'recommended'
+      ? RECOMMENDED.map((id) => TEMPLATES.find((t) => t.id === id)!).filter(Boolean)
+      : TEMPLATES.filter((t) => group.id === 'all' || group.categories.includes(t.category));
 
   return (
     <div className="min-h-full">
@@ -310,7 +319,7 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
           <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="size-8" />
           <div className="mr-auto">
             <h1 className="text-lg font-semibold leading-tight">{t('SteffPoint Visual Studio')}</h1>
-            <p className="text-xs text-muted">{t('Create once. Publish everywhere.')}</p>
+            <p className="text-xs text-muted">{t('Create once. Publish everywhere: LinkedIn, Microsoft 365 and more.')}</p>
           </div>
           <PrivacyBadge />
           <Button variant="ghost" onClick={openHelp} aria-label={t('Help')} title={t('Help (?)')}>
@@ -533,6 +542,11 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
               </li>
             ))}
           </ul>
+          {group.id === 'recommended' && (
+            <div className="mt-4 flex justify-center">
+              <Button onClick={() => setCategory('all')}>{t('Show All {n} Templates', { n: TEMPLATES.length })}</Button>
+            </div>
+          )}
         </section>
       </main>
     </div>

@@ -623,4 +623,10 @@ export const fr: Record<string, string> = {
   "Square changelog visual on a drafting grid: a title and four new features, each with a tick.": "Visuel carré de nouveautés sur une grille : un titre et quatre nouvelles fonctions, chacune cochée.",
   "Made with SteffPoint Visual Studio": "Créé avec SteffPoint Visual Studio",
   "Examples with fictional products. Click one to start from its template.": "Exemples avec des produits fictifs. Cliquez sur l’un d’eux pour partir de son template.",
+  "Create once. Publish everywhere: LinkedIn, Microsoft 365 and more.": "Créez une fois. Publiez partout : LinkedIn, Microsoft 365 et plus.",
+  "Show All {n} Templates": "Afficher les {n} templates",
+  "Recommended": "Recommandés",
+  "Your projects are kept in this browser.": "Vos projets sont conservés dans ce navigateur.",
+  "This project only lives in this browser. Keep a copy as a JSON file.": "Ce projet n’existe que dans ce navigateur. Gardez-en une copie en fichier JSON.",
+  "Save a Copy": "Enregistrer une copie",
 };

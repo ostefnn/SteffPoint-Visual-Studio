@@ -59,3 +59,34 @@ test('Import Legend lives in the More menu and on the Annotated Panel card', asy
   await expect(item).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Or start from a legend file (.md and its screenshots)' })).toBeVisible();
 });
+
+test('after three exports without a backup, the editor offers to save a copy once', async ({ page }) => {
+  await newProject(page);
+  await titleBox(page).fill('Acme Billing 2.0');
+  const exportImage = async () => {
+    await page.getByRole('button', { name: 'Export', exact: true }).click();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByRole('checkbox', { name: /project\.json/ }).uncheck();
+    const [download] = await Promise.all([page.waitForEvent('download'), dialog.getByRole('button', { name: /^Export (Image|ZIP)/ }).click()]);
+    expect(download.suggestedFilename()).not.toMatch(/\.json$/);
+  };
+  const reminder = page.getByText('This project only lives in this browser. Keep a copy as a JSON file.');
+  await exportImage();
+  await exportImage();
+  await expect(reminder).toHaveCount(0);
+  await exportImage();
+  await expect(reminder).toBeVisible();
+  const [backup] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Save a Copy' }).click()]);
+  expect(backup.suggestedFilename()).toBe('acme-billing-2-0.svs.json');
+});
+
+test('the dashboard warns about storage only once the browser has refused to keep the data', async ({ page }) => {
+  await newProject(page);
+  await page.getByRole('button', { name: 'Back to Projects' }).click();
+  const status = page.getByTestId('storage-status');
+  await expect(status).not.toContainText('Your browser may clear this data');
+  await page.evaluate(() => localStorage.setItem('svs-persistence', 'refused'));
+  await page.reload();
+  // Headless Chromium does not persist storage, so the refusal applies.
+  await expect(status).toContainText(/Your browser may clear this data|Protected from automatic clean-up/);
+});

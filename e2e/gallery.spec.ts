@@ -1,10 +1,14 @@
 import { expect, test } from '@playwright/test';
 
+/** The gallery opens on the recommended templates: show all of them. */
+const showAll = (page: import('@playwright/test').Page) => page.getByRole('button', { name: 'All', exact: true }).click();
+
 const card = (page: import('@playwright/test').Page, name: string) =>
   page.getByRole('region', { name: 'Start from a Template' }).getByRole('listitem').filter({ has: page.getByText(name, { exact: true }) });
 
 test('gallery cards show real facts and real code, never invented ones', async ({ page }) => {
   await page.goto('/');
+  await showAll(page);
   const figures = card(page, 'Key Figures');
   await expect(figures.getByText('templates', { exact: true })).toBeVisible();
   await expect(figures.getByText('00')).toHaveCount(0);
@@ -17,6 +21,7 @@ test('gallery cards show real facts and real code, never invented ones', async (
 
 test('App Store is previewed as a row of iPhone screens, one caption each', async ({ page }) => {
   await page.goto('/');
+  await showAll(page);
   const store = card(page, 'App Store');
   for (const caption of ['Every format at once', 'Your brand, from your logo', 'Nothing leaves your device']) {
     await expect(store.locator('h1', { hasText: caption })).toHaveCount(1);
@@ -25,6 +30,7 @@ test('App Store is previewed as a row of iPhone screens, one caption each', asyn
 
 test('the preview style restyles every card and a card opens in that style', async ({ page }) => {
   await page.goto('/');
+  await showAll(page);
   const styles = page.getByRole('combobox', { name: 'Preview style' });
   await expect(styles).toHaveValue('tint');
   await expect(styles.getByRole('option')).toHaveCount(6);
@@ -38,6 +44,7 @@ test('the preview style restyles every card and a card opens in that style', asy
 
 test('phones and tablets in the gallery show real mobile screens, never a desktop screenshot', async ({ page }) => {
   await page.goto('/');
+  await showAll(page);
   const srcs = async (name: string) => card(page, name).locator('img').evaluateAll((els) => els.map((e) => (e as HTMLImageElement).src.split('/').pop()));
   expect(await srcs('Mobile Trio')).toEqual(expect.arrayContaining(['phone-1.jpg', 'phone-2.jpg', 'phone-3.jpg']));
   expect((await srcs('Mobile Trio')).every((f) => f?.startsWith('phone-'))).toBe(true);
@@ -61,4 +68,14 @@ test('the dashboard shows finished examples that open their template', async ({ 
   await expect(page.getByTestId('save-state')).toHaveText('Saved');
   await page.getByRole('tab', { name: 'Templates' }).click();
   await expect(page.getByRole('button', { name: /^Features/ })).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('the gallery opens on six recommended templates, the others one click away', async ({ page }) => {
+  await page.goto('/');
+  const cards = page.getByRole('region', { name: 'Start from a Template' }).getByRole('listitem');
+  await expect(page.getByRole('button', { name: 'Recommended', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(cards).toHaveCount(6);
+  await page.getByRole('button', { name: 'Show All 21 Templates' }).click();
+  await expect(cards).toHaveCount(21);
+  await expect(page.getByRole('button', { name: 'All', exact: true })).toHaveAttribute('aria-pressed', 'true');
 });

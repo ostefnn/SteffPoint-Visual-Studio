@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getStorageHealth, requestPersistence, type StorageHealth } from '../lib/db';
+import { getStorageHealth, persistenceRefused, requestPersistence, type StorageHealth } from '../lib/db';
 import { Button } from './ui';
 
 import { t } from '../i18n';
@@ -35,7 +35,12 @@ export function StorageStatus({ projectCount }: { projectCount: number }) {
       {h.persisted === true && <span className="text-ok">{t('Protected from automatic clean-up')}</span>}
       {h.persisted === false && projectCount > 0 && (
         <span className="flex flex-wrap items-center gap-2">
-          <span className="text-warn">{t('Your browser may clear this data. Export important projects as JSON.')}</span>
+          {/* A warning only once the browser has actually refused; before that, a plain offer. */}
+          {persistenceRefused() ? (
+            <span className="text-warn">{t('Your browser may clear this data. Export important projects as JSON.')}</span>
+          ) : (
+            <span>{t('Your projects are kept in this browser.')}</span>
+          )}
           <Button size="sm" variant="ghost" onClick={() => requestPersistence().then(refresh)}>
             {t('Ask to Keep Data')}
           </Button>

@@ -41,6 +41,7 @@ import {
   placeholderFields,
   addPlaceholderTexts,
   isPlaceholder,
+  defaultExportPresets,
 } from './index';
 
 describe('Tint and Technical palettes', () => {
@@ -795,5 +796,28 @@ describe('example texts', () => {
     addPlaceholderTexts(['Nom de votre produit (test)']);
     expect(placeholderFields(p)).toContain('Title');
     expect(isPlaceholder('  Nom de votre produit (test) ')).toBe(true);
+  });
+});
+
+describe('default export formats', () => {
+  it('tick two or three formats that suit the template, LinkedIn first', () => {
+    expect(createProject().exportPresets).toEqual(['linkedin', 'linkedin-carousel', 'open-graph']);
+    expect(createProject({ template: 'mobile-trio' }).exportPresets).toEqual(['linkedin-carousel', 'story', 'square']);
+    expect(createProject({ template: 'annotated' }).exportPresets).toEqual(['linkedin-carousel', 'slide']);
+    for (const t of TEMPLATES) {
+      const list = defaultExportPresets(t.id);
+      expect(list.length).toBeGreaterThanOrEqual(2);
+      expect(list.length).toBeLessThanOrEqual(3);
+      expect(list.every((f) => FORMAT_ORDER.includes(f))).toBe(true);
+    }
+  });
+
+  it('keep the formats saved with a project, and the old list for files that name none', () => {
+    expect(migrateProject({ exportPresets: ['github'] }).exportPresets).toEqual(['github']);
+    expect(migrateProject({}).exportPresets).toEqual(['linkedin', 'open-graph', 'square', 'story', 'github']);
+  });
+
+  it('put LinkedIn and Microsoft 365 formats first', () => {
+    expect(FORMAT_GROUPS.map((g) => g.label).slice(0, 2)).toEqual(['Social', 'Microsoft 365 and e-mail']);
   });
 });

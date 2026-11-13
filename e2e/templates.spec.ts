@@ -343,6 +343,7 @@ test('portrait formats show the whole screenshot width, right under the text', a
   await titleBox(page).fill('Cockpit 365');
   await addScreenshot(page, 'split-cyan-magenta.png'); // left half cyan, right half magenta
   await page.getByRole('button', { name: 'Export', exact: true }).click();
+  await page.getByRole('dialog').getByRole('checkbox', { name: /^Story 9:16/ }).check();
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: /Export ZIP/ }).click()]);
   const story = await (await readZip(download)).file('story@2x.png')!.async('uint8array');
   // Both edges of the screenshot are on the image: it is not cropped at the sides any more.

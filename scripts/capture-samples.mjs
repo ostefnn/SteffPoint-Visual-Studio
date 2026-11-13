@@ -73,6 +73,7 @@ async function setUp(page, { style, template, title, subtitle, kicker = '' }) {
  */
 async function realFigures(page) {
   await page.goto(BASE);
+  await page.getByRole('button', { name: 'All', exact: true }).click(); // the gallery opens on Recommended
   const card = page.getByRole('listitem').filter({ has: page.getByText('Key Figures', { exact: true }) });
   const text = await card.innerText();
   const out = [];

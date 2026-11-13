@@ -153,13 +153,13 @@ Every template adapts its layout to landscape, square, portrait and very wide (b
 | E-mail Header | 600 × 200 | Newsletter header (export at 2×) |
 | Custom | 64 – 4096 px | Any size |
 
-Formats are grouped by use in the Export dialog (Social, Developers, App stores, Microsoft 365 and e-mail). Platform sizes change: check each platform's current guidelines before publishing.
+Formats are grouped by use in the Export dialog (Social, Microsoft 365 and e-mail, Developers, App stores). A new project ticks two or three formats that suit its template (for example LinkedIn, LinkedIn 4:5 and Open Graph for Browser Hero); the others are one click away. Platform sizes change: check each platform's current guidelines before publishing.
 
 At 2× and 3× the pixel size is multiplied. Very large exports (> ~33 MP) show a warning.
 
 ## How to use
 
-1. **New project** from the dashboard, or click a template to start from it.
+1. **New project** from the dashboard, or click a template to start from it. The gallery opens on six recommended templates for LinkedIn and Microsoft 365 posts; **All** (or *Show All 21 Templates*) lists the others.
 2. **Images** tab (opened first while the project has no screenshot): add 1 to 4 screenshots (click the empty preview or the Add button, drop or paste). The title is then selected so you can type your headline; until you rename the project, its name follows the title.
 3. **Content** panel (right): kicker, title, subtitle, plus the fields of the current template (quote and author, figures, event details, devices and their orientation, desktop frame). Below it, **Layout**: mirror, text position and alignment, and straight, tilted or 3D screens.
 4. **Templates** tab: pick a layout. Previews use your own screenshots.
@@ -182,7 +182,7 @@ Have screenshots of a settings panel with numbered badges and a Markdown report 
 Your work is saved automatically in the browser. Use **JSON** on a project card to back it up, and **Import project** to restore it.
 
 > ℹ️ Data lives in the storage of the browser and site you use. Clearing site data deletes your projects; export JSON backups for anything important.
-> The dashboard shows how much storage is used and whether the browser agreed to keep it ("persistent storage"). Browsers can clear non-persistent site data, for example after a long period without visits.
+> The dashboard shows how much storage is used and whether the browser agreed to keep it ("persistent storage"). The app asks for it when you add images and after each export; the dashboard warns only if the browser refused. Browsers can clear non-persistent site data, for example after a long period without visits. After three exports of a project without `project.json`, the editor offers once to save a copy as JSON.
 
 ### Devices
 

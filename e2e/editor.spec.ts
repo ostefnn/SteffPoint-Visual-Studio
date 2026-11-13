@@ -46,11 +46,15 @@ test('export pack contains every format with the screenshot rendered', async ({ 
   await newProject(page);
   await addScreenshot(page, 'desktop-magenta.png');
   await page.getByRole('button', { name: 'Export', exact: true }).click();
+  // Browser Hero ticks LinkedIn, LinkedIn 4:5 and Open Graph; add a square and a tall format.
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('checkbox', { name: /^Square 1:1/ }).check();
+  await dialog.getByRole('checkbox', { name: /^Story 9:16/ }).check();
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: /Export ZIP/ }).click()]);
   const zip = await readZip(download);
 
   expect(Object.keys(zip.files).sort()).toEqual(
-    ['github@2x.png', 'linkedin@2x.png', 'open-graph@2x.png', 'project.json', 'square@2x.png', 'story@2x.png'].sort(),
+    ['linkedin-carousel@2x.png', 'linkedin@2x.png', 'open-graph@2x.png', 'project.json', 'square@2x.png', 'story@2x.png'].sort(),
   );
 
   // Browser Hero: the screenshot sits inside the browser frame.
