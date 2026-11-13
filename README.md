@@ -53,10 +53,14 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 |---|---|
 | 🗂️ **Projects** | Create, rename, duplicate, delete, favourite, search. Automatic thumbnails. Autosave. |
 | 💾 **Local storage** | Projects, images and thumbnails stored in IndexedDB. Close the tab, come back later, everything is there. |
-| 🧩 **16 templates** | Browser Hero, Device Mix, App Store, Browser Duo, Mobile Trio, Bento, Spotlight, Before / After, Testimonial, Key Figures, Event, Features, Code, Annotated Panel, Editorial, Minimal. |
+| 🧩 **21 templates** | Browser Hero, Device Mix, App Store, Browser Duo, Mobile Trio, Bento, Spotlight, Before / After, Detail Zoom, Cover, Testimonial, Key Figures, Event, Features, Steps, Comparison, Code, Annotated Panel, Editorial, Call to Action, Minimal. |
+| 🔗 **Brand footer** | Optional line along the bottom of every visual with your logo and website or handle; carousel pages add “Swipe →” except the last. |
+| 🧭 **Layout** | Works on every template: **Mirror** (text on the other side), **text position** (above or below the screens; beside them, aligned to the top or bottom), **text alignment** (left, centre, right) and **screens** straight, tilted or in 3D. *Auto* keeps each template's own layout. Shared by every format and carousel page. |
 | 🖼️ **Screenshots** | Up to 4 per project. Add by click, drag & drop anywhere, or paste (Ctrl/Cmd+V). Desktop screenshots can sit in a browser, a macOS window, no frame, or a laptop. |
+| 🕶️ **Hide sensitive areas** | Drag over names, e-mail addresses or ids in a screenshot: they are covered by opaque bars in every image, the Detail Zoom lens included. Non destructive: the original stays in the project and in `project.json`. |
 | 🎯 **Crop & focal point** | Crop each edge, cover / contain, zoom in or out (0.5×–3×), and a focal point that stays visible when the layout changes between landscape, square and portrait. |
 | ✒️ **Styles** | One click sets typefaces, title scale, kicker, frames, shadows and background for every template: **Minimal** (default), **Editorial**, **Bold**, or **Soft** (the original look, kept as an option). Fonts are bundled, so exports look the same on every computer. |
+| 🧳 **Brand kits** | Save a project's style, colour, theme, logo, footer and link, background and desktop frame as a named kit (Brand tab). Apply it to any project in one click (one undo step), or pick it on the dashboard so every new project starts with it. Stored in the browser like projects. |
 | 🎨 **Brand** | One primary colour → derived palette (accents stay in your brand's hue outside Soft). Light / dark theme, corner radius, logo (small / medium / large); heading font and shadow in Soft. Importing a logo samples its dominant colours on a canvas: the main brand colour becomes the primary (one undo step), the others are offered as one-click swatches. |
 | 🌈 **Backgrounds** | Solid, gradient, soft glow, grid, mesh, with intensity and angle. |
 | 📐 **Multi-format preview** | Every format previewed live, side by side. |
@@ -64,8 +68,9 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 | 🛟 **Safe zones** | Overlay showing where platform UI may cover your visual (e.g. stories, profile banners). |
 | ↩️ **Undo / redo** | Bounded history (60 steps); rapid edits like typing or sliders are merged into one step. |
 | 📦 **Export** | PNG, JPEG or WebP at 1×, 2× or 3×. One image, or a ZIP with every selected format plus `project.json`. |
-| 🗂️ **LinkedIn carousel** | A multi-page PDF for a LinkedIn document post, with 4:5 (default), 1:1 or 16:9 pages. Automatic pages (cover, one per screenshot, features), or your own: a template per page, page-specific kicker/title/subtitle and screenshots, add, duplicate, reorder (drag, buttons or Alt+↑/↓). Up to 12 pages, with carousel-specific advice. |
+| 🗂️ **LinkedIn carousel** | A multi-page PDF for a LinkedIn document post, with 4:5 (default), 1:1 or 16:9 pages. Automatic pages (cover, one per screenshot, features), or your own: a template per page, page-specific content (texts, features, steps, figures, table… choose **This page** in the Content panel) and screenshots, add, duplicate, reorder (drag, buttons or Alt+↑/↓). Up to 12 pages, with carousel-specific advice. |
 | 💡 **Smart suggestions** | Deterministic checks, no AI: title length, WCAG AA contrast, legibility in feeds, wrong template or device for the screenshot orientation, images or logo too small for the export size, missing quote author, figures or event date. Informative only, never blocks export. |
+| 🌍 **English, French, Dutch** | The whole interface, suggestions and messages in EN, FR or NL (dashboard, top right). Detected from the browser, remembered per browser. New projects start with placeholder content in that language. |
 | 🔁 **Import / export JSON** | Portable project file with images embedded. Backup, move between browsers, share. |
 
 ![Dashboard](docs/images/dashboard.png)
@@ -99,13 +104,18 @@ Projects created before styles existed open in **Soft**, unchanged. Picking a st
 | **Bento** | Feature overview | 1–3 |
 | **Spotlight** | One hero screenshot with a brand glow | 1 |
 | **Before / After** | Redesigns, SharePoint/SPFx makeovers, UX improvements | 2 |
+| **Detail Zoom** | The whole screenshot plus a lens that magnifies its focal point (1.5×–5×), so a detail stays legible in a feed | 1 |
+| **Cover** | Article, video and news covers: the image full bleed under a dark veil, the headline on top | 0–1 |
 | **Testimonial** | Customer quote with photo (or initials), name and role | 0–1 (photo) |
 | **Key Figures** | 2–4 big numbers: users, ratings, time saved | 0 |
 | **Event** | Webinars, meetups, launches: date, time, place, speakers and a call to action | 0–3 (speaker photos) |
 | **Features** | “What’s new”, release notes, feature highlights (up to 4 items) | 0 |
+| **Steps** | “How it works”, getting started: 2 to 5 numbered steps with a short text | 0 |
+| **Comparison** | Your product against another way: criteria, 2 or 3 columns, ticks and crosses (type yes / no, oui / non, ja / nee) or short values; the last column is highlighted | 0 |
 | **Code** | Code snippet in an editor window, with light syntax colouring | 0 |
 | **Annotated Panel** | A settings panel (or any UI) with numbered call-outs, next to its legend: field name, property, greyed when disabled. Import a capture report to get one page per group | 1 |
 | **Editorial** | Articles, announcements, blog covers | 0–1 |
+| **Call to Action** | Closing page: a button, your link and an optional QR code (encoded locally) | 0 |
 | **Minimal** | Text-only announcements | 0 |
 
 Every template adapts its layout to landscape, square, portrait and very wide (banner) formats.
@@ -124,11 +134,23 @@ Every template adapts its layout to landscape, square, portrait and very wide (b
 | GitHub | 1280 × 640 | Repository social preview |
 | Product Hunt | 1270 × 760 | Gallery image |
 | Banner | 1584 × 396 | Profile banner; avatar covers bottom-left |
-| Thumbnail 16:9 | 1280 × 720 | Video / article thumbnail |
+| Thumbnail 16:9 | 1280 × 720 | Video / article thumbnail; also YouTube thumbnails and Microsoft AppSource screenshots |
 | App Store iPhone | 1320 × 2868 | iPhone 6.9" store screenshot (export at 1×) |
 | App Store iPad | 2064 × 2752 | iPad 13" store screenshot (export at 1×) |
 | Mac App Store | 2880 × 1800 | Mac store screenshot (export at 1×) |
+| LinkedIn Company | 1128 × 191 | Company page cover; the template starts right of the page logo |
+| YouTube Banner | 2560 × 1440 | Channel art; the template is drawn in the centre band (1546 × 423) every device shows |
+| Google Play Feature | 1024 × 500 | Feature graphic |
+| Google Play Phone | 1080 × 1920 | Phone screenshot |
+| Teams Store | 1366 × 768 | Microsoft Teams app store screenshot |
+| Chrome Web Store | 1280 × 800 | Chrome and Edge extension screenshot |
+| Extension Promo | 440 × 280 | Small promo tile |
+| SharePoint News | 1920 × 1080 | News and page images; SharePoint crops them, keep the text in the middle |
+| Slide 16:9 | 1920 × 1080 | PowerPoint slide, Teams background |
+| E-mail Header | 600 × 200 | Newsletter header (export at 2×) |
 | Custom | 64 – 4096 px | Any size |
+
+Formats are grouped by use in the Export dialog (Social, Developers, App stores, Microsoft 365 and e-mail). Platform sizes change: check each platform's current guidelines before publishing.
 
 At 2× and 3× the pixel size is multiplied. Very large exports (> ~33 MP) show a warning.
 
@@ -136,7 +158,7 @@ At 2× and 3× the pixel size is multiplied. Very large exports (> ~33 MP) show 
 
 1. **New project** from the dashboard, or click a template to start from it.
 2. **Images** tab: add 1 to 4 screenshots (click, drop or paste).
-3. **Content** panel (right): kicker, title, subtitle, plus the fields of the current template (quote and author, figures, event details, devices and their orientation, desktop frame).
+3. **Content** panel (right): kicker, title, subtitle, plus the fields of the current template (quote and author, figures, event details, devices and their orientation, desktop frame). Below it, **Layout**: mirror, text position and alignment, and straight, tilted or 3D screens.
 4. **Templates** tab: pick a layout. Previews use your own screenshots.
 5. **Brand** tab: pick a **style** first, then colour, theme, radius, logo and its size (heading font and shadow in Soft). Best logo file: a transparent PNG or WebP cropped tight, at least 512 × 512 px for an icon or 800 px wide for a wordmark.
 6. **Background** tab: style and intensity.
@@ -204,10 +226,12 @@ Open http://localhost:5173.
 | `npm run dev` | Start the dev server |
 | `npm run build` | Typecheck and build to `apps/web/dist` |
 | `npm run preview` | Serve the production build locally |
-| `npm test` | Unit tests (`packages/visual-core`, Vitest) |
+| `npm test` | Unit tests (`packages/visual-core`, Vitest) and the translation check |
 | `npm run e2e` | End-to-end tests (Playwright) on Chromium, Firefox, WebKit, iPhone and iPad emulation |
 | `npm run samples` | Recapture the phone and tablet screens shown in the template gallery (`apps/web/public/samples`); needs `npm run build && npm run preview -w @svs/web -- --port 4173` running |
 | `npm run typecheck` | TypeScript check of all workspaces |
+
+Interface texts are written in English and wrapped in `t()` (`apps/web/src/i18n`); `fr.ts` and `nl.ts` map each English text to its translation. `npm test` fails if a text has no French or Dutch translation (`scripts/check-i18n.mjs`); texts built at run time are listed in `i18n/extra-keys.json`.
 
 ## Deployment
 
@@ -252,14 +276,16 @@ Exported `project.json` / `*.svs.json`:
       "kicker": "New release", "title": "Cockpit SteffPoint", "subtitle": "One cockpit. All my environments.",
       "quote": "…", "author": "…", "authorRole": "…",
       "stats": [{ "value": "10k+", "label": "Visuals exported" }],
-      "eventDate": "…", "eventTime": "…", "eventPlace": "…", "cta": "…"
+      "eventDate": "…", "eventTime": "…", "eventPlace": "…", "cta": "…",
+      "link": "https://example.com", "qr": false
     },
-    "brand": { "primary": "#0078d4", "theme": "light", "headingFont": "sans", "radius": 0.5, "shadow": 0.5, "logoAssetId": null, "logoSize": "medium" },
+    "brand": { "primary": "#0078d4", "theme": "light", "headingFont": "sans", "radius": 0.5, "shadow": 0.5, "logoAssetId": null, "logoSize": "medium", "style": "minimal", "footer": false },
     "background": { "type": "glow", "intensity": 0.6, "angle": 135 },
     "assets": [{ "id": "ast_…", "name": "home.png", "mime": "image/png", "width": 1600, "height": 1000, "size": 123456 }],
     "screenshots": [{
       "id": "shot_…", "assetId": "ast_…", "fit": "cover", "zoom": 1, "focalX": 0.5, "focalY": 0,
-      "crop": { "top": 0, "right": 0, "bottom": 0, "left": 0 }
+      "crop": { "top": 0, "right": 0, "bottom": 0, "left": 0 },
+      "redact": [{ "x": 0.62, "y": 0.04, "w": 0.2, "h": 0.05 }]
     }],
     "exportPresets": ["linkedin", "open-graph", "square"],
     "carousel": {
@@ -273,7 +299,8 @@ Exported `project.json` / `*.svs.json`:
     "customFormat": { "width": 1600, "height": 900 },
     "devices": ["desktop", "mobile"],
     "deviceOrientation": { "tablet": "portrait", "mobile": "portrait" },
-    "desktopFrame": "browser"
+    "desktopFrame": "browser",
+    "layout": { "mirror": false, "textPosition": "auto", "textAlign": "auto", "tilt": "none" }
   },
   "assets": { "ast_…": "data:image/png;base64,…" }
 }
@@ -281,7 +308,9 @@ Exported `project.json` / `*.svs.json`:
 
 `schemaVersion` lets future versions migrate older files. Every import goes through `migrateProject()`, which drops unknown fields, clamps values, removes dangling references and fills newer fields with defaults, so files from earlier versions open unchanged. Projects that used the retired *Desktop + Mobile* template open as *Device Mix* with desktop and mobile.
 
-In `carousel.slides`, each page is a **variant**: a template, optional `content` overrides (a missing `kicker`, `title` or `subtitle` uses the project's), and `screenshotIds` (`null` = the project's screenshots). An empty `slides` list means automatic pages. `pageSize` is `"4:5"`, `"1:1"` or `"16:9"`.
+`layout` holds the layout options: `mirror` (boolean), `textPosition` (`"auto"`, `"top"`, `"bottom"`), `textAlign` (`"auto"`, `"left"`, `"center"`, `"right"`) and `tilt` (`"none"`, `"tilt"`, `"perspective"`). Mirror is ignored by centred templates (App Store, Minimal, Testimonial); tilt only applies to templates that draw screens in frames.
+
+In `carousel.slides`, each page is a **variant**: a template, optional `content` overrides (any content field; a missing one uses the project's), and `screenshotIds` (`null` = the project's screenshots). An empty `slides` list means automatic pages. `pageSize` is `"4:5"`, `"1:1"` or `"16:9"`.
 
 ## Architecture
 
@@ -341,7 +370,7 @@ Found a security issue? Please open a private security advisory on GitHub rather
 
 **V1 — Better Cover Studio** (this release): projects, IndexedDB, autosave, JSON, 16 templates (including Device Mix, App Store, Testimonial, Key Figures, Event, Annotated Panel with legend import), device and laptop frames, App Store formats, crop/zoom/focal point, brand with logo size, undo/redo, safe zones, custom sizes, PNG/JPEG/WebP, ZIP export, LinkedIn carousel PDF.
 
-**V2 — Visual Studio:** reusable Brand Kits, Asset Manager, variants beyond the carousel (Original / Dark / Minimal…, built on the same `Variant` model), more Before/After modes (split, slider), richer accessibility checks, FR / NL / EN interface.
+**V2 — Visual Studio:** Asset Manager, variants beyond the carousel (Original / Dark / Minimal…, built on the same `Variant` model), more Before/After modes (split, slider), richer accessibility checks.
 
 **V3 — Visual Platform:** optional cloud sync and teams, batch generator (CSV/JSON), URL capture service, render API, CMS integrations, AI-assisted copy. Remote features will always be opt-in and clearly labelled.
 
@@ -354,7 +383,7 @@ Issues and pull requests are welcome.
 1. Fork and create a branch.
 2. `npm install`, then `npm test && npm run typecheck && npm run build`.
 3. Keep the product principle in mind: **a professional result in two minutes, without being a designer.** Prefer fewer, better options.
-4. New templates: add the definition in `packages/visual-core/src/templates.ts` and the layout in `apps/web/src/render/Composition.tsx`, and make sure it looks right in landscape, square, portrait and banner formats.
+4. New templates: add the definition in `packages/visual-core/src/templates.ts` and the layout in `apps/web/src/render/Composition.tsx`, and make sure it looks right in landscape, square, portrait and banner formats. Mirror, text position and tilt work on its top-level boxes without extra code; list the template in `MIRROR_TEMPLATES` or `TILT_TEMPLATES` when those options make sense for it.
 
 ## License & credits
 

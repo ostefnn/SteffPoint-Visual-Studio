@@ -16,6 +16,7 @@ It includes or depends on the third-party software listed below. Each package ke
 | jszip | 3.10.2 | MIT or GPL-3.0-or-later — **used under MIT** | https://github.com/Stuk/jszip |
 | pako | 1.0.11 | MIT and Zlib | https://github.com/nodeca/pako |
 | pdf-lib | 1.17.1 | MIT | https://github.com/Hopding/pdf-lib |
+| qrcode-generator | 1.4.4 | MIT (“QR Code” is a registered trademark of DENSO WAVE INCORPORATED) | https://github.com/kazuhikoarase/qrcode-generator |
 | @pdf-lib/standard-fonts | 1.0.0 | MIT | https://github.com/Hopding/standard-fonts |
 | @pdf-lib/upng | 1.0.1 | MIT | https://github.com/Hopding/upng |
 | tslib | 1.14.1 | 0BSD | https://github.com/microsoft/tslib |

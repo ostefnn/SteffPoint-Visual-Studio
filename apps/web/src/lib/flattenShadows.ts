@@ -60,6 +60,17 @@ function corner(value: string, w: number, h: number): [number, number] {
   return [rx, parts[1] ? px(parts[1], h) : px(parts[0], h)];
 }
 
+/** A computed transform that does more than move the box (rotation, scale, perspective). */
+const reshapes = (t: string) => t !== 'none' && !/^matrix\(1, 0, 0, 1, [^,]+, [^)]+\)$/.test(t);
+
+/** Whether the element sits in a rotated or perspective group (the Tilted and 3D layouts). */
+function inReshapedGroup(el: HTMLElement, root: HTMLElement): boolean {
+  for (let n: HTMLElement | null = el.parentElement; n && n !== root; n = n.parentElement) {
+    if (reshapes(getComputedStyle(n).transform)) return true;
+  }
+  return false;
+}
+
 export function flattenShadows(root: HTMLElement): void {
   const elements = [...root.querySelectorAll<HTMLElement>('*')];
   for (const el of elements) {
@@ -77,10 +88,20 @@ export function flattenShadows(root: HTMLElement): void {
     // Paint the element above its shadow: positioned boxes with the same z-index paint in tree order.
     if (cs.position === 'static') el.style.position = 'relative';
 
-    const origin = layer.getBoundingClientRect();
-    const box = el.getBoundingClientRect();
-    const left = box.left - origin.left;
-    const top = box.top - origin.top;
+    // Screen rectangles are rotated and projected inside a tilted group, so measure in the group's own
+    // (untransformed) coordinates there: the shadow layer turns with the group like the element does.
+    let left: number, top: number, box: { width: number; height: number };
+    if (inReshapedGroup(el, root)) {
+      left = el.offsetLeft - layer.offsetLeft;
+      top = el.offsetTop - layer.offsetTop;
+      box = { width: el.offsetWidth, height: el.offsetHeight };
+    } else {
+      const origin = layer.getBoundingClientRect();
+      const rect = el.getBoundingClientRect();
+      left = rect.left - origin.left;
+      top = rect.top - origin.top;
+      box = rect;
+    }
     const corners = [cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomRightRadius, cs.borderBottomLeftRadius].map((c) =>
       corner(c, box.width, box.height),
     );

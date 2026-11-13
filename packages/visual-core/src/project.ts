@@ -43,6 +43,18 @@ export const LIMITS = {
   /** Event template. */
   eventField: 50,
   cta: 30,
+  /** Website or handle, shown in the brand footer and on the Call to Action page. */
+  link: 80,
+  /** Steps template. */
+  stepItems: 5,
+  stepTitle: 40,
+  stepText: 100,
+  /** Comparison template: columns compared (besides the criteria), criteria rows, cell text. */
+  compareColumns: 3,
+  compareRows: 6,
+  compareHeader: 30,
+  compareLabel: 50,
+  compareCell: 24,
   /** Enough for one image per page of a full carousel. */
   screenshots: 12,
   fileBytes: 20 * 1024 * 1024,
@@ -75,6 +87,30 @@ export interface ScreenshotSlot {
   caption: string;
   /** Numbered fields drawn in the image, for the Annotated Panel template. Item i answers badge i + 1. */
   legend: LegendItem[];
+  /**
+   * Areas covered in every rendered image (names, e-mails, tenant ids…), as fractions of the
+   * whole image. Non destructive: the original stays in the project and in project.json.
+   */
+  redact: Area[];
+}
+
+/** A rectangle as fractions (0 – 1) of an image's width and height. */
+export interface Area {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+export const MAX_REDACTIONS = 12;
+
+export function clampArea(a: Partial<Record<keyof Area, unknown>>): Area | null {
+  const f = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : NaN);
+  const x = f(a.x);
+  const y = f(a.y);
+  const w = Math.min(f(a.w), 1 - x);
+  const h = Math.min(f(a.h), 1 - y);
+  return [x, y, w, h].some(Number.isNaN) || w < 0.002 || h < 0.002 ? null : { x, y, w, h };
 }
 
 export interface Crop {
@@ -88,6 +124,7 @@ export const NO_CROP: Crop = { top: 0, right: 0, bottom: 0, left: 0 };
 /** Each edge can trim up to this fraction, so at least 10% of the image always remains. */
 export const CROP_MAX = 0.45;
 export const ZOOM_RANGE = { min: 0.5, max: 3 } as const;
+export const MAGNIFY_RANGE = { min: 1.5, max: 5 } as const;
 
 export function clampCrop(c: Partial<Record<keyof Crop, unknown>> | undefined): Crop {
   const f = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? Math.min(CROP_MAX, Math.max(0, v)) : 0);
@@ -104,7 +141,37 @@ export interface Brand {
   logoSize: LogoSize;
   /** Style preset (see styles.ts). Projects created before styles existed open as Soft. */
   style: StyleId;
+  /** A footer line on every visual: logo and link (and "Swipe" on carousel pages). */
+  footer: boolean;
 }
+
+/** Where the text block sits. `auto` keeps the template's own placement. */
+export type TextPosition = 'auto' | 'top' | 'bottom';
+export const TEXT_POSITIONS: readonly TextPosition[] = ['auto', 'top', 'bottom'];
+export type TextAlign = 'auto' | 'left' | 'center' | 'right';
+export const TEXT_ALIGNS: readonly TextAlign[] = ['auto', 'left', 'center', 'right'];
+/** Screens drawn straight, slightly rotated, or turned in perspective. */
+export type Tilt = 'none' | 'tilt' | 'perspective';
+export const TILTS: readonly Tilt[] = ['none', 'tilt', 'perspective'];
+
+/**
+ * Layout options shared by every template. The defaults reproduce each template's own layout,
+ * so projects saved before these options existed look the same.
+ */
+export interface LayoutSettings {
+  /** Swap left and right: the text goes to the other side (see MIRROR_TEMPLATES). */
+  mirror: boolean;
+  /**
+   * Stacked layouts (text above the screens): `bottom` puts the text below them.
+   * Side-by-side and text-only layouts: aligns the text block to the top or bottom.
+   */
+  textPosition: TextPosition;
+  textAlign: TextAlign;
+  /** See TILT_TEMPLATES. */
+  tilt: Tilt;
+}
+
+export const DEFAULT_LAYOUT: LayoutSettings = { mirror: false, textPosition: 'auto', textAlign: 'auto', tilt: 'none' };
 
 export interface Background {
   type: BackgroundType;
@@ -134,7 +201,33 @@ export interface Content {
   eventDate: string;
   eventTime: string;
   eventPlace: string;
+  /** Button text (Event, Call to Action). */
   cta: string;
+  /** Website, page or handle. Shown in the brand footer and the Call to Action page. */
+  link: string;
+  /** Call to Action: draw a QR code of the link. */
+  qr: boolean;
+  /** Steps template (max LIMITS.stepItems). */
+  steps: Step[];
+  /** Comparison template. */
+  compare: Comparison;
+  /** Detail Zoom: how much the lens enlarges the focal point of the screenshot. */
+  magnify: number;
+}
+
+export interface Step {
+  title: string;
+  text: string;
+}
+
+/**
+ * A comparison table: criteria down the side, 2 or 3 columns across. The last column is the one
+ * being recommended and is highlighted. A cell reading yes / no (in English, French or Dutch) is
+ * drawn as a tick or a cross; anything else is written as is.
+ */
+export interface Comparison {
+  columns: string[];
+  rows: { label: string; cells: string[] }[];
 }
 
 export interface Stat {
@@ -167,16 +260,24 @@ export interface Project {
   desktopFrame: DesktopFrame;
   /** LinkedIn carousel. With no slides, pages are generated from the project. */
   carousel: CarouselSettings;
+  /** Mirror, text position and alignment, tilt. Shared by the carousel pages. */
+  layout: LayoutSettings;
+  /**
+   * Runtime only, never saved: set on the project of a carousel page so the footer can invite
+   * people to swipe. `migrateProject` drops it.
+   */
+  carouselPage?: { index: number; total: number };
 }
 
-/** Text a variant can replace. A missing key inherits the project's text. */
-export type ContentOverrides = Partial<Pick<Content, 'kicker' | 'title' | 'subtitle'>>;
+/** Content a variant (carousel page) replaces. A missing key inherits the project's content. */
+export type ContentOverrides = Partial<Content>;
+/** The texts the carousel page editor offers with a "Same as project" switch. */
 export const OVERRIDABLE_CONTENT = ['kicker', 'title', 'subtitle'] as const;
 
 /**
- * A variant re-presents the project: its own template, optionally its own text and its own
- * selection of screenshots. Brand, background, images and template-specific content
- * (features, code, figures…) are always shared with the project, so they stay consistent.
+ * A variant re-presents the project: its own template, optionally its own content (texts,
+ * features, figures, steps…) and its own selection of screenshots. Brand, background and images
+ * are always shared with the project, so pages stay consistent.
  */
 export interface Variant {
   id: string;
@@ -211,7 +312,7 @@ export function applyVariant(project: Project, v: Variant): Project {
   const screenshots =
     v.screenshotIds === null ? project.screenshots : v.screenshotIds.map((id) => byId.get(id)).filter((s): s is ScreenshotSlot => !!s);
   const overrides: ContentOverrides = {};
-  for (const k of OVERRIDABLE_CONTENT) if (typeof v.content[k] === 'string') overrides[k] = v.content[k];
+  for (const k of CONTENT_KEYS) if (v.content[k] !== undefined) (overrides as Record<string, unknown>)[k] = v.content[k];
   return { ...project, template: v.template, screenshots, content: { ...project.content, ...overrides } };
 }
 
@@ -265,8 +366,24 @@ export function createProject(init: Partial<Pick<Project, 'name' | 'template'>> 
       eventTime: 'Start to end time',
       eventPlace: 'Place or link',
       cta: 'Register',
+      link: '',
+      qr: false,
+      steps: [
+        { title: 'First step', text: 'What people do first, in one short sentence.' },
+        { title: 'Second step', text: 'What happens next.' },
+        { title: 'Third step', text: 'The result they get.' },
+      ],
+      compare: {
+        columns: ['Other way', 'Your product'],
+        rows: [
+          { label: 'Replace with a real criterion', cells: ['no', 'yes'] },
+          { label: 'Replace with a real criterion', cells: ['no', 'yes'] },
+          { label: 'Replace with a real criterion', cells: ['no', 'yes'] },
+        ],
+      },
+      magnify: 2.5,
     },
-    brand: { primary: '#2b59c3', theme: 'light', headingFont: 'sans', radius: 0.5, shadow: 0.5, logoAssetId: null, logoSize: 'medium', style: 'minimal' },
+    brand: { primary: '#2b59c3', theme: 'light', headingFont: 'sans', radius: 0.5, shadow: 0.5, logoAssetId: null, logoSize: 'medium', style: 'minimal', footer: false },
     background: { type: STYLES.minimal.defaults.background, intensity: 0.6, angle: 135 },
     assets: [],
     screenshots: [],
@@ -276,6 +393,7 @@ export function createProject(init: Partial<Pick<Project, 'name' | 'template'>> 
     deviceOrientation: { tablet: 'portrait', mobile: 'portrait' },
     desktopFrame: STYLES.minimal.defaults.desktopFrame,
     carousel: { slides: [], pageNumbers: true, pageSize: '4:5' },
+    layout: { ...DEFAULT_LAYOUT },
   };
 }
 
@@ -295,7 +413,7 @@ export function screenshotRange(p: Pick<Project, 'template' | 'devices'>): { min
 }
 
 export function createScreenshotSlot(assetId: string): ScreenshotSlot {
-  return { id: uid('shot'), assetId, fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { ...NO_CROP }, caption: '', legend: [] };
+  return { id: uid('shot'), assetId, fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { ...NO_CROP }, caption: '', legend: [], redact: [] };
 }
 
 // ---------------------------------------------------------------------------
@@ -345,6 +463,7 @@ export function migrateProject(raw: unknown): Project {
   const bg = obj(r.background);
   const custom = obj(r.customFormat);
   const orient = obj(r.deviceOrientation);
+  const layout = obj(r.layout);
 
   const assets: AssetRef[] = Array.isArray(r.assets)
     ? r.assets
@@ -376,8 +495,16 @@ export function migrateProject(raw: unknown): Project {
           crop: clampCrop(obj(s.crop)),
           caption: str(s.caption, '', LIMITS.caption).replace(/\n/g, ' '),
           legend: normalizeLegend(s.legend),
+          redact: Array.isArray(s.redact)
+            ? s.redact
+                .map((a) => clampArea(obj(a)))
+                .filter((a): a is Area => !!a)
+                .slice(0, MAX_REDACTIONS)
+            : [],
         }))
     : [];
+
+  const migrated = migrateContent(content, d.content);
 
   // "Desktop + Mobile" (browser-mobile) was replaced by Device Mix with the same two devices.
   const legacyDesktopMobile = r.template === 'browser-mobile';
@@ -397,37 +524,7 @@ export function migrateProject(raw: unknown): Project {
     revision: Math.floor(num(r.revision, 0, 0, Number.MAX_SAFE_INTEGER)),
     favorite: r.favorite === true,
     template: legacyDesktopMobile ? 'device-mix' : isTemplateId(r.template) ? r.template : d.template,
-    content: {
-      kicker: str(content.kicker, d.content.kicker, LIMITS.kicker),
-      title: str(content.title, d.content.title, LIMITS.title),
-      subtitle: str(content.subtitle, d.content.subtitle, LIMITS.subtitle),
-      beforeLabel: str(content.beforeLabel, d.content.beforeLabel, LIMITS.label),
-      afterLabel: str(content.afterLabel, d.content.afterLabel, LIMITS.label),
-      features: Array.isArray(content.features)
-        ? content.features
-            .filter((f): f is string => typeof f === 'string')
-            .slice(0, LIMITS.featureItems)
-            .map((f) => sanitizeText(f).replace(/\n/g, ' ').slice(0, LIMITS.feature))
-        : d.content.features,
-      code: typeof content.code === 'string' ? clampCode(sanitizeText(content.code)) : d.content.code,
-      codeFile: str(content.codeFile, d.content.codeFile, LIMITS.codeFile).replace(/\n/g, ' '),
-      quote: str(content.quote, d.content.quote, LIMITS.quote),
-      author: str(content.author, d.content.author, LIMITS.person).replace(/\n/g, ' '),
-      authorRole: str(content.authorRole, d.content.authorRole, LIMITS.person).replace(/\n/g, ' '),
-      stats: Array.isArray(content.stats)
-        ? content.stats
-            .map(obj)
-            .slice(0, LIMITS.statItems)
-            .map((s) => ({
-              value: str(s.value, '', LIMITS.statValue).replace(/\n/g, ' '),
-              label: str(s.label, '', LIMITS.statLabel).replace(/\n/g, ' '),
-            }))
-        : d.content.stats,
-      eventDate: str(content.eventDate, d.content.eventDate, LIMITS.eventField).replace(/\n/g, ' '),
-      eventTime: str(content.eventTime, d.content.eventTime, LIMITS.eventField).replace(/\n/g, ' '),
-      eventPlace: str(content.eventPlace, d.content.eventPlace, LIMITS.eventField).replace(/\n/g, ' '),
-      cta: str(content.cta, d.content.cta, LIMITS.cta).replace(/\n/g, ' '),
-    },
+    content: migrated,
     brand: {
       primary: isHexColor(brand.primary) ? brand.primary : d.brand.primary,
       theme: oneOf(brand.theme, ['light', 'dark'] as const, d.brand.theme),
@@ -438,6 +535,7 @@ export function migrateProject(raw: unknown): Project {
       logoSize: oneOf(brand.logoSize, LOGO_SIZES, d.brand.logoSize),
       // Projects saved before styles existed keep their original (Soft) look.
       style: legacy ? 'soft' : oneOf(brand.style, STYLE_IDS, d.brand.style),
+      footer: brand.footer === true,
     },
     background: {
       type: oneOf(bg.type, ['solid', 'gradient', 'glow', 'grid', 'mesh'] as const, legacy ? STYLES.soft.defaults.background : d.background.type),
@@ -457,27 +555,106 @@ export function migrateProject(raw: unknown): Project {
       mobile: oneOf(orient.mobile, ['portrait', 'landscape'] as const, 'portrait'),
     },
     desktopFrame: oneOf(r.desktopFrame, DESKTOP_FRAMES, legacy ? STYLES.soft.defaults.desktopFrame : d.desktopFrame),
-    carousel: migrateCarousel(obj(r.carousel), new Set(screenshots.map((x) => x.id))),
+    carousel: migrateCarousel(obj(r.carousel), new Set(screenshots.map((x) => x.id)), migrated),
+    layout: {
+      mirror: layout.mirror === true,
+      textPosition: oneOf(layout.textPosition, TEXT_POSITIONS, 'auto'),
+      textAlign: oneOf(layout.textAlign, TEXT_ALIGNS, 'auto'),
+      tilt: oneOf(layout.tilt, TILTS, 'none'),
+    },
   };
 }
 
-const OVERRIDE_LIMITS: Record<(typeof OVERRIDABLE_CONTENT)[number], number> = {
-  kicker: LIMITS.kicker,
-  title: LIMITS.title,
-  subtitle: LIMITS.subtitle,
-};
+/** Every content field, for merging and comparing page overrides. */
+export const CONTENT_KEYS = Object.keys(createProject().content) as (keyof Content)[];
 
-function migrateCarousel(raw: Record<string, unknown>, slotIds: Set<string>): CarouselSettings {
+const YES_NO = /^(yes|no|oui|non|ja|nee|true|false|✓|✗|x|-)$/i;
+/** How a comparison cell is drawn: a tick, a cross, or its text. */
+export function compareMark(cell: string): 'yes' | 'no' | 'text' {
+  const v = cell.trim();
+  if (!YES_NO.test(v)) return 'text';
+  return /^(yes|oui|ja|true|✓)$/i.test(v) ? 'yes' : 'no';
+}
+
+const line = (v: unknown, max: number) => str(v, '', max).replace(/\s*\n\s*/g, ' ');
+
+function migrateComparison(raw: unknown, fallback: Comparison): Comparison {
+  const c = obj(raw);
+  if (!Array.isArray(c.columns) || !Array.isArray(c.rows)) return fallback;
+  const columns = c.columns.slice(0, LIMITS.compareColumns).map((v) => line(v, LIMITS.compareHeader));
+  while (columns.length < 2) columns.push('');
+  const rows = c.rows
+    .map(obj)
+    .slice(0, LIMITS.compareRows)
+    .map((r) => {
+      const cells = (Array.isArray(r.cells) ? r.cells : []).slice(0, columns.length).map((v) => line(v, LIMITS.compareCell));
+      while (cells.length < columns.length) cells.push('');
+      return { label: line(r.label, LIMITS.compareLabel), cells };
+    });
+  return { columns, rows };
+}
+
+/** Content from any (possibly older or hand edited) object; missing or invalid fields use `d`. */
+function migrateContent(content: Record<string, unknown>, d: Content): Content {
+  return {
+    kicker: str(content.kicker, d.kicker, LIMITS.kicker),
+    title: str(content.title, d.title, LIMITS.title),
+    subtitle: str(content.subtitle, d.subtitle, LIMITS.subtitle),
+    beforeLabel: str(content.beforeLabel, d.beforeLabel, LIMITS.label),
+    afterLabel: str(content.afterLabel, d.afterLabel, LIMITS.label),
+    features: Array.isArray(content.features)
+      ? content.features
+          .filter((f): f is string => typeof f === 'string')
+          .slice(0, LIMITS.featureItems)
+          .map((f) => sanitizeText(f).replace(/\n/g, ' ').slice(0, LIMITS.feature))
+      : d.features,
+    code: typeof content.code === 'string' ? clampCode(sanitizeText(content.code)) : d.code,
+    codeFile: str(content.codeFile, d.codeFile, LIMITS.codeFile).replace(/\n/g, ' '),
+    quote: str(content.quote, d.quote, LIMITS.quote),
+    author: str(content.author, d.author, LIMITS.person).replace(/\n/g, ' '),
+    authorRole: str(content.authorRole, d.authorRole, LIMITS.person).replace(/\n/g, ' '),
+    stats: Array.isArray(content.stats)
+      ? content.stats
+          .map(obj)
+          .slice(0, LIMITS.statItems)
+          .map((s) => ({
+            value: str(s.value, '', LIMITS.statValue).replace(/\n/g, ' '),
+            label: str(s.label, '', LIMITS.statLabel).replace(/\n/g, ' '),
+          }))
+      : d.stats,
+    eventDate: str(content.eventDate, d.eventDate, LIMITS.eventField).replace(/\n/g, ' '),
+    eventTime: str(content.eventTime, d.eventTime, LIMITS.eventField).replace(/\n/g, ' '),
+    eventPlace: str(content.eventPlace, d.eventPlace, LIMITS.eventField).replace(/\n/g, ' '),
+    cta: str(content.cta, d.cta, LIMITS.cta).replace(/\n/g, ' '),
+    link: str(content.link, d.link, LIMITS.link).replace(/\s+/g, ' ').trim(),
+    qr: content.qr === true,
+    steps: Array.isArray(content.steps)
+      ? content.steps
+          .map(obj)
+          .slice(0, LIMITS.stepItems)
+          .map((st) => ({ title: line(st.title, LIMITS.stepTitle), text: line(st.text, LIMITS.stepText) }))
+      : d.steps,
+    compare: migrateComparison(content.compare, d.compare),
+    magnify: num(content.magnify, d.magnify, MAGNIFY_RANGE.min, MAGNIFY_RANGE.max),
+  };
+}
+
+/** A carousel page's own content: only the keys it sets, each validated like the project's. */
+export function migrateContentOverrides(raw: Record<string, unknown>, base: Content): ContentOverrides {
+  const full = migrateContent(raw, base);
+  const out: ContentOverrides = {};
+  for (const k of CONTENT_KEYS) if (raw[k] !== undefined) (out as Record<string, unknown>)[k] = full[k];
+  return out;
+}
+
+
+function migrateCarousel(raw: Record<string, unknown>, slotIds: Set<string>, base: Content): CarouselSettings {
   const slides: Variant[] = Array.isArray(raw.slides)
     ? raw.slides
         .map(obj)
         .slice(0, CAROUSEL_MAX_SLIDES)
         .map((v) => {
-          const content = obj(v.content);
-          const overrides: ContentOverrides = {};
-          for (const k of OVERRIDABLE_CONTENT) {
-            if (typeof content[k] === 'string') overrides[k] = sanitizeText(content[k] as string).slice(0, OVERRIDE_LIMITS[k]);
-          }
+          const overrides = migrateContentOverrides(obj(v.content), base);
           const template: TemplateId = v.template === 'browser-mobile' ? 'device-mix' : isTemplateId(v.template) ? v.template : 'minimal';
           const ids = Array.isArray(v.screenshotIds)
             ? [...new Set(v.screenshotIds.filter((id): id is string => typeof id === 'string' && slotIds.has(id)))]

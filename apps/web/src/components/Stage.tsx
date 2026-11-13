@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import type { FormatPreset, Project } from '@svs/visual-core';
 import { Composition } from '../render/Composition';
 
+import { t } from '../i18n';
+
 /**
  * Renders a composition at native size, scaled down with a CSS transform to fit a box.
  * With `label` the preview is exposed as one image; without it (thumbnails inside labelled
@@ -19,7 +21,7 @@ export function Stage({
   label,
 }: {
   project: Project;
-  format: Pick<FormatPreset, 'width' | 'height' | 'safe'>;
+  format: Pick<FormatPreset, 'width' | 'height' | 'safe' | 'content'>;
   urls: Record<string, string>;
   maxWidth: number;
   maxHeight: number;
@@ -39,7 +41,7 @@ export function Stage({
         aria-hidden="true"
         style={{ width: format.width, height: format.height, transform: `scale(${scale})`, transformOrigin: '0 0', pointerEvents: 'none' }}
       >
-        <Composition project={project} width={format.width} height={format.height} urls={urls} />
+        <Composition project={project} width={format.width} height={format.height} urls={urls} content={format.content} />
       </div>
       {showSafeZones && <SafeZoneOverlay safe={format.safe} />}
       {children}
@@ -60,7 +62,7 @@ function SafeZoneOverlay({ safe }: { safe: FormatPreset['safe'] }) {
           boxShadow: '0 0 0 9999px var(--color-zone-dim)',
         }}
       >
-        <span className="absolute left-1 top-1 rounded bg-zone px-1 text-[10px] font-semibold text-on-accent">Safe zone</span>
+        <span className="absolute left-1 top-1 rounded bg-zone px-1 text-[10px] font-semibold text-on-accent">{t('Safe zone')}</span>
       </div>
     </div>
   );

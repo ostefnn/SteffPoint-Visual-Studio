@@ -2,6 +2,7 @@
 import { migrateProject, uid, type Project } from '@svs/visual-core';
 import { blobToDataUrl, dataUrlToBlob, ImportError } from './assets';
 import { createProjectRecord, getBlob, putBlob } from './db';
+import { t } from '../i18n';
 
 export const PROJECT_FILE_FORMAT = 'steffpoint-visual-studio/project';
 const MAX_IMPORT_BYTES = 150 * 1024 * 1024;
@@ -32,12 +33,12 @@ export async function buildProjectFile(project: Project): Promise<Blob> {
 
 /** Import a project file as a brand new project (new id, so nothing is overwritten). */
 export async function importProjectFile(file: File): Promise<Project> {
-  if (file.size > MAX_IMPORT_BYTES) throw new ImportError('Project file is too large.');
+  if (file.size > MAX_IMPORT_BYTES) throw new ImportError(t('Project file is too large.'));
   let raw: unknown;
   try {
     raw = JSON.parse(await file.text());
   } catch {
-    throw new ImportError('This file is not valid JSON.');
+    throw new ImportError(t('This file is not valid JSON.'));
   }
   const r = (raw ?? {}) as Partial<ProjectFile>;
   // Accept both our wrapper format and a bare project object.

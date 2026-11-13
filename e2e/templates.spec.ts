@@ -89,6 +89,109 @@ test('Device Mix turns the tablet and phone to landscape', async ({ page }) => {
   await expect(page.getByRole('radiogroup', { name: 'Mobile orientation' }).getByRole('radio', { name: 'Landscape' })).toBeChecked();
 });
 
+test('Layout options mirror and tilt the template, and are saved', async ({ page }) => {
+  await newProject(page);
+  await addScreenshot(page, 'desktop-magenta.png');
+  await useTemplate(page, 'Browser Hero');
+  // Browser Hero puts the screenshot on the right of the text.
+  let png = await exportLinkedIn(page);
+  expectColor((await probePng(page, png, [0.75, 0.55])).rgb, MAGENTA);
+
+  // Mirrored: the screenshot moves to the left, the text to the right.
+  await page.getByRole('checkbox', { name: /^Mirror/ }).check();
+  png = await exportLinkedIn(page);
+  expectColor((await probePng(page, png, [0.25, 0.55])).rgb, MAGENTA);
+  expect((await probePng(page, png, [0.75, 0.55])).rgb).not.toEqual([...MAGENTA]);
+
+  // Tilted and 3D screens still show the screenshot.
+  for (const tilt of ['Tilted', '3D']) {
+    await page.getByRole('radiogroup', { name: 'Screens' }).getByRole('radio', { name: tilt, exact: true }).click();
+    await expect(page.getByTestId('canvas').locator('[data-tilt]')).toHaveCount(1);
+    expectColor((await probePng(page, await exportLinkedIn(page), [0.25, 0.55])).rgb, MAGENTA);
+  }
+
+  // Templates without tilt do not offer it, and their canvas stays straight.
+  await useTemplate(page, 'Minimal');
+  await expect(page.getByRole('radiogroup', { name: 'Screens' })).toHaveCount(0);
+  await expect(page.getByRole('checkbox', { name: /^Mirror/ })).toHaveCount(0);
+  await expect(page.getByTestId('canvas').locator('[data-tilt]')).toHaveCount(0);
+
+  await expect(page.getByTestId('save-state')).toHaveText('Saved');
+  await page.reload();
+  await useTemplate(page, 'Browser Hero');
+  await expect(page.getByRole('checkbox', { name: /^Mirror/ })).toBeChecked();
+  await expect(page.getByRole('radiogroup', { name: 'Screens' }).getByRole('radio', { name: '3D' })).toBeChecked();
+});
+
+test('Text position Bottom puts the text below the screens in stacked formats', async ({ page }) => {
+  await newProject(page);
+  await addScreenshot(page, 'desktop-magenta.png');
+  await useTemplate(page, 'Spotlight');
+  await page.getByRole('button', { name: 'Preview Square 1:1', exact: true }).click();
+  const canvas = page.getByTestId('canvas');
+  const title = canvas.locator('h1');
+  const shot = canvas.locator('img').first();
+  const centre = async (l: typeof title) => {
+    const b = (await l.boundingBox())!;
+    return b.y + b.height / 2;
+  };
+  expect(await centre(title)).toBeLessThan(await centre(shot));
+  await page.getByRole('radiogroup', { name: 'Text position' }).getByRole('radio', { name: 'Bottom' }).click();
+  await expect.poll(async () => (await centre(title)) > (await centre(shot))).toBe(true);
+});
+
+test('Call to Action draws a scannable QR code and the brand footer', async ({ page }) => {
+  await newProject(page);
+  await useTemplate(page, 'Call to Action');
+  const canvas = page.getByTestId('canvas');
+  await page.getByRole('textbox', { name: 'Button', exact: true }).fill('Open the app');
+  await page.getByRole('textbox', { name: 'Link', exact: false }).first().fill('https://example.com/app');
+  await expect(canvas).toContainText('Open the app');
+  await expect(canvas).toContainText('https://example.com/app');
+  await expect(canvas.locator('[data-qr]')).toHaveCount(0);
+  await page.getByRole('checkbox', { name: /QR code/ }).check();
+  await expect(canvas.locator('[data-qr] path')).toHaveAttribute('d', /^M\d/);
+
+  // The footer takes the link: it is not written twice.
+  await page.getByRole('tab', { name: 'Brand' }).click();
+  await page.getByRole('checkbox', { name: /Brand footer/ }).check();
+  await expect(canvas.locator('[data-footer]')).toContainText('https://example.com/app');
+  await expect(canvas.getByText('https://example.com/app')).toHaveCount(1);
+
+  // On a carousel page that is not the last, the footer invites people to swipe.
+  await page.getByRole('tab', { name: 'Carousel' }).click();
+  await page.getByRole('button', { name: 'Customize Pages' }).click();
+  await page.getByRole('button', { name: 'Add Page' }).click();
+  await expect(canvas.locator('[data-footer]')).not.toContainText('Swipe');
+  await page.getByRole('button', { name: /^Page 1:/ }).click();
+  await expect(canvas.locator('[data-footer]')).toContainText('Swipe');
+});
+
+test('Hidden areas are covered in the export, and in the Detail Zoom lens', async ({ page }) => {
+  await newProject(page);
+  await addScreenshot(page, 'desktop-magenta.png');
+  await useTemplate(page, 'Spotlight');
+  expectColor((await probePng(page, await exportLinkedIn(page), [0.5, 0.75])).rgb, MAGENTA);
+
+  // Drag across the middle of the screenshot.
+  const area = page.getByTestId('redact-area');
+  await area.scrollIntoViewIfNeeded();
+  const b = (await area.boundingBox())!;
+  await page.mouse.move(b.x + b.width * 0.05, b.y + b.height * 0.05);
+  await page.mouse.down();
+  await page.mouse.move(b.x + b.width * 0.95, b.y + b.height * 0.95, { steps: 4 });
+  await page.mouse.up();
+  await expect(page.getByRole('button', { name: 'Show area 1 again' })).toBeVisible();
+  expectColor((await probePng(page, await exportLinkedIn(page), [0.5, 0.75])).rgb, [42, 46, 56]);
+
+  await useTemplate(page, 'Detail Zoom');
+  await expect(page.getByTestId('canvas').locator('[data-lens] [data-redactions]')).toHaveCount(1);
+
+  // Removing the area shows the screenshot again.
+  await page.getByRole('button', { name: 'Show area 1 again' }).click();
+  await expect(page.getByTestId('canvas').locator('[data-redactions]')).toHaveCount(0);
+});
+
 test('Crop and zoom out reshape the screenshot in the export', async ({ page }) => {
   await newProject(page);
   await addScreenshot(page, 'split-cyan-magenta.png'); // left half cyan, right half magenta

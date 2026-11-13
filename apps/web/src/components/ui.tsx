@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react';
+import { t } from '../i18n';
 
 export function cx(...c: (string | false | null | undefined)[]) {
   return c.filter(Boolean).join(' ');
@@ -98,7 +99,7 @@ export function Segmented<T extends string>({
   label: string;
 }) {
   return (
-    <div role="radiogroup" aria-label={label} className="flex rounded-lg bg-subtle-strong/70 p-0.5">
+    <div role="radiogroup" aria-label={t(label)} className="flex rounded-lg bg-subtle-strong/70 p-0.5">
       {options.map((o) => (
         <button
           key={o.value}
@@ -111,7 +112,7 @@ export function Segmented<T extends string>({
             value === o.value ? 'bg-surface text-ink shadow-sm' : 'text-muted hover:text-ink',
           )}
         >
-          {o.label}
+          {t(o.label)}
         </button>
       ))}
     </div>

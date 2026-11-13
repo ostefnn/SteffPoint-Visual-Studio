@@ -14,6 +14,8 @@ import {
   type BackgroundType,
   type HeadingFont,
   type LogoColor,
+  type BrandKit,
+  KIT_NAME_MAX,
   withStyle,
   type LogoSize,
 } from '@svs/visual-core';
@@ -22,7 +24,11 @@ import { applyStyle, imageFilesFrom, importImages, moveScreenshot, removeLogo, r
 import { Button, cx, Field, Icon, inputCls, Section, Segmented, Slider } from './ui';
 import { Stage } from './Stage';
 import { CarouselPanel } from './CarouselPanel';
+import { applyKitInEditor, saveKitFromEditor } from '../lib/brandKits';
+import { deleteBrandKit, listBrandKits } from '../lib/db';
 import { sampleLogoColorsFromUrl } from '../lib/logoColors';
+
+import { t } from '../i18n';
 
 const NONE: never[] = [];
 const DEFAULT_BRAND = createProject().brand;
@@ -56,29 +62,29 @@ export function LeftPanel({ className }: { className?: string }) {
     <aside className={className}>
       <div
         role="tablist"
-        aria-label="Editor panels"
+        aria-label={t('Editor panels')}
         onKeyDown={onTabKeyDown}
         className="sticky top-0 z-10 flex flex-wrap gap-1 border-b border-line bg-panel p-2"
       >
-        {TABS.map((t) => (
+        {TABS.map((item) => (
           <button
-            key={t.id}
+            key={item.id}
             ref={(el) => {
-              tabRefs.current[t.id] = el;
+              tabRefs.current[item.id] = el;
             }}
-            id={`tab-${t.id}`}
+            id={`tab-${item.id}`}
             role="tab"
             type="button"
-            aria-selected={tab === t.id}
+            aria-selected={tab === item.id}
             aria-controls="editor-tabpanel"
-            tabIndex={tab === t.id ? 0 : -1}
-            onClick={() => setTab(t.id)}
+            tabIndex={tab === item.id ? 0 : -1}
+            onClick={() => setTab(item.id)}
             className={cx(
               'min-w-[30%] flex-1 rounded-md px-1.5 py-1.5 text-xs font-medium transition-transform duration-100 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-safe:active:scale-[0.97]',
-              tab === t.id ? 'bg-surface text-ink shadow-sm ring-1 ring-line' : 'text-muted hover:text-ink',
+              tab === item.id ? 'bg-surface text-ink shadow-sm ring-1 ring-line' : 'text-muted hover:text-ink',
             )}
           >
-            {t.label}
+            {t(item.label)}
           </button>
         ))}
       </div>
@@ -99,22 +105,22 @@ function TemplatesTab() {
   const { update } = useEditor.getState();
   return (
     <div className="grid grid-cols-2 gap-3 p-3">
-      {TEMPLATES.map((t) => {
-        const active = project.template === t.id;
+      {TEMPLATES.map((tpl) => {
+        const active = project.template === tpl.id;
         return (
           <button
-            key={t.id}
+            key={tpl.id}
             type="button"
-            onClick={() => update((d) => void (d.template = t.id))}
+            onClick={() => update((d) => void (d.template = tpl.id))}
             aria-pressed={active}
-            title={t.description}
+            title={t(tpl.description)}
             className={cx(
               'overflow-hidden rounded-lg bg-surface text-left ring-1 transition',
               active ? 'ring-2 ring-accent' : 'ring-line hover:ring-field',
             )}
           >
-            <Stage project={{ ...project, template: t.id }} format={FORMAT_PRESETS.linkedin} urls={urls} maxWidth={124} maxHeight={65} className="w-full" />
-            <span className="block truncate px-2 py-1.5 text-xs font-medium">{t.name}</span>
+            <Stage project={{ ...project, template: tpl.id }} format={FORMAT_PRESETS.linkedin} urls={urls} maxWidth={124} maxHeight={65} className="w-full" />
+            <span className="block truncate px-2 py-1.5 text-xs font-medium">{t(tpl.name)}</span>
           </button>
         );
       })}
@@ -132,7 +138,7 @@ function ImagesTab() {
   const full = screenshots.length >= LIMITS.screenshots;
 
   return (
-    <Section title={`Screenshots ${screenshots.length}/${LIMITS.screenshots}`}>
+    <Section title={t('Screenshots {n}/{max}', { n: screenshots.length, max: LIMITS.screenshots })}>
       <button
         type="button"
         disabled={full}
@@ -140,8 +146,8 @@ function ImagesTab() {
         className="flex w-full flex-col items-center gap-1 rounded-lg border-2 border-dashed border-field bg-surface px-3 py-5 text-center text-sm text-muted hover:border-accent hover:text-accent-deep disabled:opacity-50"
       >
         <Icon name="upload" className="size-5" />
-        <span className="font-medium">Add Screenshots</span>
-        <span className="text-xs text-faint">Click, drop anywhere, or paste (Ctrl/Cmd+V)</span>
+        <span className="font-medium">{t('Add Screenshots')}</span>
+        <span className="text-xs text-faint">{t('Click, drop anywhere, or paste (Ctrl/Cmd+V)')}</span>
       </button>
       <input
         ref={input}
@@ -176,7 +182,7 @@ function ImagesTab() {
                 </span>
               </button>
               <div className="flex flex-none">
-                <Button size="sm" variant="ghost" className="px-1.5" disabled={i === 0} onClick={() => moveScreenshot(s.id, -1)} aria-label="Move up">
+                <Button size="sm" variant="ghost" className="px-1.5" disabled={i === 0} onClick={() => moveScreenshot(s.id, -1)} aria-label={t('Move up')}>
                   <Icon name="left" className="size-3.5 rotate-90" />
                 </Button>
                 <Button
@@ -185,11 +191,11 @@ function ImagesTab() {
                   className="px-1.5"
                   disabled={i === screenshots.length - 1}
                   onClick={() => moveScreenshot(s.id, 1)}
-                  aria-label="Move down"
+                  aria-label={t('Move down')}
                 >
                   <Icon name="right" className="size-3.5 rotate-90" />
                 </Button>
-                <Button size="sm" variant="ghost" className="px-1.5 text-danger" onClick={() => removeScreenshot(s.id)} aria-label="Remove screenshot">
+                <Button size="sm" variant="ghost" className="px-1.5 text-danger" onClick={() => removeScreenshot(s.id)} aria-label={t('Remove screenshot')}>
                   <Icon name="trash" className="size-3.5" />
                 </Button>
               </div>
@@ -215,8 +221,8 @@ function StylePicker() {
   if (!project) return null;
   const current = project.brand.style;
   return (
-    <Section title="Style">
-      <div role="radiogroup" aria-label="Style" className="grid grid-cols-2 gap-2">
+    <Section title={t('Style')}>
+      <div role="radiogroup" aria-label={t('Style')} className="grid grid-cols-2 gap-2">
         {STYLE_IDS.map((id) => {
           const st = STYLES[id];
           const on = current === id;
@@ -227,7 +233,7 @@ function StylePicker() {
               role="radio"
               aria-checked={on}
               onClick={() => applyStyle(id)}
-              title={st.description}
+              title={t(st.description)}
               className={cx(
                 'overflow-hidden rounded-lg bg-surface text-left ring-1 transition-transform duration-100 ease-out motion-safe:active:scale-[0.97]',
                 on ? 'ring-2 ring-accent' : 'ring-line hover:ring-field',
@@ -242,10 +248,10 @@ function StylePicker() {
                 className="w-full"
               />
               <span className="block px-2 pt-1.5 text-xs font-medium text-ink">
-                {st.name}
-                {id === 'soft' && <span className="font-normal text-muted"> (original)</span>}
+                {t(st.name)}
+                {id === 'soft' && <span className="font-normal text-muted">{' '}{t('(original)')}</span>}
               </span>
-              <span className="block px-2 pb-1.5 text-[11px] leading-snug text-muted">{st.description}</span>
+              <span className="block px-2 pb-1.5 text-[11px] leading-snug text-muted">{t(st.description)}</span>
             </button>
           );
         })}
@@ -265,6 +271,7 @@ function BrandTab() {
   const spec = getStyle(brand.style);
   const logoUrl = brand.logoAssetId ? urls[brand.logoAssetId] : undefined;
   const logoColors = useLogoColors(logoUrl);
+  const link = useEditor((s) => s.project?.content.link ?? '');
 
   const setPrimary = (c: string) => {
     setHex(c);
@@ -273,17 +280,18 @@ function BrandTab() {
 
   return (
     <>
+      <BrandKitSection />
       <StylePicker />
-      <Section title="Colour">
+      <Section title={t('Colour')}>
         <div className="flex items-center gap-2">
           <input
             type="color"
-            aria-label="Primary colour"
+            aria-label={t('Primary colour')}
             value={brand.primary.length === 7 ? brand.primary : DEFAULT_BRAND.primary}
             onChange={(e) => setPrimary(e.target.value)}
             className="h-9 w-12 cursor-pointer rounded-lg border-0 bg-transparent p-0"
           />
-          <input aria-label="Primary colour hex" value={hex} onChange={(e) => setPrimary(e.target.value.trim())} className={cx(inputCls, 'font-mono')} />
+          <input aria-label={t('Primary colour hex')} value={hex} onChange={(e) => setPrimary(e.target.value.trim())} className={cx(inputCls, 'font-mono')} />
         </div>
         <div className="flex flex-wrap gap-1.5">
           {BRAND_COLOR_PRESETS.map((c) => (
@@ -291,7 +299,7 @@ function BrandTab() {
               key={c}
               type="button"
               onClick={() => setPrimary(c)}
-              aria-label={`Use ${c}`}
+              aria-label={t('Use {c}', { c })}
               className={cx('size-6 rounded-full ring-offset-2', brand.primary === c && 'ring-2 ring-ink')}
               style={{ background: c }}
             />
@@ -299,16 +307,16 @@ function BrandTab() {
         </div>
         {logoColors.length > 0 && (
           <div>
-            <p className="mb-1 text-xs font-medium text-muted">From your logo</p>
-            <div role="group" aria-label="Colours from your logo" className="flex flex-wrap gap-1.5">
+            <p className="mb-1 text-xs font-medium text-muted">{t('From your logo')}</p>
+            <div role="group" aria-label={t('Colours from your logo')} className="flex flex-wrap gap-1.5">
               {logoColors.map((c) => (
                 <button
                   key={c.hex}
                   type="button"
                   onClick={() => setPrimary(c.hex)}
-                  aria-label={`Use ${c.hex} from the logo`}
+                  aria-label={t('Use {c} from the logo', { c: c.hex })}
                   aria-pressed={brand.primary === c.hex}
-                  title={`${c.hex} · ${Math.round(c.share * 100)}% of the logo`}
+                  title={t('{c} · {n}% of the logo', { c: c.hex, n: Math.round(c.share * 100) })}
                   className={cx('size-6 rounded-full ring-1 ring-line ring-offset-2', brand.primary === c.hex && 'ring-2 ring-ink')}
                   style={{ background: c.hex }}
                 />
@@ -317,7 +325,7 @@ function BrandTab() {
           </div>
         )}
         <div>
-          <p className="mb-1 text-xs font-medium text-muted">Derived palette</p>
+          <p className="mb-1 text-xs font-medium text-muted">{t('Derived palette')}</p>
           <div className="flex overflow-hidden rounded-lg ring-1 ring-line">
             {(
               [
@@ -329,12 +337,12 @@ function BrandTab() {
                 ['Text', pal.text],
               ] as const
             ).map(([role, c]) => (
-              <span key={role} className="h-6 flex-1" style={{ background: c }} title={`${role} · ${c}`} />
+              <span key={role} className="h-6 flex-1" style={{ background: c }} title={`${t(role)} · ${c}`} />
             ))}
           </div>
         </div>
         <Segmented
-          label="Theme"
+          label={t('Theme')}
           value={brand.theme}
           options={[
             { value: 'light', label: 'Light' },
@@ -343,42 +351,42 @@ function BrandTab() {
           onChange={(v) => update((d) => void (d.brand.theme = v))}
         />
       </Section>
-      <Section title="Typography & shape">
+      <Section title={t('Typography & shape')}>
         {spec.heading === null ? (
-          <Field label="Heading font">
-            <Segmented label="Heading font" value={brand.headingFont} options={FONTS} onChange={(v) => update((d) => void (d.brand.headingFont = v))} />
+          <Field label={t('Heading font')}>
+            <Segmented label={t('Heading font')} value={brand.headingFont} options={FONTS} onChange={(v) => update((d) => void (d.brand.headingFont = v))} />
           </Field>
         ) : (
-          <p className="text-xs text-muted">Typefaces come from the {spec.name} style.</p>
+          <p className="text-xs text-muted">{t('Typefaces come from the {style} style.', { style: t(spec.name) })}</p>
         )}
-        <Slider label="Corner radius" min={0} max={1} step={0.05} value={brand.radius} format={(v) => `${Math.round(v * 100)}%`} onChange={(v) => update((d) => void (d.brand.radius = v), 'radius')} />
+        <Slider label={t('Corner radius')} min={0} max={1} step={0.05} value={brand.radius} format={(v) => `${Math.round(v * 100)}%`} onChange={(v) => update((d) => void (d.brand.radius = v), 'radius')} />
         {spec.shadow === 'soft' && (
-          <Slider label="Shadow" min={0} max={1} step={0.05} value={brand.shadow} format={(v) => `${Math.round(v * 100)}%`} onChange={(v) => update((d) => void (d.brand.shadow = v), 'shadow')} />
+          <Slider label={t('Shadow')} min={0} max={1} step={0.05} value={brand.shadow} format={(v) => `${Math.round(v * 100)}%`} onChange={(v) => update((d) => void (d.brand.shadow = v), 'shadow')} />
         )}
       </Section>
-      <Section title="Logo">
+      <Section title={t('Logo')}>
         {brand.logoAssetId && urls[brand.logoAssetId] ? (
           <div className="flex items-center gap-3">
             <span className="checker flex h-12 w-24 items-center justify-center rounded-lg p-1.5">
               <img src={urls[brand.logoAssetId]} alt="Logo" className="max-h-full max-w-full object-contain" />
             </span>
             <Button size="sm" onClick={() => logoInput.current?.click()}>
-              Replace
+              {t('Replace')}
             </Button>
             <Button size="sm" variant="danger" onClick={removeLogo}>
-              Remove
+              {t('Remove')}
             </Button>
           </div>
         ) : (
           <Button onClick={() => logoInput.current?.click()}>
-            <Icon name="upload" /> Upload Logo
+            <Icon name="upload" />{' '}{t('Upload Logo')}
           </Button>
         )}
         {brand.logoAssetId && (
           <div>
-            <p className="mb-1 text-xs font-medium text-muted">Logo size</p>
+            <p className="mb-1 text-xs font-medium text-muted">{t('Logo size')}</p>
             <Segmented<LogoSize>
-              label="Logo size"
+              label={t('Logo size')}
               value={brand.logoSize ?? 'medium'}
               options={[
                 { value: 'small', label: 'Small' },
@@ -390,8 +398,10 @@ function BrandTab() {
           </div>
         )}
         <p className="text-xs text-muted">
-          Best: a transparent PNG or WebP, cropped tight to the logo, at least {LOGO_ADVICE.iconPx}&nbsp;×&nbsp;{LOGO_ADVICE.iconPx}&nbsp;px for an icon or{' '}
-          {LOGO_ADVICE.wordmarkWidthPx}&nbsp;px wide for a wordmark.
+          {t('Best: a transparent PNG or WebP, cropped tight to the logo, at least {icon} × {icon} px for an icon or {wide} px wide for a wordmark.', {
+            icon: LOGO_ADVICE.iconPx,
+            wide: LOGO_ADVICE.wordmarkWidthPx,
+          })}
         </p>
         <input
           ref={logoInput}
@@ -404,7 +414,126 @@ function BrandTab() {
           }}
         />
       </Section>
+      <Section title={t('Footer')}>
+        <label className="flex items-center gap-2 text-xs font-medium text-ink">
+          <input
+            type="checkbox"
+            checked={brand.footer}
+            onChange={(e) => update((d) => void (d.brand.footer = e.target.checked))}
+            className="size-4 accent-accent"
+          />
+          {t('Brand footer on every visual')}
+        </label>
+        {brand.footer && (
+          <Field label={t('Website or handle')} hint={`${link.length}/${LIMITS.link}`}>
+            <input
+              value={link}
+              maxLength={LIMITS.link}
+              onChange={(e) => update((d) => void (d.content.link = e.target.value.replace(/\n/g, ' ')), 'content-link')}
+              className={inputCls}
+              placeholder={t('e.g. steffpoint.com, @steffpoint…')}
+            />
+          </Field>
+        )}
+        <p className="text-xs text-muted">
+          {t('A line along the bottom with your logo and link. The logo moves there from the title, and carousel pages invite people to swipe.')}
+        </p>
+      </Section>
     </>
+  );
+}
+
+/**
+ * Saved brand kits: apply one to this project in a single step (undo restores the previous look),
+ * save the current identity as a new kit, or update a kit with it.
+ */
+function BrandKitSection() {
+  const [kits, setKits] = useState<BrandKit[]>([]);
+  const [name, setName] = useState('');
+  const [busy, setBusy] = useState(false);
+  const reload = () => listBrandKits().then(setKits).catch(() => setKits([]));
+  useEffect(() => {
+    reload();
+  }, []);
+  const run = async (fn: () => Promise<unknown>) => {
+    setBusy(true);
+    try {
+      await fn();
+      await reload();
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Section title={t('Brand kit')}>
+      {kits.length > 0 ? (
+        <ul className="space-y-1.5" aria-label={t('Brand kits')}>
+          {kits.map((k) => (
+            <li key={k.id} className="flex items-center gap-2 rounded-lg bg-surface p-1.5 ring-1 ring-line">
+              <span className="size-5 flex-none rounded-full ring-1 ring-line" style={{ background: k.brand.primary }} aria-hidden="true" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-xs font-medium">{k.name}</span>
+                <span className="block text-[11px] text-muted">
+                  {t(STYLES[k.brand.style].name)}
+                  {k.logo ? ` · ${t('logo')}` : ''}
+                  {k.brand.footer ? ` · ${t('footer')}` : ''}
+                </span>
+              </span>
+              <Button size="sm" variant="primary" className="h-7 px-2 text-[11px]" disabled={busy} onClick={() => run(() => applyKitInEditor(k))}>
+                {t('Apply')}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-1.5"
+                disabled={busy}
+                aria-label={t('Update {name} with this project’s brand', { name: k.name })}
+                title={t('Update the kit with this project\'s brand')}
+                onClick={() => run(() => saveKitFromEditor(k.name, k))}
+              >
+                <Icon name="upload" className="size-3.5" />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-1.5 text-danger"
+                disabled={busy}
+                aria-label={t('Delete {name}', { name: k.name })}
+                onClick={() => {
+                  if (confirm(t('Delete the brand kit “{name}”? Projects that use it keep their look.', { name: k.name }))) void run(() => deleteBrandKit(k.id));
+                }}
+              >
+                <Icon name="trash" className="size-3.5" />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-xs text-muted">{t('Save this project’s style, colours, logo and footer as a kit to reuse them in one click.')}</p>
+      )}
+      <form
+        className="flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!name.trim()) return;
+          void run(async () => {
+            if (await saveKitFromEditor(name)) setName('');
+          });
+        }}
+      >
+        <input
+          value={name}
+          maxLength={KIT_NAME_MAX}
+          onChange={(e) => setName(e.target.value)}
+          aria-label={t('Brand kit name')}
+          placeholder={t('Kit name, e.g. SteffPoint…')}
+          className={inputCls}
+        />
+        <Button type="submit" size="sm" disabled={busy || !name.trim()} className="flex-none">
+          {t('Save Kit')}
+        </Button>
+      </form>
+    </Section>
   );
 }
 
@@ -437,10 +566,10 @@ function BackgroundTab() {
   const { update } = useEditor.getState();
   const spec = getStyle(project.brand.style);
   return (
-    <Section title="Background">
+    <Section title={t('Background')}>
       {spec.brandBackground && (
         <p className="rounded-md bg-accent-soft px-2 py-1.5 text-xs text-accent-deep">
-          The {spec.name} style uses your brand colour as the background. These settings apply when you switch to another style.
+          {t('The {style} style uses your brand colour as the background. These settings apply when you switch to another style.', { style: t(spec.name) })}
         </p>
       )}
       <div className="grid grid-cols-2 gap-2">
@@ -463,13 +592,13 @@ function BackgroundTab() {
               maxHeight={48}
               className="w-full"
             />
-            <span className="block px-2 py-1 text-xs font-medium">{b.label}</span>
+            <span className="block px-2 py-1 text-xs font-medium">{t(b.label)}</span>
           </button>
         ))}
       </div>
-      <Slider label="Intensity" min={0} max={1} step={0.05} value={bg.intensity} format={(v) => `${Math.round(v * 100)}%`} onChange={(v) => update((d) => void (d.background.intensity = v), 'bg-intensity')} />
+      <Slider label={t('Intensity')} min={0} max={1} step={0.05} value={bg.intensity} format={(v) => `${Math.round(v * 100)}%`} onChange={(v) => update((d) => void (d.background.intensity = v), 'bg-intensity')} />
       {bg.type === 'gradient' && (
-        <Slider label="Angle" min={0} max={360} step={5} value={bg.angle} format={(v) => `${v}°`} onChange={(v) => update((d) => void (d.background.angle = v), 'bg-angle')} />
+        <Slider label={t('Angle')} min={0} max={360} step={5} value={bg.angle} format={(v) => `${v}°`} onChange={(v) => update((d) => void (d.background.angle = v), 'bg-angle')} />
       )}
     </Section>
   );

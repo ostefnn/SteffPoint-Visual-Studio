@@ -24,6 +24,18 @@ import {
   resolveFormat,
   screenshotRange,
   sanitizeText,
+  DEFAULT_LAYOUT,
+  MIRROR_TEMPLATES,
+  TILT_TEMPLATES,
+  TEMPLATES,
+  applyVariant,
+  compareMark,
+  clampArea,
+  FORMAT_GROUPS,
+  FORMAT_ORDER,
+  applyBrandKit,
+  brandKitFromProject,
+  migrateBrandKit,
 } from './index';
 
 describe('Tint and Technical palettes', () => {
@@ -174,7 +186,7 @@ describe('rules', () => {
   it('suggests a phone template for portrait screenshots', () => {
     const p = createProject({ template: 'browser-hero' });
     p.assets.push({ id: 'a', name: 'phone.png', mime: 'image/png', width: 1170, height: 2532, size: 1 });
-    p.screenshots.push({ id: 's', assetId: 'a', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '', legend: [] });
+    p.screenshots.push({ id: 's', assetId: 'a', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '', legend: [], redact: [] });
     const s = analyzeProject(p, FORMAT_PRESETS.linkedin).find((x) => x.id === 'tpl-orientation');
     expect(s?.action?.template).toBe('mobile-trio');
   });
@@ -191,7 +203,7 @@ describe('rules', () => {
   it('warns about small images', () => {
     const p = createProject({ template: 'spotlight' });
     p.assets.push({ id: 'a', name: 'tiny.png', mime: 'image/png', width: 300, height: 200, size: 1 });
-    p.screenshots.push({ id: 's', assetId: 'a', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '', legend: [] });
+    p.screenshots.push({ id: 's', assetId: 'a', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '', legend: [], redact: [] });
     expect(analyzeProject(p, FORMAT_PRESETS.linkedin, 2).map((s) => s.id)).toContain('shot-small');
   });
 });
@@ -235,8 +247,8 @@ describe('device mix', () => {
     p.devices = ['tablet', 'mobile'];
     p.assets.push({ id: 'a', name: 'a.png', mime: 'image/png', width: 1600, height: 1000, size: 1 });
     p.assets.push({ id: 'b', name: 'wide.png', mime: 'image/png', width: 1600, height: 900, size: 1 });
-    p.screenshots.push({ id: 's1', assetId: 'a', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '', legend: [] });
-    p.screenshots.push({ id: 's2', assetId: 'b', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '', legend: [] });
+    p.screenshots.push({ id: 's1', assetId: 'a', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '', legend: [], redact: [] });
+    p.screenshots.push({ id: 's2', assetId: 'b', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '', legend: [], redact: [] });
     expect(analyzeProject(p, FORMAT_PRESETS.linkedin).map((s) => s.id)).toContain('device-fit-1'); // wide shot, upright phone
     p.deviceOrientation.mobile = 'landscape';
     expect(analyzeProject(p, FORMAT_PRESETS.linkedin).map((s) => s.id)).not.toContain('device-fit-1');
@@ -247,8 +259,8 @@ describe('device mix', () => {
     p.devices = ['desktop', 'mobile'];
     p.assets.push({ id: 'a', name: 'phone.png', mime: 'image/png', width: 1170, height: 2532, size: 1 });
     p.assets.push({ id: 'b', name: 'phone2.png', mime: 'image/png', width: 1170, height: 2532, size: 1 });
-    p.screenshots.push({ id: 's1', assetId: 'a', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '', legend: [] });
-    p.screenshots.push({ id: 's2', assetId: 'b', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '', legend: [] });
+    p.screenshots.push({ id: 's1', assetId: 'a', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '', legend: [], redact: [] });
+    p.screenshots.push({ id: 's2', assetId: 'b', fit: 'cover', zoom: 1, focalX: 0.5, focalY: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 }, caption: '', legend: [], redact: [] });
     const ids = analyzeProject(p, FORMAT_PRESETS.linkedin).map((s) => s.id);
     expect(ids).toContain('device-fit-0');
     expect(ids).not.toContain('device-fit-1');
@@ -484,5 +496,217 @@ describe('carousel page size', () => {
     expect(analyzeCarousel(p).map((s) => s.id)).not.toContain('carousel-wide');
     p.carousel.pageSize = '16:9';
     expect(analyzeCarousel(p).map((s) => s.id)).toContain('carousel-wide');
+  });
+});
+
+describe('layout options', () => {
+  it('default to the template layout, also for projects saved before they existed', () => {
+    expect(createProject().layout).toEqual(DEFAULT_LAYOUT);
+    expect(migrateProject({}).layout).toEqual({ mirror: false, textPosition: 'auto', textAlign: 'auto', tilt: 'none' });
+  });
+
+  it('keep valid choices and drop invalid ones', () => {
+    expect(migrateProject({ layout: { mirror: true, textPosition: 'bottom', textAlign: 'right', tilt: 'perspective' } }).layout).toEqual({
+      mirror: true,
+      textPosition: 'bottom',
+      textAlign: 'right',
+      tilt: 'perspective',
+    });
+    expect(migrateProject({ layout: { mirror: 'yes', textPosition: 'middle', textAlign: 'justify', tilt: 45 } }).layout).toEqual(DEFAULT_LAYOUT);
+    expect(migrateProject({ layout: 'mirror' }).layout).toEqual(DEFAULT_LAYOUT);
+  });
+
+  it('round trip and are shared by the carousel pages', () => {
+    const p = createProject();
+    p.layout = { mirror: true, textPosition: 'top', textAlign: 'center', tilt: 'tilt' };
+    expect(migrateProject(JSON.parse(JSON.stringify(p))).layout).toEqual(p.layout);
+    expect(applyVariant(p, createVariant({ template: 'browser-hero' })).layout).toEqual(p.layout);
+  });
+
+  it('offer mirror and tilt only where they change something', () => {
+    const ids = TEMPLATES.map((t) => t.id);
+    for (const id of [...MIRROR_TEMPLATES, ...TILT_TEMPLATES]) expect(ids).toContain(id);
+    // Centred templates look the same mirrored.
+    for (const id of ['app-store', 'minimal', 'testimonial'] as const) expect(MIRROR_TEMPLATES).not.toContain(id);
+    // Full-bleed images, grids, legends and text-only templates stay straight.
+    for (const id of ['editorial', 'bento', 'annotated', 'stats', 'features', 'minimal'] as const) expect(TILT_TEMPLATES).not.toContain(id);
+  });
+});
+
+describe('brand footer and call to action', () => {
+  it('migrates the link, QR and footer with safe defaults', () => {
+    const p = migrateProject({});
+    expect([p.content.link, p.content.qr, p.brand.footer]).toEqual(['', false, false]);
+    const q = migrateProject({ brand: { footer: true }, content: { link: '  https://example.com/a\nb  ', qr: true } });
+    expect([q.content.link, q.content.qr, q.brand.footer]).toEqual(['https://example.com/a b', true, true]);
+    expect(migrateProject({ content: { link: 'x'.repeat(200), qr: 'yes' } }).content).toMatchObject({ link: 'x'.repeat(80), qr: false });
+  });
+
+  it('tells each carousel page where it is, without saving it', () => {
+    const p = createProject();
+    const slides = buildCarouselSlides(p);
+    expect(slides.map((s) => s.project.carouselPage)).toEqual(slides.map((_, i) => ({ index: i, total: slides.length })));
+    expect(migrateProject({ ...p, carouselPage: { index: 1, total: 3 } })).not.toHaveProperty('carouselPage');
+  });
+
+  it('checks the call to action and the footer', () => {
+    const p = createProject({ template: 'cta' });
+    p.content.cta = '';
+    p.content.qr = true;
+    const ids = analyzeProject(p, FORMAT_PRESETS.linkedin).map((s) => s.id);
+    expect(ids).toEqual(expect.arrayContaining(['cta-empty', 'cta-qr']));
+    p.brand.footer = true;
+    expect(analyzeProject(p, FORMAT_PRESETS.story).map((s) => s.id)).toEqual(expect.arrayContaining(['footer-empty', 'footer-covered']));
+  });
+
+  it('suggests a Call to Action page to close a carousel', () => {
+    const p = createProject();
+    p.carousel.slides = [createVariant({ template: 'minimal' }), createVariant({ template: 'spotlight' }), createVariant({ template: 'features' })];
+    expect(analyzeCarousel(p).map((s) => s.id)).toContain('carousel-cta');
+    p.carousel.slides.push(createVariant({ template: 'cta' }));
+    expect(analyzeCarousel(p).map((s) => s.id)).not.toContain('carousel-cta');
+  });
+});
+
+describe('carousel page content, steps and comparison', () => {
+  it('lets a page replace any content field, validated like the project', () => {
+    const p = createProject();
+    p.carousel.slides = [createVariant({ template: 'features', content: { features: ['Only here'] } })];
+    const m = migrateProject(JSON.parse(JSON.stringify(p)));
+    expect(m.carousel.slides[0].content).toEqual({ features: ['Only here'] });
+    expect(applyVariant(m, m.carousel.slides[0]).content.features).toEqual(['Only here']);
+    expect(m.content.features).toEqual(createProject().content.features); // the project is untouched
+
+    const raw = { carousel: { slides: [{ template: 'steps', content: { steps: [{ title: 'x'.repeat(99), text: 7 }], bogus: 1, qr: true } }] } };
+    expect(migrateProject(raw).carousel.slides[0].content).toEqual({ steps: [{ title: 'x'.repeat(40), text: '' }], qr: true });
+  });
+
+  it('keeps old pages that only replaced their texts', () => {
+    const m = migrateProject({ carousel: { slides: [{ template: 'minimal', content: { title: 'Hook', subtitle: '' } }] } });
+    expect(m.carousel.slides[0].content).toEqual({ title: 'Hook', subtitle: '' });
+  });
+
+  it('normalises comparison tables', () => {
+    const m = migrateProject({ content: { compare: { columns: ['A', 'B', 'C', 'D'], rows: [{ label: 'Speed', cells: ['fast'] }] } } });
+    expect(m.content.compare).toEqual({ columns: ['A', 'B', 'C'], rows: [{ label: 'Speed', cells: ['fast', '', ''] }] });
+    expect(migrateProject({ content: { compare: { columns: ['Only'], rows: [] } } }).content.compare.columns).toEqual(['Only', '']);
+    expect(migrateProject({ content: { compare: 'table' } }).content.compare).toEqual(createProject().content.compare);
+  });
+
+  it('reads yes and no in English, French and Dutch', () => {
+    expect(['yes', 'Oui', 'ja', '✓'].map(compareMark)).toEqual(['yes', 'yes', 'yes', 'yes']);
+    expect(['no', 'NON', 'nee', '-', '✗'].map(compareMark)).toEqual(['no', 'no', 'no', 'no', 'no']);
+    expect(compareMark('€29/mo')).toBe('text');
+  });
+
+  it('checks steps and comparisons', () => {
+    const p = createProject({ template: 'steps' });
+    p.content.steps = [{ title: 'Only one', text: '' }];
+    expect(analyzeProject(p, FORMAT_PRESETS.linkedin).map((s) => s.id)).toContain('steps-few');
+    const q = createProject({ template: 'comparison' });
+    q.content.compare = { columns: ['', 'Ours'], rows: [{ label: 'Speed', cells: ['', 'yes'] }] };
+    expect(analyzeProject(q, FORMAT_PRESETS.linkedin).map((s) => s.id)).toEqual(expect.arrayContaining(['compare-few', 'compare-header', 'compare-empty']));
+  });
+});
+
+describe('hidden areas, Detail Zoom and Cover', () => {
+  it('keeps hidden areas inside the image and drops invalid ones', () => {
+    expect(clampArea({ x: 0.9, y: -1, w: 0.5, h: 0.2 })).toEqual({ x: 0.9, y: 0, w: expect.closeTo(0.1, 6), h: 0.2 });
+    expect(clampArea({ x: 0.1, y: 0.1, w: 0, h: 0.5 })).toBeNull();
+    expect(clampArea({ x: 'a', y: 0, w: 1, h: 1 })).toBeNull();
+    const m = migrateProject({
+      assets: [{ id: 'a', name: 'a.png', mime: 'image/png', width: 10, height: 10, size: 1 }],
+      screenshots: [{ assetId: 'a', redact: [{ x: 0.1, y: 0.1, w: 0.2, h: 0.1 }, { x: 2 }, 'box', ...Array(20).fill({ x: 0, y: 0, w: 0.1, h: 0.1 })] }],
+    });
+    expect(m.screenshots[0].redact).toHaveLength(12);
+    expect(m.screenshots[0].redact[0]).toEqual({ x: 0.1, y: 0.1, w: 0.2, h: 0.1 });
+    expect(migrateProject({ assets: [{ id: 'a' }], screenshots: [{ assetId: 'a' }] }).screenshots[0].redact).toEqual([]);
+  });
+
+  it('clamps the magnification', () => {
+    expect(createProject().content.magnify).toBe(2.5);
+    expect(migrateProject({ content: { magnify: 40 } }).content.magnify).toBe(5);
+    expect(migrateProject({ content: { magnify: 'big' } }).content.magnify).toBe(2.5);
+  });
+
+  it('asks for a focal point to magnify and an image for the cover', () => {
+    const p = createProject({ template: 'detail-zoom' });
+    p.assets.push({ id: 'a', name: 'a', mime: 'image/png', width: 1600, height: 1000, size: 1 });
+    p.screenshots.push(createScreenshotSlot('a'));
+    expect(analyzeProject(p, FORMAT_PRESETS.linkedin).map((s) => s.id)).toContain('zoom-focal');
+    p.screenshots[0].focalX = 0.2;
+    expect(analyzeProject(p, FORMAT_PRESETS.linkedin).map((s) => s.id)).not.toContain('zoom-focal');
+    expect(analyzeProject(createProject({ template: 'cover' }), FORMAT_PRESETS.linkedin).map((s) => s.id)).toContain('cover-image');
+  });
+});
+
+describe('format groups', () => {
+  it('list every format once, by use', () => {
+    expect([...FORMAT_ORDER].sort()).toEqual(Object.keys(FORMAT_PRESETS).sort());
+    expect(new Set(FORMAT_ORDER).size).toBe(FORMAT_ORDER.length);
+    expect(FORMAT_GROUPS.flatMap((g) => g.formats)).toEqual(FORMAT_ORDER);
+  });
+
+  it('draw YouTube channel art inside the band every device shows', () => {
+    const yt = FORMAT_PRESETS['youtube-banner'];
+    expect(yt.content).toEqual(yt.safe);
+    expect(Math.round(yt.width * (1 - yt.safe.left - yt.safe.right))).toBe(1546);
+    expect(Math.round(yt.height * (1 - yt.safe.top - yt.safe.bottom))).toBe(423);
+  });
+
+  it('keep every content area inside the image', () => {
+    for (const f of Object.values(FORMAT_PRESETS)) {
+      if (!f.content) continue;
+      expect(f.content.left + f.content.right).toBeLessThan(1);
+      expect(f.content.top + f.content.bottom).toBeLessThan(1);
+    }
+  });
+});
+
+describe('brand kits', () => {
+  const branded = () => {
+    const p = createProject();
+    p.assets.push({ id: 'logo1', name: 'logo.png', mime: 'image/png', width: 512, height: 512, size: 2048 });
+    p.brand = { ...p.brand, primary: '#0f766e', style: 'bold', logoAssetId: 'logo1', footer: true, radius: 0.2 };
+    p.background = { type: 'mesh', intensity: 0.3, angle: 90 };
+    p.desktopFrame = 'laptop';
+    p.content.link = 'example.com';
+    return p;
+  };
+
+  it('captures the identity, not the content', () => {
+    const kit = brandKitFromProject(branded(), '  Teal  ');
+    expect(kit.name).toBe('Teal');
+    expect(kit.brand).toMatchObject({ primary: '#0f766e', style: 'bold', footer: true, radius: 0.2 });
+    expect(kit.brand).not.toHaveProperty('logoAssetId');
+    expect(kit.logo).toEqual({ name: 'logo.png', mime: 'image/png', width: 512, height: 512, size: 2048 });
+    expect([kit.background.type, kit.desktopFrame, kit.link]).toEqual(['mesh', 'laptop', 'example.com']);
+  });
+
+  it('dresses another project, with the logo stored for it', () => {
+    const kit = brandKitFromProject(branded(), 'Teal');
+    const target = createProject();
+    target.content.title = 'Mine';
+    const logo = { id: 'new-logo', name: 'logo.png', mime: 'image/png', width: 512, height: 512, size: 2048 };
+    const out = applyBrandKit(target, kit, logo);
+    expect(out.brand).toMatchObject({ primary: '#0f766e', style: 'bold', logoAssetId: 'new-logo' });
+    expect(out.assets.map((a) => a.id)).toEqual(['new-logo']);
+    expect([out.content.title, out.content.link, out.desktopFrame]).toEqual(['Mine', 'example.com', 'laptop']);
+    // A kit without a logo removes none: the project keeps its own.
+    const noLogo = { ...kit, logo: null };
+    const own = { ...createProject(), brand: { ...createProject().brand, logoAssetId: 'mine' } };
+    expect(applyBrandKit(own, noLogo, null).brand.logoAssetId).toBe('mine');
+    expect(applyBrandKit(own, kit, null).brand.logoAssetId).toBe('mine');
+  });
+
+  it('validates stored kits', () => {
+    expect(migrateBrandKit(null)).toBeNull();
+    expect(migrateBrandKit({ name: 'no id' })).toBeNull();
+    const k = migrateBrandKit({ id: 'k', name: 'x'.repeat(60), brand: { primary: 'red', style: 'neon', footer: 'yes' }, desktopFrame: 'tv' })!;
+    expect(k.name).toHaveLength(40);
+    expect(k.brand).toMatchObject({ primary: createProject().brand.primary, style: 'minimal', footer: false });
+    expect(k.desktopFrame).toBe('plain');
+    const round = brandKitFromProject(branded(), 'Teal');
+    expect(migrateBrandKit(JSON.parse(JSON.stringify(round)))).toEqual(round);
   });
 });

@@ -8,6 +8,8 @@ export type TemplateId =
   | 'stats'
   | 'event'
   | 'features'
+  | 'steps'
+  | 'comparison'
   | 'code'
   | 'annotated'
   | 'browser-duo'
@@ -15,7 +17,10 @@ export type TemplateId =
   | 'bento'
   | 'spotlight'
   | 'before-after'
+  | 'detail-zoom'
+  | 'cover'
   | 'editorial'
+  | 'cta'
   | 'minimal';
 
 export type TemplateCategory =
@@ -40,6 +45,44 @@ export type DesktopFrame = 'browser' | 'window' | 'plain' | 'laptop';
 export const DESKTOP_FRAMES: readonly DesktopFrame[] = ['browser', 'window', 'plain', 'laptop'];
 /** Templates that draw desktop screenshots in a desktop frame. */
 export const DESKTOP_FRAME_TEMPLATES: readonly TemplateId[] = ['browser-hero', 'browser-duo', 'device-mix', 'app-store'];
+
+/**
+ * Templates whose layout can be mirrored (text on the other side). Centred templates (App Store,
+ * Minimal, Testimonial) look the same mirrored, so the option is not offered there.
+ */
+export const MIRROR_TEMPLATES: readonly TemplateId[] = [
+  'browser-hero',
+  'device-mix',
+  'browser-duo',
+  'mobile-trio',
+  'bento',
+  'spotlight',
+  'before-after',
+  'editorial',
+  'stats',
+  'event',
+  'features',
+  'code',
+  'annotated',
+  'cta',
+  'steps',
+  'comparison',
+  'detail-zoom',
+];
+/**
+ * Templates whose screens can be tilted. Full-bleed images, grids, legends and text-only
+ * templates stay straight: tilting them would expose the corners or misalign the call-outs.
+ */
+export const TILT_TEMPLATES: readonly TemplateId[] = [
+  'browser-hero',
+  'device-mix',
+  'app-store',
+  'browser-duo',
+  'mobile-trio',
+  'spotlight',
+  'before-after',
+  'code',
+];
 
 /** Tablet and phone frames can be held upright or turned sideways. */
 export type DeviceOrientation = 'portrait' | 'landscape';
@@ -134,6 +177,22 @@ export const TEMPLATES: TemplateDefinition[] = [
     slots: { ...text, screenshots: { min: 2, max: 2 } },
   },
   {
+    id: 'detail-zoom',
+    name: 'Detail Zoom',
+    category: 'product',
+    description: 'One screenshot with a lens that magnifies the detail that matters (its focal point).',
+    shotKind: 'any',
+    slots: { ...text, screenshots: { min: 1, max: 1 } },
+  },
+  {
+    id: 'cover',
+    name: 'Cover',
+    category: 'editorial',
+    description: 'A full-bleed image under a dark veil, with the headline on top. Article and video covers.',
+    shotKind: 'any',
+    slots: { ...text, screenshots: { min: 0, max: 1 } },
+  },
+  {
     id: 'editorial',
     name: 'Editorial',
     category: 'editorial',
@@ -174,6 +233,22 @@ export const TEMPLATES: TemplateDefinition[] = [
     slots: { ...text, screenshots: { min: 0, max: 0 } },
   },
   {
+    id: 'steps',
+    name: 'Steps',
+    category: 'documentation',
+    description: 'Two to five numbered steps: how it works, how to get started.',
+    shotKind: 'any',
+    slots: { ...text, screenshots: { min: 0, max: 0 } },
+  },
+  {
+    id: 'comparison',
+    name: 'Comparison',
+    category: 'announcement',
+    description: 'A table of criteria with ticks and crosses: your product against another way.',
+    shotKind: 'any',
+    slots: { ...text, screenshots: { min: 0, max: 0 } },
+  },
+  {
     id: 'code',
     name: 'Code',
     category: 'documentation',
@@ -188,6 +263,14 @@ export const TEMPLATES: TemplateDefinition[] = [
     description: 'A settings panel with numbered fields and its legend: one page per group, ideal for a PDF guide.',
     shotKind: 'any',
     slots: { ...text, screenshots: { min: 1, max: 1 } },
+  },
+  {
+    id: 'cta',
+    name: 'Call to Action',
+    category: 'announcement',
+    description: 'A closing page: one action, a button, your link and an optional QR code.',
+    shotKind: 'any',
+    slots: { ...text, screenshots: { min: 0, max: 0 } },
   },
   {
     id: 'minimal',

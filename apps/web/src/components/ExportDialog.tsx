@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   buildCarouselSlides,
   carouselFormat as carouselFormatOf,
+  FORMAT_GROUPS,
   FORMAT_ORDER,
   IOS_CANVAS_PIXELS,
   isScaleReasonable,
@@ -17,6 +18,8 @@ import { downloadBlob } from '../lib/download';
 import { exportCarouselPdf } from '../lib/carouselPdf';
 import { Stage } from './Stage';
 import { Button, cx, Icon, Segmented, Slider } from './ui';
+
+import { t } from '../i18n';
 
 export function ExportDialog({ onClose }: { onClose: () => void }) {
   const project = useEditor((s) => s.project)!;
@@ -97,38 +100,45 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
     >
       <div className="flex items-center justify-between border-b border-line px-5 py-4">
         <h2 id="export-title" className="font-semibold">
-          Export Pack
+          {t('Export Pack')}
         </h2>
-        <Button variant="ghost" onClick={onClose} disabled={busy} aria-label="Close">
+        <Button variant="ghost" onClick={onClose} disabled={busy} aria-label={t('Close')}>
           <Icon name="x" />
         </Button>
       </div>
       <div className="space-y-5 px-5 py-4">
         <fieldset>
-          <legend className="mb-2 text-sm font-semibold text-ink">Formats</legend>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {FORMAT_ORDER.map((id) => {
-              const f = resolveFormat(id, project.customFormat);
-              const on = formats.includes(id);
-              return (
-                <label key={id} className={cx('flex cursor-pointer items-start gap-2 rounded-lg p-2 ring-1', on ? 'bg-accent-soft ring-accent-line' : 'ring-line')}>
-                  <input type="checkbox" className="mt-0.5" checked={on} onChange={() => toggle(id)} />
-                  <span>
-                    <span className="block text-sm font-medium">{f.label}</span>
-                    <span className="text-xs tabular-nums text-muted">
-                      {f.width}×{f.height}
-                    </span>
-                  </span>
-                </label>
-              );
-            })}
+          <legend className="mb-2 text-sm font-semibold text-ink">{t('Formats')}</legend>
+          <div className="space-y-3">
+            {FORMAT_GROUPS.map((g) => (
+              <div key={g.label} role="group" aria-label={t(g.label)}>
+                <p className="mb-1.5 text-xs font-medium text-muted">{t(g.label)}</p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {g.formats.map((id) => {
+                    const f = resolveFormat(id, project.customFormat);
+                    const on = formats.includes(id);
+                    return (
+                      <label key={id} className={cx('flex cursor-pointer items-start gap-2 rounded-lg p-2 ring-1', on ? 'bg-accent-soft ring-accent-line' : 'ring-line')}>
+                        <input type="checkbox" className="mt-0.5" checked={on} onChange={() => toggle(id)} />
+                        <span>
+                          <span className="block text-sm font-medium">{t(f.label)}</span>
+                          <span className="text-xs tabular-nums text-muted">
+                            {f.width}×{f.height}
+                          </span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </fieldset>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <p className="mb-1 text-xs font-medium text-muted">File type</p>
+            <p className="mb-1 text-xs font-medium text-muted">{t('File type')}</p>
             <Segmented
-              label="File type"
+              label={t('File type')}
               value={type}
               options={[
                 { value: 'png', label: 'PNG' },
@@ -139,9 +149,9 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
             />
           </div>
           <div>
-            <p className="mb-1 text-xs font-medium text-muted">Resolution</p>
+            <p className="mb-1 text-xs font-medium text-muted">{t('Resolution')}</p>
             <Segmented
-              label="Resolution"
+              label={t('Resolution')}
               value={String(scale) as '1' | '2' | '3'}
               options={[
                 { value: '1', label: '1×' },
@@ -151,29 +161,29 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
               onChange={(v) => setScale(Number(v))}
             />
             {blocked ? (
-              <p className="mt-1 text-xs text-danger">Too large for this device (iPhone/iPad limit). Choose a lower resolution.</p>
+              <p className="mt-1 text-xs text-danger">{t('Too large for this device (iPhone/iPad limit). Choose a lower resolution.')}</p>
             ) : (
-              tooBig(scale) && <p className="mt-1 text-xs text-warn">Very large output: export may be slow or fail on some devices.</p>
+              tooBig(scale) && <p className="mt-1 text-xs text-warn">{t('Very large output: export may be slow or fail on some devices.')}</p>
             )}
           </div>
         </div>
         {type !== 'png' && (
-          <Slider label="Quality" min={0.5} max={1} step={0.01} value={quality} format={(v) => `${Math.round(v * 100)}%`} onChange={setQuality} />
+          <Slider label={t('Quality')} min={0.5} max={1} step={0.01} value={quality} format={(v) => `${Math.round(v * 100)}%`} onChange={setQuality} />
         )}
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={includeProject} onChange={(e) => setIncludeProject(e.target.checked)} />
-          Include <code className="rounded bg-subtle px-1 text-xs">project.json</code> (re-importable, images embedded)
+          {t('Include')}{' '}<code className="rounded bg-subtle px-1 text-xs">project.json</code>{' '}{t('(re-importable, images embedded)')}
         </label>
         <section aria-labelledby="carousel-title" className="rounded-xl bg-panel p-3 ring-1 ring-line">
           <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
             <h3 id="carousel-title" className="text-sm font-semibold text-ink">
-              LinkedIn Carousel (PDF)
+              {t('LinkedIn Carousel (PDF)')}
             </h3>
             <span className="text-xs tabular-nums text-muted">
-              {slides.length} {slides.length === 1 ? 'page' : 'pages'} of {carouselFormat.width} × {carouselFormat.height}
+              {t(slides.length === 1 ? '1 page of {w} × {h}' : '{n} pages of {w} × {h}', { n: slides.length, w: carouselFormat.width, h: carouselFormat.height })}
             </span>
           </div>
-          <ol className="flex gap-2 overflow-x-auto pb-1" aria-label="Carousel slides">
+          <ol className="flex gap-2 overflow-x-auto pb-1" aria-label={t('Carousel slides')}>
             {slides.map((s, i) => (
               <li key={i} className="flex-none">
                 <Stage project={s.project} format={carouselFormat} urls={urls} maxWidth={72} maxHeight={90} className="rounded shadow-sm ring-1 ring-ink/5" />
@@ -185,12 +195,12 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
           </ol>
           <p className="mt-2 text-xs text-muted">
             {slides[0]?.auto
-              ? 'Automatic pages: cover, one page per screenshot (titled with its caption), then your features.'
-              : 'Your custom pages.'}{' '}
-            Choose templates, text and order in the <strong>Carousel</strong> tab. Post the PDF on LinkedIn as a document.
+              ? t('Automatic pages: cover, one page per screenshot (titled with its caption), then your features.')
+              : t('Your custom pages.')}{' '}
+            {t('Choose templates, text and order in the Carousel tab. Post the PDF on LinkedIn as a document.')}
           </p>
           <Button className="mt-3" onClick={runCarousel} disabled={busy || carouselBlocked}>
-            <Icon name="download" /> Export Carousel PDF ({slides.length} {slides.length === 1 ? 'Page' : 'Pages'})
+            <Icon name="download" /> {slides.length === 1 ? t('Export Carousel PDF (1 Page)') : t('Export Carousel PDF ({n} Pages)', { n: slides.length })}
           </Button>
         </section>
         {error && (
@@ -200,14 +210,14 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
         )}
       </div>
       <div className="flex items-center justify-between gap-3 border-t border-line px-5 py-4">
-        <p className="text-xs text-muted">Rendered in your browser. Nothing is uploaded.</p>
+        <p className="text-xs text-muted">{t('Rendered in your browser. Nothing is uploaded.')}</p>
         <Button variant="primary" onClick={run} disabled={busy || formats.length === 0 || blocked}>
           <Icon name="download" />
           {busy
-            ? `Rendering ${progress.done}/${progress.total}…`
+            ? t('Rendering {done}/{total}…', { done: progress.done, total: progress.total })
             : formats.length === 1 && !includeProject
-              ? 'Export Image'
-              : `Export ZIP (${formats.length})`}
+              ? t('Export Image')
+              : t('Export ZIP ({n})', { n: formats.length })}
         </Button>
       </div>
     </dialog>

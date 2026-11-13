@@ -6,6 +6,7 @@
 import { createProject, createScreenshotSlot, LIMITS, parseLegendMarkdown, type Project } from '@svs/visual-core';
 import { ImportError, readImageFile } from './assets';
 import { createProjectRecord, putBlob, requestPersistence } from './db';
+import { t } from '../i18n';
 
 export interface LegendImportResult {
   project: Project;
@@ -21,18 +22,18 @@ const baseName = (path: string) => path.split(/[\\/]/).pop()!.trim().toLowerCase
 
 export async function importLegendBundle(files: File[]): Promise<LegendImportResult> {
   const md = files.find(isMarkdown);
-  if (!md) throw new ImportError('Select the legend file (.md) together with its images.');
-  if (md.size > MAX_LEGEND_BYTES) throw new ImportError(`${md.name}: the legend file is too large.`);
+  if (!md) throw new ImportError(t('Select the legend file (.md) together with its images.'));
+  if (md.size > MAX_LEGEND_BYTES) throw new ImportError(t('{name}: the legend file is too large.', { name: md.name }));
   const doc = parseLegendMarkdown(await md.text());
   if (!doc.groups.length) {
-    throw new ImportError(`${md.name}: no section like “## Group (image.png)” followed by a field table was found.`);
+    throw new ImportError(t('{name}: no section like “## Group (image.png)” followed by a field table was found.', { name: md.name }));
   }
 
   const images = new Map(files.filter((f) => f.type.startsWith('image/')).map((f) => [baseName(f.name), f]));
   const groups = doc.groups.slice(0, LIMITS.screenshots);
   const found = groups.filter((g) => images.has(baseName(g.file)));
   if (!found.length) {
-    throw new ImportError(`None of the images named in ${md.name} were selected (for example ${groups[0].file}). Select them with the .md file.`);
+    throw new ImportError(t('None of the images named in {name} were selected (for example {file}). Select them with the .md file.', { name: md.name, file: groups[0].file }));
   }
 
   const title = doc.title || md.name.replace(/\.(md|markdown)$/i, '');

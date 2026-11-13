@@ -19,7 +19,7 @@ import {
   type Project,
   type Variant,
 } from './project';
-import type { Suggestion } from './rules';
+import { msg, type Suggestion } from './rules';
 import { getTemplate, type TemplateId } from './templates';
 
 /** Default page format (4:5). Use `carouselFormat(project)` for the project's chosen page size. */
@@ -96,13 +96,16 @@ export function buildCarouselSlides(project: Project): CarouselSlide[] {
       auto,
       label: slideLabel(project, v),
       variant: v,
-      project: numbered ? { ...page, content: { ...page.content, kicker: `${i + 1} / ${total}` } } : page,
+      project: {
+        ...(numbered ? { ...page, content: { ...page.content, kicker: `${i + 1} / ${total}` } } : page),
+        carouselPage: { index: i, total },
+      },
     };
   });
 }
 
 /** Templates that read as a closing / call-to-action page. */
-const CLOSING_TEMPLATES: TemplateId[] = ['minimal', 'event'];
+const CLOSING_TEMPLATES: TemplateId[] = ['cta', 'minimal', 'event'];
 
 /** Deterministic advice for the carousel as a whole. Informative only. */
 export function analyzeCarousel(project: Project): Suggestion[] {
@@ -112,11 +115,11 @@ export function analyzeCarousel(project: Project): Suggestion[] {
     out.push({
       id: 'carousel-wide',
       level: 'info',
-      message: '16:9 pages are much smaller in the LinkedIn feed on phones. Prefer 4:5 unless you reuse a presentation.',
+      ...msg('16:9 pages are much smaller in the LinkedIn feed on phones. Prefer 4:5 unless you reuse a presentation.'),
     });
   }
   if (slides.length < 3) {
-    out.push({ id: 'carousel-short', level: 'info', message: 'Carousels with 3 to 12 pages tend to perform best.' });
+    out.push({ id: 'carousel-short', level: 'info', ...msg('Carousels with 3 to 12 pages tend to perform best.') });
   }
   slides.forEach((s, i) => {
     const { min } = screenshotRange({ template: s.variant.template, devices: project.devices });
@@ -124,11 +127,11 @@ export function analyzeCarousel(project: Project): Suggestion[] {
       out.push({
         id: `carousel-shots-${i}`,
         level: 'warning',
-        message: `Page ${i + 1}: ${getTemplate(s.variant.template).name} needs at least ${min} screenshot${min > 1 ? 's' : ''}.`,
+        ...(min > 1 ? msg('Page {page}: {template} needs at least {n} screenshots.', { page: i + 1, template: getTemplate(s.variant.template).name, n: min }) : msg('Page {page}: {template} needs a screenshot.', { page: i + 1, template: getTemplate(s.variant.template).name })),
       });
     }
     if (s.project.content.title.trim().length > 60) {
-      out.push({ id: `carousel-title-${i}`, level: 'info', message: `Page ${i + 1}: the title is long for a carousel page. Aim for 60 characters or fewer.` });
+      out.push({ id: `carousel-title-${i}`, level: 'info', ...msg('Page {page}: the title is long for a carousel page. Aim for 60 characters or fewer.', { page: i + 1 }) });
     }
   });
   const last = slides[slides.length - 1];
@@ -136,7 +139,7 @@ export function analyzeCarousel(project: Project): Suggestion[] {
     out.push({
       id: 'carousel-cta',
       level: 'info',
-      message: 'End with a call to action, for example a Minimal or Event page with your link.',
+      ...msg('End with a call to action: add a Call to Action page with your link.'),
     });
   }
   return out;
