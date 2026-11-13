@@ -132,11 +132,23 @@ Every template adapts its layout to landscape, square, portrait and very wide (b
 | GitHub | 1280 × 640 | Repository social preview |
 | Product Hunt | 1270 × 760 | Gallery image |
 | Banner | 1584 × 396 | Profile banner; avatar covers bottom-left |
-| Thumbnail 16:9 | 1280 × 720 | Video / article thumbnail |
+| Thumbnail 16:9 | 1280 × 720 | Video / article thumbnail; also YouTube thumbnails and Microsoft AppSource screenshots |
 | App Store iPhone | 1320 × 2868 | iPhone 6.9" store screenshot (export at 1×) |
 | App Store iPad | 2064 × 2752 | iPad 13" store screenshot (export at 1×) |
 | Mac App Store | 2880 × 1800 | Mac store screenshot (export at 1×) |
+| LinkedIn Company | 1128 × 191 | Company page cover; the template starts right of the page logo |
+| YouTube Banner | 2560 × 1440 | Channel art; the template is drawn in the centre band (1546 × 423) every device shows |
+| Google Play Feature | 1024 × 500 | Feature graphic |
+| Google Play Phone | 1080 × 1920 | Phone screenshot |
+| Teams Store | 1366 × 768 | Microsoft Teams app store screenshot |
+| Chrome Web Store | 1280 × 800 | Chrome and Edge extension screenshot |
+| Extension Promo | 440 × 280 | Small promo tile |
+| SharePoint News | 1920 × 1080 | News and page images; SharePoint crops them, keep the text in the middle |
+| Slide 16:9 | 1920 × 1080 | PowerPoint slide, Teams background |
+| E-mail Header | 600 × 200 | Newsletter header (export at 2×) |
 | Custom | 64 – 4096 px | Any size |
+
+Formats are grouped by use in the Export dialog (Social, Developers, App stores, Microsoft 365 and e-mail). Platform sizes change: check each platform's current guidelines before publishing.
 
 At 2× and 3× the pixel size is multiplied. Very large exports (> ~33 MP) show a warning.
 

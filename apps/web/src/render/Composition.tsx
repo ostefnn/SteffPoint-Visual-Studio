@@ -113,9 +113,21 @@ export interface CompositionProps {
   width: number;
   height: number;
   urls: Record<string, string>;
+  /** Draw the template inside these insets only (see FormatPreset.content); the background fills everything. */
+  content?: { top: number; right: number; bottom: number; left: number };
 }
 
-export function Composition({ project, width, height: fullHeight, urls }: CompositionProps) {
+export function Composition({ project, width: canvasW, height: canvasH, urls, content }: CompositionProps) {
+  const box = content
+    ? {
+        left: canvasW * content.left,
+        top: canvasH * content.top,
+        width: canvasW * (1 - content.left - content.right),
+        height: canvasH * (1 - content.top - content.bottom),
+      }
+    : { left: 0, top: 0, width: canvasW, height: canvasH };
+  const width = box.width;
+  const fullHeight = box.height;
   const spec = getStyle(project.brand.style);
   const pal = derivePalette(project.brand.primary, project.brand.theme, spec.id);
   const footer = footerContent(project, urls);
@@ -177,23 +189,25 @@ export function Composition({ project, width, height: fullHeight, urls }: Compos
   return (
     <div
       style={{
-        width,
-        height: fullHeight,
+        width: canvasW,
+        height: canvasH,
         position: 'relative',
         overflow: 'hidden',
         fontFamily: spec.body ?? BODY_STACK,
         color: pal.text,
-        ...backgroundStyle(ctx),
+        ...backgroundStyle({ ...ctx, w: canvasW, h: canvasH, u: Math.min(canvasW, canvasH) / 100 }),
       }}
     >
-      {footer ? (
-        <>
-          <div style={{ position: 'absolute', left: 0, top: 0, width, height, overflow: 'hidden' }}>{arrange(Template(ctx), ctx)}</div>
-          <Footer ctx={ctx} band={footerH} {...footer} />
-        </>
-      ) : (
-        arrange(Template(ctx), ctx)
-      )}
+      <div data-content="" style={{ position: 'absolute', left: box.left, top: box.top, width, height: fullHeight }}>
+        {footer ? (
+          <>
+            <div style={{ position: 'absolute', left: 0, top: 0, width, height, overflow: 'hidden' }}>{arrange(Template(ctx), ctx)}</div>
+            <Footer ctx={ctx} band={footerH} {...footer} />
+          </>
+        ) : (
+          arrange(Template(ctx), ctx)
+        )}
+      </div>
     </div>
   );
 }

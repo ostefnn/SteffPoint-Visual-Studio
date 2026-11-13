@@ -47,7 +47,7 @@ export async function renderToBlob(
   document.body.appendChild(host);
   const root = createRoot(host);
   try {
-    flushSync(() => root.render(createElement(Composition, { project, width: f.width, height: f.height, urls })));
+    flushSync(() => root.render(createElement(Composition, { project, width: f.width, height: f.height, urls, content: f.content })));
     const node = host.firstElementChild as HTMLElement;
     await waitForImages(node);
     if (opts.flattenShadows ?? IS_WEBKIT) flattenShadows(node);

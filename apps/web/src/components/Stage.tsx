@@ -19,7 +19,7 @@ export function Stage({
   label,
 }: {
   project: Project;
-  format: Pick<FormatPreset, 'width' | 'height' | 'safe'>;
+  format: Pick<FormatPreset, 'width' | 'height' | 'safe' | 'content'>;
   urls: Record<string, string>;
   maxWidth: number;
   maxHeight: number;
@@ -39,7 +39,7 @@ export function Stage({
         aria-hidden="true"
         style={{ width: format.width, height: format.height, transform: `scale(${scale})`, transformOrigin: '0 0', pointerEvents: 'none' }}
       >
-        <Composition project={project} width={format.width} height={format.height} urls={urls} />
+        <Composition project={project} width={format.width} height={format.height} urls={urls} content={format.content} />
       </div>
       {showSafeZones && <SafeZoneOverlay safe={format.safe} />}
       {children}

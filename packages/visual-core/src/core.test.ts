@@ -31,6 +31,8 @@ import {
   applyVariant,
   compareMark,
   clampArea,
+  FORMAT_GROUPS,
+  FORMAT_ORDER,
 } from './index';
 
 describe('Tint and Technical palettes', () => {
@@ -632,5 +634,28 @@ describe('hidden areas, Detail Zoom and Cover', () => {
     p.screenshots[0].focalX = 0.2;
     expect(analyzeProject(p, FORMAT_PRESETS.linkedin).map((s) => s.id)).not.toContain('zoom-focal');
     expect(analyzeProject(createProject({ template: 'cover' }), FORMAT_PRESETS.linkedin).map((s) => s.id)).toContain('cover-image');
+  });
+});
+
+describe('format groups', () => {
+  it('list every format once, by use', () => {
+    expect([...FORMAT_ORDER].sort()).toEqual(Object.keys(FORMAT_PRESETS).sort());
+    expect(new Set(FORMAT_ORDER).size).toBe(FORMAT_ORDER.length);
+    expect(FORMAT_GROUPS.flatMap((g) => g.formats)).toEqual(FORMAT_ORDER);
+  });
+
+  it('draw YouTube channel art inside the band every device shows', () => {
+    const yt = FORMAT_PRESETS['youtube-banner'];
+    expect(yt.content).toEqual(yt.safe);
+    expect(Math.round(yt.width * (1 - yt.safe.left - yt.safe.right))).toBe(1546);
+    expect(Math.round(yt.height * (1 - yt.safe.top - yt.safe.bottom))).toBe(423);
+  });
+
+  it('keep every content area inside the image', () => {
+    for (const f of Object.values(FORMAT_PRESETS)) {
+      if (!f.content) continue;
+      expect(f.content.left + f.content.right).toBeLessThan(1);
+      expect(f.content.top + f.content.bottom).toBeLessThan(1);
+    }
   });
 });

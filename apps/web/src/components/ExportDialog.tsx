@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   buildCarouselSlides,
   carouselFormat as carouselFormatOf,
+  FORMAT_GROUPS,
   FORMAT_ORDER,
   IOS_CANVAS_PIXELS,
   isScaleReasonable,
@@ -106,22 +107,29 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
       <div className="space-y-5 px-5 py-4">
         <fieldset>
           <legend className="mb-2 text-sm font-semibold text-ink">Formats</legend>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {FORMAT_ORDER.map((id) => {
-              const f = resolveFormat(id, project.customFormat);
-              const on = formats.includes(id);
-              return (
-                <label key={id} className={cx('flex cursor-pointer items-start gap-2 rounded-lg p-2 ring-1', on ? 'bg-accent-soft ring-accent-line' : 'ring-line')}>
-                  <input type="checkbox" className="mt-0.5" checked={on} onChange={() => toggle(id)} />
-                  <span>
-                    <span className="block text-sm font-medium">{f.label}</span>
-                    <span className="text-xs tabular-nums text-muted">
-                      {f.width}×{f.height}
-                    </span>
-                  </span>
-                </label>
-              );
-            })}
+          <div className="space-y-3">
+            {FORMAT_GROUPS.map((g) => (
+              <div key={g.label} role="group" aria-label={g.label}>
+                <p className="mb-1.5 text-xs font-medium text-muted">{g.label}</p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {g.formats.map((id) => {
+                    const f = resolveFormat(id, project.customFormat);
+                    const on = formats.includes(id);
+                    return (
+                      <label key={id} className={cx('flex cursor-pointer items-start gap-2 rounded-lg p-2 ring-1', on ? 'bg-accent-soft ring-accent-line' : 'ring-line')}>
+                        <input type="checkbox" className="mt-0.5" checked={on} onChange={() => toggle(id)} />
+                        <span>
+                          <span className="block text-sm font-medium">{f.label}</span>
+                          <span className="text-xs tabular-nums text-muted">
+                            {f.width}×{f.height}
+                          </span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </fieldset>
         <div className="grid gap-4 sm:grid-cols-2">
