@@ -5,6 +5,7 @@ import { notify } from '../store/toasts';
 import { ImportError, readImageFile } from './assets';
 import { describeStorageError, putBlob, requestPersistence } from './db';
 import { sampleLogoColors } from './logoColors';
+import { t } from '../i18n';
 
 export function imageFilesFrom(list: FileList | File[] | null | undefined): File[] {
   return [...(list ?? [])].filter((f) => f.type.startsWith('image/'));
@@ -16,7 +17,7 @@ export async function importImages(files: File[], target: 'screenshot' | 'logo')
   if (!project) return;
   for (const file of target === 'logo' ? files.slice(0, 1) : files) {
     if (target === 'screenshot' && (ed().project?.screenshots.length ?? 0) >= LIMITS.screenshots) {
-      notify(`A project holds up to ${LIMITS.screenshots} screenshots.`, 'error');
+      notify(t('A project holds up to {n} screenshots.', { n: LIMITS.screenshots }), 'error');
       break;
     }
     try {
@@ -37,8 +38,8 @@ export async function importImages(files: File[], target: 'screenshot' | 'logo')
       if (target === 'screenshot') ed().selectShot(slot.id);
       if (brandColor && previous && brandColor !== previous) {
         // Undo here restores only the colour and keeps the logo, whatever was edited since.
-        notify(`Brand colour set to ${brandColor} from the logo.`, 'info', {
-          label: 'Undo',
+        notify(t('Brand colour set to {c} from the logo.', { c: brandColor }), 'info', {
+          label: t('Undo'),
           run: () => {
             if (ed().project?.brand.primary === brandColor) ed().update((d) => void (d.brand.primary = previous));
           },
@@ -76,7 +77,7 @@ export function duplicateScreenshot(id: string) {
   const src = ed.project?.screenshots.find((s) => s.id === id);
   if (!src) return;
   if ((ed.project?.screenshots.length ?? 0) >= LIMITS.screenshots) {
-    notify(`A project holds up to ${LIMITS.screenshots} screenshots.`, 'error');
+    notify(t('A project holds up to {n} screenshots.', { n: LIMITS.screenshots }), 'error');
     return;
   }
   const copy = { ...src, id: uid('shot') };

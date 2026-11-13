@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { getStorageHealth, requestPersistence, type StorageHealth } from '../lib/db';
 import { Button } from './ui';
 
+import { t } from '../i18n';
+
 const mb = (n?: number) => (n === undefined ? '?' : n < 1024 * 1024 * 1024 ? `${Math.round(n / 1024 / 1024)} MB` : `${(n / 1024 / 1024 / 1024).toFixed(1)} GB`);
 
 /**
@@ -22,20 +24,20 @@ export function StorageStatus({ projectCount }: { projectCount: number }) {
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl bg-surface px-4 py-3 text-xs text-muted ring-1 ring-line" data-testid="storage-status">
       <span>
-        Storage on this device: <strong className={nearlyFull ? 'text-danger' : 'text-ink'}>{mb(h.usage)}</strong>
-        {h.quota ? ` of ${mb(h.quota)} available` : ''}
+        {t('Storage on this device:')} <strong className={nearlyFull ? 'text-danger' : 'text-ink'}>{mb(h.usage)}</strong>
+        {h.quota ? ` ${t('of {size} available', { size: mb(h.quota) })}` : ''}
       </span>
       {h.quota ? (
         <span className="h-1.5 w-32 overflow-hidden rounded-full bg-subtle-strong" aria-hidden="true">
           <span className={`block h-full ${nearlyFull ? 'bg-danger' : 'bg-accent'}`} style={{ width: `${Math.min(100, ratio * 100)}%` }} />
         </span>
       ) : null}
-      {h.persisted === true && <span className="text-ok">Protected from automatic clean-up</span>}
+      {h.persisted === true && <span className="text-ok">{t('Protected from automatic clean-up')}</span>}
       {h.persisted === false && projectCount > 0 && (
         <span className="flex flex-wrap items-center gap-2">
-          <span className="text-warn">Your browser may clear this data. Export important projects as JSON.</span>
+          <span className="text-warn">{t('Your browser may clear this data. Export important projects as JSON.')}</span>
           <Button size="sm" variant="ghost" onClick={() => requestPersistence().then(refresh)}>
-            Ask to Keep Data
+            {t('Ask to Keep Data')}
           </Button>
         </span>
       )}

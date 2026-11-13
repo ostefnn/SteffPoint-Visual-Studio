@@ -4,6 +4,7 @@ import { useEditor } from '../store/editor';
 import { notify } from '../store/toasts';
 import { readImageFile } from './assets';
 import { describeStorageError, getBlob, getKitLogo, putBlob, putBrandKit } from './db';
+import { t } from '../i18n';
 
 /** Kit chosen on the dashboard for new projects (a per-browser preference). */
 const DEFAULT_KIT_KEY = 'svs-default-brand-kit';
@@ -33,7 +34,7 @@ export async function saveKitFromEditor(name: string, replace?: BrandKit): Promi
     const kit = brandKitFromProject(project, name, replace?.id);
     const logo = project.brand.logoAssetId ? ((await getBlob(project.id, project.brand.logoAssetId)) ?? null) : null;
     await putBrandKit(kit, logo);
-    notify(replace ? `Brand kit “${kit.name}” updated.` : `Saved brand kit “${kit.name}”.`, 'info');
+    notify(replace ? t('Brand kit “{name}” updated.', { name: kit.name }) : t('Saved brand kit “{name}”.', { name: kit.name }), 'info');
     return kit;
   } catch (e) {
     notify(describeStorageError(e), 'error');
@@ -69,7 +70,7 @@ export async function applyKitInEditor(kit: BrandKit): Promise<void> {
       const next = applyBrandKit(d, kit, logo?.asset ?? null);
       Object.assign(d, { assets: next.assets, brand: next.brand, background: next.background, desktopFrame: next.desktopFrame, content: next.content });
     });
-    notify(`Applied brand kit “${kit.name}”.`, 'info');
+    notify(t('Applied brand kit “{name}”.', { name: kit.name }), 'info');
   } catch (e) {
     notify(describeStorageError(e), 'error');
   }

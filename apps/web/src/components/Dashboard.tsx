@@ -28,6 +28,8 @@ import { Stage } from './Stage';
 import { PrivacyBadge } from './PrivacyBadge';
 import { StorageStatus } from './StorageStatus';
 
+import { getLang, LANGS, localizeContent, setLang, t, type Lang } from '../i18n';
+
 /**
  * Gallery previews show real material, never invented proof: screenshots of SteffPoint Visual
  * Studio itself (public/samples). Desktop frames get desktop screenshots; iPhones and iPads get
@@ -122,7 +124,7 @@ const SAMPLE_CONTENT: Partial<Record<TemplateId, Partial<Project['content']>>> =
 const STORE_CAPTIONS = ['Every format at once', 'Your brand, from your logo', 'Nothing leaves your device'];
 
 function sampleFor(template: TemplateId, style: StyleId, kit?: BrandKit): Project {
-  const content = { ...SAMPLE.content, ...SAMPLE_CONTENT[template] };
+  const content = localizeContent({ ...SAMPLE.content, ...SAMPLE_CONTENT[template] });
   const styled = withStyle({ ...SAMPLE, content }, style);
   // With a brand kit, previews wear it (without its logo, which is not loaded here).
   const base = kit ? { ...applyBrandKit(styled, kit, null), content: styled.content } : styled;
@@ -147,7 +149,7 @@ function TemplatePreview({ template, style, kit }: { template: TemplateId; style
         {STORE_CAPTIONS.map((title, i) => (
           <Stage
             key={title}
-            project={{ ...project, content: { ...project.content, title, subtitle: '' }, screenshots: [project.screenshots[i % project.screenshots.length]] }}
+            project={{ ...project, content: { ...project.content, title: t(title), subtitle: '' }, screenshots: [project.screenshots[i % project.screenshots.length]] }}
             format={iphone}
             urls={SAMPLE_URLS}
             maxWidth={CARD.width}
@@ -191,7 +193,8 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
   }, []);
 
   const create = async (template: TemplateId = 'browser-hero') => {
-    const fresh = createProject({ template, name: `Untitled ${new Date().toLocaleDateString()}` });
+    const fresh = createProject({ template, name: t('Untitled {date}', { date: new Date().toLocaleDateString(getLang()) }) });
+    fresh.content = localizeContent(fresh.content);
     const p = kit ? await withBrandKit(fresh, kit) : withStyle(fresh, galleryStyle);
     await createProjectRecord(p);
     onOpen(p.id);
@@ -218,7 +221,7 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
       refresh();
     },
     remove: async (p: Project) => {
-      if (!confirm(`Delete “${p.name}”? This cannot be undone.`)) return;
+      if (!confirm(t('Delete “{name}”? This cannot be undone.', { name: p.name }))) return;
       await deleteProject(p.id);
       refresh();
     },
@@ -252,9 +255,9 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
     try {
       const { project, missing, skipped } = await importLegendBundle([...files]);
       const pages = project.screenshots.length;
-      notify(`${pages} annotated page${pages > 1 ? 's' : ''} created from the legend.`);
-      if (missing.length) notify(`Not selected, so left out: ${missing.join(', ')}.`, 'error');
-      if (skipped) notify(`${skipped} more section${skipped > 1 ? 's' : ''} left out: a project holds ${LIMITS.screenshots} images.`, 'error');
+      notify(pages > 1 ? t('{n} annotated pages created from the legend.', { n: pages }) : t('One annotated page created from the legend.'));
+      if (missing.length) notify(t('Not selected, so left out: {list}.', { list: missing.join(', ') }), 'error');
+      if (skipped) notify(t('{n} more section(s) left out: a project holds {max} images.', { n: skipped, max: LIMITS.screenshots }), 'error');
       onOpen(project.id);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -273,32 +276,46 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-4 sm:px-6">
           <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="size-8" />
           <div className="mr-auto">
-            <h1 className="text-lg font-semibold leading-tight">SteffPoint Visual Studio</h1>
-            <p className="text-xs text-muted">Create once. Publish everywhere.</p>
+            <h1 className="text-lg font-semibold leading-tight">{t('SteffPoint Visual Studio')}</h1>
+            <p className="text-xs text-muted">{t('Create once. Publish everywhere.')}</p>
           </div>
           <PrivacyBadge />
+          <select
+            value={getLang()}
+            onChange={(e) => setLang(e.target.value as Lang)}
+            aria-label={t('Language')}
+            title={LANGS.find((l) => l.id === getLang())?.label}
+            className={cx(inputCls, 'h-9 py-0 text-sm text-ink')}
+            style={{ width: 'auto' }}
+          >
+            {LANGS.map((l) => (
+              <option key={l.id} value={l.id} title={l.label}>
+                {l.id.toUpperCase()}
+              </option>
+            ))}
+          </select>
           <Button onClick={() => fileInput.current?.click()}>
-            <Icon name="upload" /> Import Project
+            <Icon name="upload" />{' '}{t('Import Project')}
           </Button>
           <input ref={fileInput} type="file" accept="application/json,.json" className="hidden" onChange={(e) => onImport(e.target.files)} />
           <Button
             onClick={() => legendInput.current?.click()}
             disabled={importing}
-            title="Select a legend file (.md) and the screenshots it describes: one annotated page per section"
+            title={t('Select a legend file (.md) and the screenshots it describes: one annotated page per section')}
           >
-            <Icon name="image" /> {importing ? 'Importing…' : 'Import Legend'}
+            <Icon name="image" /> {importing ? 'Importing…' : t('Import Legend')}
           </Button>
           <input
             ref={legendInput}
             type="file"
             multiple
-            aria-label="Legend file and screenshots"
+            aria-label={t('Legend file and screenshots')}
             accept=".md,.markdown,text/markdown,image/png,image/jpeg,image/webp,image/gif"
             className="hidden"
             onChange={(e) => onImportLegend(e.target.files)}
           />
           <Button variant="primary" onClick={() => create()}>
-            <Icon name="plus" /> New Project
+            <Icon name="plus" />{' '}{t('New Project')}
           </Button>
         </div>
       </header>
@@ -314,35 +331,35 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
 
         <section>
           <div className="mb-4 flex flex-wrap items-center gap-3">
-            <h2 className="mr-auto text-base font-semibold">Projects</h2>
+            <h2 className="mr-auto text-base font-semibold">{t('Projects')}</h2>
             <div className="relative">
               <Icon name="search" className="absolute left-2.5 top-2.5 size-4 text-faint" />
               <input
                 type="search"
                 name="q"
                 autoComplete="off"
-                placeholder="Search projects…"
-                aria-label="Search projects"
+                placeholder={t('Search projects…')}
+                aria-label={t('Search projects')}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className={cx(inputCls, 'w-56 pl-8')}
               />
             </div>
             <Button variant={favOnly ? 'primary' : 'secondary'} onClick={() => setFavOnly((v) => !v)} aria-pressed={favOnly}>
-              <Icon name="star" filled={favOnly} /> Favorites
+              <Icon name="star" filled={favOnly} />{' '}{t('Favorites')}
             </Button>
           </div>
 
           {projects === null ? (
-            <p className="text-sm text-muted">Loading…</p>
+            <p className="text-sm text-muted">{t('Loading…')}</p>
           ) : filtered.length === 0 ? (
             <div className="rounded-xl border border-dashed border-field bg-surface px-6 py-12 text-center">
-              <p className="font-medium">{projects.length ? 'No project matches your search.' : 'No projects yet.'}</p>
+              <p className="font-medium">{projects.length ? t('No project matches your search.') : t('No projects yet.')}</p>
               {!projects.length && (
                 <>
-                  <p className="mt-1 text-sm text-muted">Start from a template below or create a blank project. Everything stays on this device.</p>
+                  <p className="mt-1 text-sm text-muted">{t('Start from a template below or create a blank project. Everything stays on this device.')}</p>
                   <Button variant="primary" className="mt-4" onClick={() => create()}>
-                    <Icon name="plus" /> New Project
+                    <Icon name="plus" />{' '}{t('New Project')}
                   </Button>
                 </>
               )}
@@ -358,7 +375,7 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
 
         <section>
           <div className="mb-4 flex flex-wrap items-center gap-2">
-            <h2 className="mr-3 text-base font-semibold">Start from a Template</h2>
+            <h2 className="mr-3 text-base font-semibold">{t('Start from a Template')}</h2>
             {GALLERY_GROUPS.map((c) => (
               <button
                 key={c.id}
@@ -370,12 +387,12 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
                   category === c.id ? 'bg-ink text-on-accent ring-ink' : 'bg-surface text-ink-soft ring-line hover:bg-panel',
                 )}
               >
-                {c.label}
+                {t(c.label)}
               </button>
             ))}
             {kits.length > 0 && (
               <label className="flex items-center gap-2 whitespace-nowrap text-xs text-muted sm:ml-auto">
-                Brand kit
+                {t('Brand kit')}
                 <select
                   value={kit?.id ?? ''}
                   onChange={(e) => {
@@ -385,7 +402,7 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
                   }}
                   className={cx(inputCls, 'h-8 w-40 py-0 text-xs text-ink')}
                 >
-                  <option value="">None</option>
+                  <option value="">{t('None')}</option>
                   {kits.map((k) => (
                     <option key={k.id} value={k.id}>
                       {k.name}
@@ -395,34 +412,34 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
               </label>
             )}
             <label className={cx('flex items-center gap-2 whitespace-nowrap text-xs text-muted', kits.length === 0 && 'sm:ml-auto')}>
-              Preview style
+              {t('Preview style')}
               <select
                 value={kit ? kit.brand.style : galleryStyle}
                 disabled={!!kit}
-                title={kit ? 'The brand kit sets the style' : undefined}
+                title={kit ? t('The brand kit sets the style') : undefined}
                 onChange={(e) => setGalleryStyle(e.target.value as StyleId)}
                 className={cx(inputCls, 'h-8 w-36 py-0 text-xs text-ink')}
               >
                 {STYLE_IDS.map((id) => (
                   <option key={id} value={id}>
-                    {STYLES[id].name}
+                    {t(STYLES[id].name)}
                   </option>
                 ))}
               </select>
             </label>
           </div>
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {templates.map((t) => (
-              <li key={t.id}>
+            {templates.map((tpl) => (
+              <li key={tpl.id}>
                 <button
                   type="button"
-                  onClick={() => create(t.id)}
+                  onClick={() => create(tpl.id)}
                   className="group block w-full overflow-hidden rounded-xl bg-surface text-left ring-1 ring-line transition hover:ring-2 hover:ring-accent"
                 >
-                  <TemplatePreview template={t.id} style={galleryStyle} kit={kit} />
+                  <TemplatePreview template={tpl.id} style={galleryStyle} kit={kit} />
                   <div className="p-3">
-                    <p className="text-sm font-medium">{t.name}</p>
-                    <p className="mt-0.5 text-xs text-muted">{t.description}</p>
+                    <p className="text-sm font-medium">{t(tpl.name)}</p>
+                    <p className="mt-0.5 text-xs text-muted">{t(tpl.description)}</p>
                   </div>
                 </button>
               </li>
@@ -465,7 +482,7 @@ function ProjectCard({ project, onOpen, actions }: { project: Project; onOpen: (
 
   return (
     <li className="group overflow-hidden rounded-xl bg-surface ring-1 ring-line">
-      <button type="button" onClick={onOpen} className="block aspect-[1200/627] w-full overflow-hidden bg-subtle" aria-label={`Open ${project.name}`}>
+      <button type="button" onClick={onOpen} className="block aspect-[1200/627] w-full overflow-hidden bg-subtle" aria-label={t('Open {name}', { name: project.name })}>
         {url ? (
           <img src={url} alt="" className="size-full object-cover" />
         ) : (
@@ -479,7 +496,7 @@ function ProjectCard({ project, onOpen, actions }: { project: Project; onOpen: (
           {editing ? (
             <input
               autoFocus
-              aria-label="Project name"
+              aria-label={t('Project name')}
               name="project-name"
               autoComplete="off"
               maxLength={80}
@@ -502,29 +519,29 @@ function ProjectCard({ project, onOpen, actions }: { project: Project; onOpen: (
           ) : (
             <p className="truncate text-sm font-medium">{project.name}</p>
           )}
-          <p className="text-xs text-muted">Edited {new Date(project.updatedAt).toLocaleString()}</p>
+          <p className="text-xs text-muted">{t('Edited {date}', { date: new Date(project.updatedAt).toLocaleString(getLang()) })}</p>
         </div>
         <button
           type="button"
           onClick={() => actions.favorite(project)}
           className={cx('rounded p-1', project.favorite ? 'text-warn' : 'text-faint hover:text-ink-soft')}
-          aria-label={project.favorite ? 'Remove from favorites' : 'Add to favorites'}
+          aria-label={project.favorite ? t('Remove from favorites') : t('Add to favorites')}
           aria-pressed={project.favorite}
         >
           <Icon name="star" filled={project.favorite} />
         </button>
       </div>
       <div className="flex gap-1 border-t border-line px-2 py-1.5">
-        <Button ref={renameBtn} size="sm" variant="ghost" onClick={startRename} aria-label={`Rename ${project.name}`}>
-          <Icon name="edit" className="size-3.5" /> Rename
+        <Button ref={renameBtn} size="sm" variant="ghost" onClick={startRename} aria-label={t('Rename {name}', { name: project.name })}>
+          <Icon name="edit" className="size-3.5" />{' '}{t('Rename')}
         </Button>
         <Button size="sm" variant="ghost" onClick={() => actions.duplicate(project)}>
-          <Icon name="copy" className="size-3.5" /> Duplicate
+          <Icon name="copy" className="size-3.5" />{' '}{t('Duplicate')}
         </Button>
-        <Button size="sm" variant="ghost" onClick={() => actions.exportJson(project)} title="Export as JSON (images included)">
-          <Icon name="download" className="size-3.5" /> JSON
+        <Button size="sm" variant="ghost" onClick={() => actions.exportJson(project)} title={t('Export as JSON (images included)')}>
+          <Icon name="download" className="size-3.5" />{' '}{t('JSON')}
         </Button>
-        <Button size="sm" variant="ghost" className="ml-auto text-danger hover:bg-danger-soft" onClick={() => actions.remove(project)} aria-label="Delete project">
+        <Button size="sm" variant="ghost" className="ml-auto text-danger hover:bg-danger-soft" onClick={() => actions.remove(project)} aria-label={t('Delete project')}>
           <Icon name="trash" className="size-3.5" />
         </Button>
       </div>

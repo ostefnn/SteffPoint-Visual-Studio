@@ -3,6 +3,8 @@ import { useEditor } from '../store/editor';
 import { cx } from './ui';
 import { Stage } from './Stage';
 
+import { t } from '../i18n';
+
 /** Multi-format preview: the same composition in every ratio at once. */
 export function FormatStrip() {
   const project = useEditor((s) => s.project);
@@ -13,7 +15,7 @@ export function FormatStrip() {
 
   return (
     <div className="border-t border-line bg-surface">
-      <ul className="flex gap-3 overflow-x-auto px-4 py-3" aria-label="Formats">
+      <ul className="flex gap-3 overflow-x-auto px-4 py-3" aria-label={t('Formats')}>
         {FORMAT_ORDER.map((id) => {
           const f = resolveFormat(id, project.customFormat);
           const included = project.exportPresets.includes(id);
@@ -23,7 +25,7 @@ export function FormatStrip() {
                 type="button"
                 onClick={() => setActiveFormat(id)}
                 aria-pressed={active === id}
-                aria-label={`Preview ${f.label}`}
+                aria-label={t('Preview {format}', { format: t(f.label) })}
                 className={cx(
                   'flex h-[76px] w-[124px] items-center justify-center rounded-lg bg-subtle ring-1 transition',
                   active === id ? 'ring-2 ring-accent' : 'ring-line hover:ring-field',
@@ -40,9 +42,9 @@ export function FormatStrip() {
                       d.exportPresets = included ? d.exportPresets.filter((x) => x !== id) : FORMAT_ORDER.filter((x) => x === id || d.exportPresets.includes(x));
                     })
                   }
-                  aria-label={`Include ${f.label} in export`}
+                  aria-label={t('Include {format} in export', { format: t(f.label) })}
                 />
-                <span className={cx('truncate', active === id && 'font-medium')}>{f.label}</span>
+                <span className={cx('truncate', active === id && 'font-medium')}>{t(f.label)}</span>
               </label>
             </li>
           );

@@ -13,7 +13,7 @@
     "dev": "npm run dev -w @svs/web",
     "build": "npm run build -w @svs/web",
     "preview": "npm run preview -w @svs/web",
-    "test": "npm run test -w @svs/visual-core",
+    "test": "npm run test -w @svs/visual-core && node scripts/check-i18n.mjs",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "e2e": "playwright test",
     "samples": "node scripts/capture-samples.mjs"

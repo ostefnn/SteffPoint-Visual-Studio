@@ -12,6 +12,8 @@ import { PropertiesPanel } from './PropertiesPanel';
 import { FormatStrip } from './FormatStrip';
 import { ExportDialog } from './ExportDialog';
 
+import { t } from '../i18n';
+
 function isTextField(t: EventTarget | null) {
   const el = t as HTMLElement | null;
   return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
@@ -25,7 +27,7 @@ export function Editor({ projectId, onExit }: { projectId: string; onExit: () =>
   const [dragging, setDragging] = useState(false);
 
   const exit = () => {
-    if (session.hasUnsavedConflict() && !confirm('Your changes conflict with another tab and are not saved. Leave anyway?')) return;
+    if (session.hasUnsavedConflict() && !confirm(t('Your changes conflict with another tab and are not saved. Leave anyway?'))) return;
     onExit();
   };
 
@@ -46,7 +48,7 @@ export function Editor({ projectId, onExit }: { projectId: string; onExit: () =>
         ed.redo();
       } else if (mod && key === 's') {
         e.preventDefault();
-        saveRef.current().then((ok) => ok && notify('Project saved locally.'));
+        saveRef.current().then((ok) => ok && notify(t('Project saved locally.')));
       } else if (mod && key === 'd' && !isTextField(e.target)) {
         e.preventDefault();
         if (ed.selectedShotId) duplicateScreenshot(ed.selectedShotId);
@@ -75,12 +77,12 @@ export function Editor({ projectId, onExit }: { projectId: string; onExit: () =>
   if (status === 'missing') {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3">
-        <p className="font-medium">This project does not exist on this device.</p>
-        <Button onClick={onExit}>Back to Projects</Button>
+        <p className="font-medium">{t('This project does not exist on this device.')}</p>
+        <Button onClick={onExit}>{t('Back to Projects')}</Button>
       </div>
     );
   }
-  if (!project) return <div className="flex h-full items-center justify-center text-sm text-muted">Loading project…</div>;
+  if (!project) return <div className="flex h-full items-center justify-center text-sm text-muted">{t('Loading project…')}</div>;
 
   return (
     <div
@@ -104,13 +106,13 @@ export function Editor({ projectId, onExit }: { projectId: string; onExit: () =>
       {saveState === 'conflict' && (
         <div role="alert" className="flex flex-wrap items-center gap-3 border-b border-warn-line bg-warn-soft px-4 py-2 text-sm text-warn-ink">
           <span className="mr-auto">
-            This project was changed in another tab. Your latest edits are <strong>not saved</strong>.
+            {t('This project was changed in another tab. Your latest edits are not saved.')}
           </span>
           <Button size="sm" onClick={session.loadLatest}>
-            Load Latest Version
+            {t('Load Latest Version')}
           </Button>
           <Button size="sm" variant="primary" onClick={session.keepMine}>
-            Keep My Version
+            {t('Keep My Version')}
           </Button>
         </div>
       )}
@@ -125,7 +127,7 @@ export function Editor({ projectId, onExit }: { projectId: string; onExit: () =>
       {exportOpen && <ExportDialog onClose={() => setExportOpen(false)} />}
       {dragging && (
         <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-accent/10 ring-4 ring-inset ring-accent">
-          <p className="rounded-xl bg-surface px-5 py-3 text-sm font-medium shadow-lg">Drop images to add screenshots</p>
+          <p className="rounded-xl bg-surface px-5 py-3 text-sm font-medium shadow-lg">{t('Drop images to add screenshots')}</p>
         </div>
       )}
       <Toasts />
@@ -147,34 +149,34 @@ function TopBar({ saveState, onExit, onExport }: { saveState: SaveState; onExit:
   const { update, undo, redo } = useEditor.getState();
   return (
     <header className="flex flex-wrap items-center gap-2 border-b border-line bg-surface px-3 py-2">
-      <h1 className="sr-only">Editing: {name || 'Untitled project'}</h1>
-      <Button variant="ghost" onClick={onExit} aria-label="Back to Projects">
-        <Icon name="back" /> <span className="hidden sm:inline">Projects</span>
+      <h1 className="sr-only">{t('Editing: {name}', { name: name || t('Untitled project') })}</h1>
+      <Button variant="ghost" onClick={onExit} aria-label={t('Back to Projects')}>
+        <Icon name="back" /> <span className="hidden sm:inline">{t('Projects')}</span>
       </Button>
       <input
-        aria-label="Project name"
+        aria-label={t('Project name')}
         value={name}
         maxLength={80}
         onChange={(e) => update((d) => void (d.name = e.target.value), 'name')}
         className={cx(inputCls, 'w-48 font-medium sm:w-64')}
       />
       <div className="flex">
-        <Button variant="ghost" onClick={undo} disabled={!canUndo} aria-label="Undo" title="Undo (Ctrl/Cmd+Z)">
+        <Button variant="ghost" onClick={undo} disabled={!canUndo} aria-label={t('Undo')} title={t('Undo (Ctrl/Cmd+Z)')}>
           <Icon name="undo" />
         </Button>
-        <Button variant="ghost" onClick={redo} disabled={!canRedo} aria-label="Redo" title="Redo (Ctrl/Cmd+Shift+Z)">
+        <Button variant="ghost" onClick={redo} disabled={!canRedo} aria-label={t('Redo')} title={t('Redo (Ctrl/Cmd+Shift+Z)')}>
           <Icon name="redo" />
         </Button>
       </div>
       <span className={cx('text-xs', SAVE_LABEL[saveState].cls)} aria-live="polite" data-testid="save-state">
-        {SAVE_LABEL[saveState].text}
+        {t(SAVE_LABEL[saveState].text)}
       </span>
       <div className="ml-auto flex items-center gap-2">
         <span className="hidden md:inline">
           <PrivacyBadge />
         </span>
         <Button variant="primary" onClick={onExport}>
-          <Icon name="download" /> Export
+          <Icon name="download" />{' '}{t('Export')}
         </Button>
       </div>
     </header>
@@ -202,17 +204,17 @@ function Canvas() {
       <div className="flex flex-wrap items-center gap-3 border-b border-line bg-surface px-4 py-2 text-sm">
         {slide ? (
           <span className="font-medium">
-            Carousel page {carouselPage! + 1} of {slides.length}
+            {t('Carousel page {n} of {total}', { n: carouselPage! + 1, total: slides.length })}
           </span>
         ) : (
-          <span className="font-medium">{format.label}</span>
+          <span className="font-medium">{t(format.label)}</span>
         )}
         <span className="tabular-nums text-muted">
           {format.width} × {format.height}
         </span>
         {slide && (
           <Button size="sm" variant="ghost" onClick={() => setCarouselPage(null)}>
-            Show Project
+            {t('Show Project')}
           </Button>
         )}
         {!slide && active === 'custom' && (
@@ -224,7 +226,7 @@ function Canvas() {
                 inputMode="numeric"
                 min={64}
                 max={4096}
-                aria-label={`Custom ${k}`}
+                aria-label={t(`Custom ${k}`)}
                 value={project.customFormat[k]}
                 onChange={(e) => update((d) => void (d.customFormat[k] = Number(e.target.value) || 64), `custom-${k}`)}
                 className={cx(inputCls, 'w-20 py-1')}
@@ -238,12 +240,12 @@ function Canvas() {
             variant={compare ? 'selected' : 'ghost'}
             aria-pressed={compare}
             onClick={toggleCompareStyles}
-            title="Show the same content in every style side by side"
+            title={t('Show the same content in every style side by side')}
           >
-            <Icon name="grid" /> Compare Styles
+            <Icon name="grid" />{' '}{t('Compare Styles')}
           </Button>
           <label className="flex items-center gap-2 text-xs text-muted">
-            <input type="checkbox" checked={showSafe} onChange={toggleSafeZones} /> Safe zones
+            <input type="checkbox" checked={showSafe} onChange={toggleSafeZones} />{' '}{t('Safe zones')}
           </label>
         </span>
       </div>
@@ -257,7 +259,11 @@ function Canvas() {
             maxWidth={size.width - pad * 2}
             maxHeight={size.height - pad * 2}
             showSafeZones={showSafe}
-            label={slide ? `Preview: carousel page ${carouselPage! + 1} of ${slides.length}` : `Preview: ${format.label}, ${format.width} × ${format.height}`}
+            label={
+              slide
+                ? t('Preview: carousel page {n} of {total}', { n: carouselPage! + 1, total: slides.length })
+                : t('Preview: {format}, {w} × {h}', { format: t(format.label), w: format.width, h: format.height })
+            }
             className="shadow-xl ring-1 ring-ink/5"
           />
         )}
@@ -293,7 +299,7 @@ function StyleMatrix({
   return (
     <div
       role="radiogroup"
-      aria-label="Compare styles"
+      aria-label={t('Compare styles')}
       data-testid="style-matrix"
       data-columns={fit.columns}
       className="grid place-items-center"
@@ -321,7 +327,7 @@ function StyleMatrix({
               className={cx('shadow-lg ring-1 transition-[box-shadow]', on ? 'ring-2 ring-accent' : 'ring-ink/5 group-hover:ring-field')}
             />
             <span className={cx('text-xs', on ? 'font-semibold text-ink' : 'text-muted')} style={{ height: label - 4 }}>
-              {STYLES[id].name}
+              {t(STYLES[id].name)}
             </span>
           </button>
         );
@@ -335,29 +341,29 @@ function Toasts() {
   const dismiss = useToasts((s) => s.dismiss);
   return (
     <div className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 flex-col items-center gap-2" aria-live="polite">
-      {toasts.map((t) => (
+      {toasts.map((toast) => (
         <div
-          key={t.id}
-          role={t.tone === 'error' ? 'alert' : 'status'}
+          key={toast.id}
+          role={toast.tone === 'error' ? 'alert' : 'status'}
           className={cx(
             'flex items-center gap-3 rounded-lg px-4 py-2 text-sm shadow-lg',
-            t.tone === 'error' ? 'bg-danger text-on-accent' : 'bg-ink text-on-accent',
+            toast.tone === 'error' ? 'bg-danger text-on-accent' : 'bg-ink text-on-accent',
           )}
         >
-          {t.message}
-          {t.action && (
+          {toast.message}
+          {toast.action && (
             <button
               type="button"
               onClick={() => {
-                t.action!.run();
-                dismiss(t.id);
+                toast.action!.run();
+                dismiss(toast.id);
               }}
               className="rounded-md px-2 py-0.5 font-semibold underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-on-accent"
             >
-              {t.action.label}
+              {toast.action.label}
             </button>
           )}
-          <button type="button" onClick={() => dismiss(t.id)} aria-label="Dismiss" className="opacity-70 hover:opacity-100">
+          <button type="button" onClick={() => dismiss(toast.id)} aria-label={t('Dismiss')} className="opacity-70 hover:opacity-100">
             <Icon name="x" className="size-3.5" />
           </button>
         </div>

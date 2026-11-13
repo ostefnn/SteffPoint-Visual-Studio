@@ -26,6 +26,8 @@ import { useEditor } from '../store/editor';
 import { Button, cx, Field, Icon, inputCls, Section, Segmented } from './ui';
 import { Stage } from './Stage';
 
+import { t, tMessage } from '../i18n';
+
 const TEXT_LABEL = { kicker: 'Kicker', title: 'Title', subtitle: 'Subtitle' } as const;
 const TEXT_LIMIT = { kicker: LIMITS.kicker, title: LIMITS.title, subtitle: LIMITS.subtitle } as const;
 
@@ -67,7 +69,7 @@ export function CarouselPanel() {
 
   const customize = () => update((d) => void (d.carousel.slides = autoCarouselVariants(d)));
   const resetToAuto = () => {
-    if (!confirm('Replace your custom pages with the automatic ones? You can undo this.')) return;
+    if (!confirm(t('Replace your custom pages with the automatic ones? You can undo this.'))) return;
     update((d) => void (d.carousel.slides = []));
     setCarouselPage(0);
   };
@@ -87,38 +89,38 @@ export function CarouselPanel() {
 
   return (
     <>
-      <Section title={`Pages ${slides.length}/${CAROUSEL_MAX_SLIDES}`}>
+      <Section title={t('Pages {n}/{max}', { n: slides.length, max: CAROUSEL_MAX_SLIDES })}>
         <p className="text-xs text-muted">
           {custom
-            ? 'Custom pages. Brand, background and images stay shared with the project.'
-            : 'Automatic pages: cover, one page per screenshot (titled with its caption), then your features.'}
+            ? t('Custom pages. Brand, background and images stay shared with the project.')
+            : t('Automatic pages: cover, one page per screenshot (titled with its caption), then your features.')}
         </p>
         <div className="flex flex-wrap gap-2">
           {custom ? (
             <>
               <Button size="sm" onClick={addPage} disabled={slides.length >= CAROUSEL_MAX_SLIDES}>
-                <Icon name="plus" className="size-3.5" /> Add Page
+                <Icon name="plus" className="size-3.5" />{' '}{t('Add Page')}
               </Button>
               <Button size="sm" variant="ghost" onClick={resetToAuto}>
-                Reset to Automatic
+                {t('Reset to Automatic')}
               </Button>
             </>
           ) : (
             <Button size="sm" variant="primary" onClick={customize}>
-              Customize Pages
+              {t('Customize Pages')}
             </Button>
           )}
         </div>
         <div>
-          <p className="mb-1 text-xs font-medium text-ink-soft">Page size</p>
+          <p className="mb-1 text-xs font-medium text-ink-soft">{t('Page size')}</p>
           <Segmented<CarouselPageSize>
-            label="Carousel page size"
+            label={t('Carousel page size')}
             value={project.carousel.pageSize}
             options={CAROUSEL_PAGE_SIZES.map((v) => ({ value: v, label: v }))}
             onChange={(v) => update((d) => void (d.carousel.pageSize = v))}
           />
           <p className="mt-1 text-[11px] text-muted">
-            {format.width} × {format.height}. 4:5 takes the most space in the LinkedIn feed.
+            {format.width} × {format.height}. {t('4:5 takes the most space in the LinkedIn feed.')}
           </p>
         </div>
         <label className="flex items-center gap-2 text-xs text-ink-soft">
@@ -127,9 +129,9 @@ export function CarouselPanel() {
             checked={project.carousel.pageNumbers}
             onChange={(e) => update((d) => void (d.carousel.pageNumbers = e.target.checked))}
           />
-          Page numbers (“2 / 5”) in the kicker
+          {t('Page numbers (“2 / 5”) in the kicker')}
         </label>
-        <ol className="space-y-2" aria-label="Carousel pages">
+        <ol className="space-y-2" aria-label={t('Carousel pages')}>
           {slides.map((s, i) => (
             <li
               key={s.variant.id}
@@ -156,8 +158,8 @@ export function CarouselPanel() {
               <button
                 type="button"
                 aria-current={active === i ? 'true' : undefined}
-                aria-label={`Page ${i + 1}: ${s.label}`}
-                title={custom ? 'Alt+↑ / Alt+↓ to reorder' : undefined}
+                aria-label={t('Page {n}: {label}', { n: i + 1, label: s.label })}
+                title={custom ? t('Alt+↑ / Alt+↓ to reorder') : undefined}
                 onClick={() => setCarouselPage(i)}
                 onKeyDown={(e) => {
                   if (!e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
@@ -171,14 +173,14 @@ export function CarouselPanel() {
                   <span className="line-clamp-2 text-xs font-medium break-words">
                     {i + 1}. {s.label}
                   </span>
-                  {TEMPLATES.find((t) => t.id === s.variant.template)?.name !== s.label && (
-                    <span className="block text-[11px] text-muted">{TEMPLATES.find((t) => t.id === s.variant.template)?.name}</span>
+                  {TEMPLATES.find((tpl) => tpl.id === s.variant.template)?.name !== s.label && (
+                    <span className="block text-[11px] text-muted">{t(TEMPLATES.find((tpl) => tpl.id === s.variant.template)?.name ?? '')}</span>
                   )}
                 </span>
               </button>
               {custom && (
                 <div className="flex flex-none flex-col">
-                  <Button size="sm" variant="ghost" className="h-6 px-1" disabled={i === 0} onClick={() => move(i, i - 1)} aria-label={`Move page ${i + 1} up`}>
+                  <Button size="sm" variant="ghost" className="h-6 px-1" disabled={i === 0} onClick={() => move(i, i - 1)} aria-label={t('Move page {n} up', { n: i + 1 })}>
                     <Icon name="left" className="size-3.5 rotate-90" />
                   </Button>
                   <Button
@@ -187,7 +189,7 @@ export function CarouselPanel() {
                     className="h-6 px-1"
                     disabled={i === slides.length - 1}
                     onClick={() => move(i, i + 1)}
-                    aria-label={`Move page ${i + 1} down`}
+                    aria-label={t('Move page {n} down', { n: i + 1 })}
                   >
                     <Icon name="right" className="size-3.5 rotate-90" />
                   </Button>
@@ -209,14 +211,14 @@ export function CarouselPanel() {
         />
       ) : null}
       {!custom && (
-        <Section title="Edit a page">
-          <p className="text-xs text-muted">Click “Customize Pages” to choose each page’s template, text and screenshots.</p>
+        <Section title={t('Edit a page')}>
+          <p className="text-xs text-muted">{t('Click “Customize Pages” to choose each page’s template, text and screenshots.')}</p>
         </Section>
       )}
 
-      <Section title={`Carousel advice (${advice.length})`}>
+      <Section title={t('Carousel advice ({n})', { n: advice.length })}>
         {advice.length === 0 ? (
-          <p className="text-xs text-ok">Looks good.</p>
+          <p className="text-xs text-ok">{t('Looks good.')}</p>
         ) : (
           <ul className="space-y-2">
             {advice.map((a) => (
@@ -224,7 +226,7 @@ export function CarouselPanel() {
                 key={a.id}
                 className={cx('rounded-md px-2.5 py-2 text-xs', a.level === 'warning' ? 'bg-warn-soft text-warn-ink' : 'bg-surface text-ink-soft ring-1 ring-line')}
               >
-                {a.message}
+                {tMessage(a)}
               </li>
             ))}
           </ul>
@@ -264,27 +266,27 @@ function PageEditor({
 
   return (
     <Section
-      title={`Page ${index + 1}`}
+      title={t('Page {n}', { n: index + 1 })}
       action={
         <div className="flex">
-          <Button size="sm" variant="ghost" className="px-1.5" disabled={!canAdd} onClick={onDuplicate} aria-label={`Duplicate page ${index + 1}`}>
+          <Button size="sm" variant="ghost" className="px-1.5" disabled={!canAdd} onClick={onDuplicate} aria-label={t('Duplicate page {n}', { n: index + 1 })}>
             <Icon name="copy" className="size-3.5" />
           </Button>
-          <Button size="sm" variant="ghost" className="px-1.5 text-danger" disabled={!canRemove} onClick={onRemove} aria-label={`Delete page ${index + 1}`}>
+          <Button size="sm" variant="ghost" className="px-1.5 text-danger" disabled={!canRemove} onClick={onRemove} aria-label={t('Delete page {n}', { n: index + 1 })}>
             <Icon name="trash" className="size-3.5" />
           </Button>
         </div>
       }
     >
-      <Field label="Template">
+      <Field label={t('Template')}>
         <select
           value={variant.template}
           onChange={(e) => edit((v) => void (v.template = e.target.value as TemplateId))}
           className={cx(inputCls, 'bg-surface text-ink')}
         >
-          {TEMPLATES.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
+          {TEMPLATES.map((tpl) => (
+            <option key={tpl.id} value={tpl.id}>
+              {t(tpl.name)}
             </option>
           ))}
         </select>
@@ -296,11 +298,11 @@ function PageEditor({
         return (
           <fieldset key={k} className="space-y-1">
             <legend className="flex w-full items-center justify-between text-xs font-medium text-muted">
-              {TEXT_LABEL[k]}
+              {t(TEXT_LABEL[k])}
               <label className="flex items-center gap-1.5 font-normal text-muted">
                 <input
                   type="checkbox"
-                  aria-label={`Page ${index + 1} ${TEXT_LABEL[k].toLowerCase()}: same as project`}
+                  aria-label={t(`Page {n} ${k}: same as project`, { n: index + 1 })}
                   checked={!own}
                   onChange={(e) =>
                     edit((v) => {
@@ -309,12 +311,12 @@ function PageEditor({
                     })
                   }
                 />
-                Same as project
+                {t('Same as project')}
               </label>
             </legend>
             {k === 'kicker' ? (
               <input
-                aria-label={`Page ${index + 1} ${k}`}
+                aria-label={t(`Page {n} ${k}`, { n: index + 1 })}
                 value={value}
                 disabled={!own}
                 maxLength={TEXT_LIMIT[k]}
@@ -323,7 +325,7 @@ function PageEditor({
               />
             ) : (
               <textarea
-                aria-label={`Page ${index + 1} ${k}`}
+                aria-label={t(`Page {n} ${k}`, { n: index + 1 })}
                 value={value}
                 disabled={!own}
                 rows={k === 'title' ? 2 : 3}
@@ -339,15 +341,15 @@ function PageEditor({
       {project.screenshots.length > 0 && (
         <fieldset className="space-y-2">
           <legend className="flex w-full items-center justify-between text-xs font-medium text-muted">
-            Screenshots
+            {t('Screenshots')}
             <label className="flex items-center gap-1.5 font-normal text-muted">
               <input
                 type="checkbox"
-                aria-label={`Page ${index + 1} screenshots: same as project`}
+                aria-label={t('Page {n} screenshots: same as project', { n: index + 1 })}
                 checked={allShots}
                 onChange={(e) => edit((v) => void (v.screenshotIds = e.target.checked ? null : project.screenshots.map((s) => s.id)))}
               />
-              Same as project
+              {t('Same as project')}
             </label>
           </legend>
           {!allShots && (
@@ -359,7 +361,7 @@ function PageEditor({
                       type="checkbox"
                       className="sr-only"
                       checked={chosen.has(s.id)}
-                      aria-label={`Show screenshot ${i + 1} on page ${index + 1}`}
+                      aria-label={t('Show screenshot {n} on page {page}', { n: i + 1, page: index + 1 })}
                       onChange={(e) =>
                         edit((v) => {
                           const set = new Set(v.screenshotIds ?? []);
@@ -381,8 +383,7 @@ function PageEditor({
         </fieldset>
       )}
       <p className="text-[11px] text-muted">
-        Features, steps, figures, quotes and the other template fields are edited in the Content panel: choose “This page” there to give this
-        page its own.
+        {t('Features, steps, figures, quotes and the other template fields are edited in the Content panel: choose “This page” there to give this page its own.')}
       </p>
     </Section>
   );

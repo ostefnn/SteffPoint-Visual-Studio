@@ -70,6 +70,7 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 | 📦 **Export** | PNG, JPEG or WebP at 1×, 2× or 3×. One image, or a ZIP with every selected format plus `project.json`. |
 | 🗂️ **LinkedIn carousel** | A multi-page PDF for a LinkedIn document post, with 4:5 (default), 1:1 or 16:9 pages. Automatic pages (cover, one per screenshot, features), or your own: a template per page, page-specific content (texts, features, steps, figures, table… choose **This page** in the Content panel) and screenshots, add, duplicate, reorder (drag, buttons or Alt+↑/↓). Up to 12 pages, with carousel-specific advice. |
 | 💡 **Smart suggestions** | Deterministic checks, no AI: title length, WCAG AA contrast, legibility in feeds, wrong template or device for the screenshot orientation, images or logo too small for the export size, missing quote author, figures or event date. Informative only, never blocks export. |
+| 🌍 **English, French, Dutch** | The whole interface, suggestions and messages in EN, FR or NL (dashboard, top right). Detected from the browser, remembered per browser. New projects start with placeholder content in that language. |
 | 🔁 **Import / export JSON** | Portable project file with images embedded. Backup, move between browsers, share. |
 
 ![Dashboard](docs/images/dashboard.png)
@@ -225,10 +226,12 @@ Open http://localhost:5173.
 | `npm run dev` | Start the dev server |
 | `npm run build` | Typecheck and build to `apps/web/dist` |
 | `npm run preview` | Serve the production build locally |
-| `npm test` | Unit tests (`packages/visual-core`, Vitest) |
+| `npm test` | Unit tests (`packages/visual-core`, Vitest) and the translation check |
 | `npm run e2e` | End-to-end tests (Playwright) on Chromium, Firefox, WebKit, iPhone and iPad emulation |
 | `npm run samples` | Recapture the phone and tablet screens shown in the template gallery (`apps/web/public/samples`); needs `npm run build && npm run preview -w @svs/web -- --port 4173` running |
 | `npm run typecheck` | TypeScript check of all workspaces |
+
+Interface texts are written in English and wrapped in `t()` (`apps/web/src/i18n`); `fr.ts` and `nl.ts` map each English text to its translation. `npm test` fails if a text has no French or Dutch translation (`scripts/check-i18n.mjs`); texts built at run time are listed in `i18n/extra-keys.json`.
 
 ## Deployment
 
@@ -367,7 +370,7 @@ Found a security issue? Please open a private security advisory on GitHub rather
 
 **V1 — Better Cover Studio** (this release): projects, IndexedDB, autosave, JSON, 16 templates (including Device Mix, App Store, Testimonial, Key Figures, Event, Annotated Panel with legend import), device and laptop frames, App Store formats, crop/zoom/focal point, brand with logo size, undo/redo, safe zones, custom sizes, PNG/JPEG/WebP, ZIP export, LinkedIn carousel PDF.
 
-**V2 — Visual Studio:** Asset Manager, variants beyond the carousel (Original / Dark / Minimal…, built on the same `Variant` model), more Before/After modes (split, slider), richer accessibility checks, FR / NL / EN interface.
+**V2 — Visual Studio:** Asset Manager, variants beyond the carousel (Original / Dark / Minimal…, built on the same `Variant` model), more Before/After modes (split, slider), richer accessibility checks.
 
 **V3 — Visual Platform:** optional cloud sync and teams, batch generator (CSV/JSON), URL capture service, render API, CMS integrations, AI-assisted copy. Remote features will always be opt-in and clearly labelled.
 

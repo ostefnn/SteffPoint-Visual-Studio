@@ -42,6 +42,8 @@ import { useEditor } from '../store/editor';
 import { duplicateScreenshot, removeScreenshot } from '../lib/actions';
 import { Button, cx, Field, Icon, inputCls, Section, Segmented, Slider } from './ui';
 
+import { t, tMessage } from '../i18n';
+
 export function PropertiesPanel({ className }: { className?: string }) {
   return (
     <aside className={className}>
@@ -182,11 +184,11 @@ function ContentSection() {
   );
 
   return (
-    <Section title="Content">
+    <Section title={t('Content')}>
       {pageId ? (
         <div className="space-y-1.5 rounded-md bg-accent-soft px-2 py-2 text-xs text-accent-deep">
           <Segmented<'page' | 'project'>
-            label="Edit content of"
+            label={t('Edit content of')}
             value={scope}
             options={[
               { value: 'page', label: 'This page' },
@@ -197,9 +199,9 @@ function ContentSection() {
           <p>
             {scope === 'page'
               ? ownKeys.length
-                ? 'Changes apply to this carousel page only. Fields you have not changed follow the project.'
-                : 'Changes apply to this carousel page only. It follows the project until you change something.'
-              : 'Changes apply to the project and to every page that has not changed that field.'}
+                ? t('Changes apply to this carousel page only. Fields you have not changed follow the project.')
+                : t('Changes apply to this carousel page only. It follows the project until you change something.')
+              : t('Changes apply to the project and to every page that has not changed that field.')}
           </p>
           {scope === 'page' && ownKeys.length > 0 && (
             <Button
@@ -208,60 +210,60 @@ function ContentSection() {
               className="h-6 px-1.5 text-[11px]"
               onClick={() => update((d) => void (d.carousel.slides.find((x) => x.id === pageId)!.content = {}))}
             >
-              Use the project’s content again
+              {t('Use the project’s content again')}
             </Button>
           )}
         </div>
       ) : (
         pageTemplate && (
           <p className="rounded-md bg-accent-soft px-2 py-1.5 text-xs text-accent-deep">
-            Automatic carousel pages use the project’s content. Click “Customize Pages” in the Carousel tab to give a page its own.
+            {t('Automatic carousel pages use the project’s content. Click “Customize Pages” in the Carousel tab to give a page its own.')}
           </p>
         )
       )}
-      <Field label="Kicker" hint={count(content.kicker, LIMITS.kicker)}>
-        <input value={content.kicker} onChange={set('kicker')} className={inputCls} placeholder="e.g. Version 2.4…" />
+      <Field label={t('Kicker')} hint={count(content.kicker, LIMITS.kicker)}>
+        <input value={content.kicker} onChange={set('kicker')} className={inputCls} placeholder={t('e.g. Version 2.4…')} />
       </Field>
       {slots.title && (
-        <Field label="Title" hint={count(content.title, LIMITS.title)}>
+        <Field label={t('Title')} hint={count(content.title, LIMITS.title)}>
           <textarea value={content.title} onChange={set('title')} rows={2} className={cx(inputCls, 'resize-y')} />
         </Field>
       )}
       {slots.subtitle && (
-        <Field label="Subtitle" hint={count(content.subtitle, LIMITS.subtitle)}>
+        <Field label={t('Subtitle')} hint={count(content.subtitle, LIMITS.subtitle)}>
           <textarea value={content.subtitle} onChange={set('subtitle')} rows={3} className={cx(inputCls, 'resize-y')} />
         </Field>
       )}
       {template === 'testimonial' && (
         <>
-          <Field label="Quote" hint={count(content.quote, LIMITS.quote)}>
+          <Field label={t('Quote')} hint={count(content.quote, LIMITS.quote)}>
             <textarea value={content.quote} onChange={set('quote')} rows={4} className={cx(inputCls, 'resize-y')} />
           </Field>
-          <Field label="Name">
-            <input value={content.author} onChange={set('author')} className={inputCls} placeholder="Their full name…" />
+          <Field label={t('Name')}>
+            <input value={content.author} onChange={set('author')} className={inputCls} placeholder={t('Their full name…')} />
           </Field>
-          <Field label="Role">
-            <input value={content.authorRole} onChange={set('authorRole')} className={inputCls} placeholder="Their role and company…" />
+          <Field label={t('Role')}>
+            <input value={content.authorRole} onChange={set('authorRole')} className={inputCls} placeholder={t('Their role and company…')} />
           </Field>
-          <p className="text-[11px] text-muted">The first screenshot is used as the photo; without one, the initials are shown.</p>
+          <p className="text-[11px] text-muted">{t('The first screenshot is used as the photo; without one, the initials are shown.')}</p>
         </>
       )}
       {template === 'stats' && (
         <fieldset className="space-y-2">
-          <legend className="mb-1 text-xs font-medium text-muted">Figures (up to {LIMITS.statItems})</legend>
+          <legend className="mb-1 text-xs font-medium text-muted">{t('Figures (up to {n})', { n: LIMITS.statItems })}</legend>
           {stats.map((st, i) => (
             <div key={i} className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-2">
               <input
                 value={st.value}
-                aria-label={`Figure ${i + 1} value`}
+                aria-label={t('Figure {n} value', { n: i + 1 })}
                 placeholder={i === 0 ? 'e.g. 12…' : 'Value…'}
                 onChange={(e) => setStat(i, 'value', e.target.value)}
                 className={cx(inputCls, 'font-semibold tabular-nums')}
               />
               <input
                 value={st.label}
-                aria-label={`Figure ${i + 1} label`}
-                placeholder={i === 0 ? 'e.g. Visuals exported…' : 'Label…'}
+                aria-label={t('Figure {n} label', { n: i + 1 })}
+                placeholder={i === 0 ? t('e.g. Visuals exported…') : 'Label…'}
                 onChange={(e) => setStat(i, 'label', e.target.value)}
                 className={inputCls}
               />
@@ -271,11 +273,11 @@ function ContentSection() {
       )}
       {template === 'cta' && (
         <>
-          <Field label="Button">
-            <input value={content.cta} onChange={set('cta')} className={inputCls} placeholder="e.g. Try it free…" />
+          <Field label={t('Button')}>
+            <input value={content.cta} onChange={set('cta')} className={inputCls} placeholder={t('e.g. Try it free…')} />
           </Field>
-          <Field label="Link" hint={count(content.link, LIMITS.link)}>
-            <input value={content.link} onChange={set('link')} className={inputCls} placeholder="e.g. steffpoint.com/visual-studio…" />
+          <Field label={t('Link')} hint={count(content.link, LIMITS.link)}>
+            <input value={content.link} onChange={set('link')} className={inputCls} placeholder={t('e.g. steffpoint.com/visual-studio…')} />
           </Field>
           <label className="flex items-center gap-2 text-xs font-medium text-ink">
             <input
@@ -284,40 +286,40 @@ function ContentSection() {
               onChange={(e) => write((d) => void (d.qr = e.target.checked))}
               className="size-4 accent-accent"
             />
-            QR code of the link
+            {t('QR code of the link')}
           </label>
-          <p className="text-[11px] text-muted">Use the full address (https://…) so a phone opens it when scanning.</p>
+          <p className="text-[11px] text-muted">{t('Use the full address (https://…) so a phone opens it when scanning.')}</p>
         </>
       )}
       {template !== 'cta' && brandFooter && (
-        <Field label="Link (footer)" hint={count(content.link, LIMITS.link)}>
-          <input value={content.link} onChange={set('link')} className={inputCls} placeholder="e.g. steffpoint.com, @steffpoint…" />
+        <Field label={t('Link (footer)')} hint={count(content.link, LIMITS.link)}>
+          <input value={content.link} onChange={set('link')} className={inputCls} placeholder={t('e.g. steffpoint.com, @steffpoint…')} />
         </Field>
       )}
       {template === 'event' && (
         <>
           <div className="grid grid-cols-2 gap-2">
-            <Field label="Date">
-              <input value={content.eventDate} onChange={set('eventDate')} className={inputCls} placeholder="e.g. Thu 12 Dec…" />
+            <Field label={t('Date')}>
+              <input value={content.eventDate} onChange={set('eventDate')} className={inputCls} placeholder={t('e.g. Thu 12 Dec…')} />
             </Field>
-            <Field label="Time">
-              <input value={content.eventTime} onChange={set('eventTime')} className={inputCls} placeholder="e.g. 14:00 CET…" />
+            <Field label={t('Time')}>
+              <input value={content.eventTime} onChange={set('eventTime')} className={inputCls} placeholder={t('e.g. 14:00 CET…')} />
             </Field>
           </div>
-          <Field label="Place">
-            <input value={content.eventPlace} onChange={set('eventPlace')} className={inputCls} placeholder="e.g. Online, Microsoft Teams…" />
+          <Field label={t('Place')}>
+            <input value={content.eventPlace} onChange={set('eventPlace')} className={inputCls} placeholder={t('e.g. Online, Microsoft Teams…')} />
           </Field>
-          <Field label="Call to action">
-            <input value={content.cta} onChange={set('cta')} className={inputCls} placeholder="e.g. Register…" />
+          <Field label={t('Call to action')}>
+            <input value={content.cta} onChange={set('cta')} className={inputCls} placeholder={t('e.g. Register…')} />
           </Field>
-          <p className="text-[11px] text-muted">Screenshots 1 to 3 are shown as speaker photos.</p>
+          <p className="text-[11px] text-muted">{t('Screenshots 1 to 3 are shown as speaker photos.')}</p>
         </>
       )}
       {showsDesktop && (
         <div>
-          <p className="mb-1 text-xs font-medium text-muted">Desktop frame</p>
+          <p className="mb-1 text-xs font-medium text-muted">{t('Desktop frame')}</p>
           <Segmented<DesktopFrame>
-            label="Desktop frame"
+            label={t('Desktop frame')}
             value={desktopFrame ?? 'browser'}
             options={[
               { value: 'browser', label: 'Browser' },
@@ -328,7 +330,7 @@ function ContentSection() {
             onChange={(v) => update((d) => void (d.desktopFrame = v))}
           />
           <p className="mt-1 text-[11px] text-muted">
-            Use Plain for app screenshots that already include their own title bar.
+            {t('Use Plain for app screenshots that already include their own title bar.')}
           </p>
         </div>
       )}
@@ -337,23 +339,23 @@ function ContentSection() {
       )}
       {template === 'before-after' && (
         <div className="grid grid-cols-2 gap-2">
-          <Field label="Before label">
+          <Field label={t('Before label')}>
             <input value={content.beforeLabel} onChange={set('beforeLabel')} className={inputCls} />
           </Field>
-          <Field label="After label">
+          <Field label={t('After label')}>
             <input value={content.afterLabel} onChange={set('afterLabel')} className={inputCls} />
           </Field>
         </div>
       )}
       {template === 'features' && (
         <fieldset className="space-y-2">
-          <legend className="mb-1 text-xs font-medium text-muted">Features (up to {LIMITS.featureItems})</legend>
+          <legend className="mb-1 text-xs font-medium text-muted">{t('Features (up to {n})', { n: LIMITS.featureItems })}</legend>
           {features.map((f, i) => (
             <input
               key={i}
               value={f}
-              aria-label={`Feature ${i + 1}`}
-              placeholder={i === 0 ? 'e.g. Works offline…' : 'Optional…'}
+              aria-label={t('Feature {n}', { n: i + 1 })}
+              placeholder={i === 0 ? t('e.g. Works offline…') : 'Optional…'}
               onChange={(e) => setFeature(i, e.target.value)}
               className={inputCls}
             />
@@ -363,7 +365,7 @@ function ContentSection() {
       {template === 'detail-zoom' && (
         <>
           <Slider
-            label="Magnification"
+            label={t('Magnification')}
             min={MAGNIFY_RANGE.min}
             max={MAGNIFY_RANGE.max}
             step={0.1}
@@ -371,18 +373,18 @@ function ContentSection() {
             format={(v) => `${v.toFixed(1)}×`}
             onChange={(v) => write((d) => void (d.magnify = v), 'magnify')}
           />
-          <p className="text-[11px] text-muted">The lens shows the screenshot’s focal point: click the detail in the Image panel.</p>
+          <p className="text-[11px] text-muted">{t('The lens shows the screenshot’s focal point: click the detail in the Image panel.')}</p>
         </>
       )}
       {template === 'steps' && (
         <fieldset className="space-y-3">
-          <legend className="mb-1 text-xs font-medium text-muted">Steps (up to {LIMITS.stepItems}, in order)</legend>
+          <legend className="mb-1 text-xs font-medium text-muted">{t('Steps (up to {n}, in order)', { n: LIMITS.stepItems })}</legend>
           {steps.map((st, i) => (
             <div key={i} className="space-y-1">
               <input
                 value={st.title}
-                aria-label={`Step ${i + 1} title`}
-                placeholder={i < 2 ? `Step ${i + 1}, e.g. Import your screenshots…` : 'Optional…'}
+                aria-label={t('Step {n} title', { n: i + 1 })}
+                placeholder={i < 2 ? t('Step {n}, e.g. Import your screenshots…', { n: i + 1 }) : t('Optional…')}
                 maxLength={LIMITS.stepTitle}
                 onChange={(e) => setStep(i, 'title', e.target.value)}
                 className={inputCls}
@@ -390,8 +392,8 @@ function ContentSection() {
               {(st.title || st.text) && (
                 <input
                   value={st.text}
-                  aria-label={`Step ${i + 1} text`}
-                  placeholder="One short sentence…"
+                  aria-label={t('Step {n} text', { n: i + 1 })}
+                  placeholder={t('One short sentence…')}
                   maxLength={LIMITS.stepText}
                   onChange={(e) => setStep(i, 'text', e.target.value)}
                   className={cx(inputCls, 'text-xs')}
@@ -403,9 +405,9 @@ function ContentSection() {
       )}
       {template === 'comparison' && (
         <fieldset className="space-y-2">
-          <legend className="mb-1 text-xs font-medium text-muted">Comparison</legend>
+          <legend className="mb-1 text-xs font-medium text-muted">{t('Comparison')}</legend>
           <Segmented<'2' | '3'>
-            label="Columns compared"
+            label={t('Columns compared')}
             value={String(compare.columns.length) as '2' | '3'}
             options={[
               { value: '2', label: '2 columns' },
@@ -418,7 +420,7 @@ function ContentSection() {
               <input
                 key={j}
                 value={c}
-                aria-label={`Column ${j + 1} name`}
+                aria-label={t('Column {n} name', { n: j + 1 })}
                 placeholder={j === compare.columns.length - 1 ? 'Yours…' : 'Other…'}
                 maxLength={LIMITS.compareHeader}
                 onChange={(e) => editCompare((cmp) => void (cmp.columns[j] = e.target.value.replace(/\n/g, ' ')), `compare-col-${j}`)}
@@ -426,15 +428,15 @@ function ContentSection() {
               />
             ))}
           </div>
-          <p className="text-[11px] text-muted">The last column is highlighted. Write yes or no in a cell for a tick or a cross.</p>
+          <p className="text-[11px] text-muted">{t('The last column is highlighted. Write yes or no in a cell for a tick or a cross.')}</p>
           <ol className="space-y-2">
             {compare.rows.map((r, i) => (
               <li key={i} className="space-y-1 rounded-md bg-surface p-1.5 ring-1 ring-line">
                 <div className="flex gap-1">
                   <input
                     value={r.label}
-                    aria-label={`Criterion ${i + 1}`}
-                    placeholder="Criterion…"
+                    aria-label={t('Criterion {n}', { n: i + 1 })}
+                    placeholder={t('Criterion…')}
                     maxLength={LIMITS.compareLabel}
                     onChange={(e) => editCompare((cmp) => void (cmp.rows[i].label = e.target.value.replace(/\n/g, ' ')), `compare-row-${i}`)}
                     className={cx(inputCls, 'text-xs')}
@@ -443,7 +445,7 @@ function ContentSection() {
                     size="sm"
                     variant="ghost"
                     className="px-1.5 text-danger"
-                    aria-label={`Remove criterion ${i + 1}`}
+                    aria-label={t('Remove criterion {n}', { n: i + 1 })}
                     onClick={() => editCompare((cmp) => void cmp.rows.splice(i, 1))}
                   >
                     <Icon name="trash" className="size-3.5" />
@@ -454,8 +456,8 @@ function ContentSection() {
                     <input
                       key={j}
                       value={cell}
-                      aria-label={`Criterion ${i + 1}, ${compare.columns[j] || `column ${j + 1}`}`}
-                      placeholder="yes / no / text"
+                      aria-label={t('Criterion {n}, {column}', { n: i + 1, column: compare.columns[j] || t('column {n}', { n: j + 1 }) })}
+                      placeholder={t('yes / no / text')}
                       maxLength={LIMITS.compareCell}
                       onChange={(e) => editCompare((cmp) => void (cmp.rows[i].cells[j] = e.target.value.replace(/\n/g, ' ')), `compare-${i}-${j}`)}
                       className={cx(inputCls, 'px-1.5 text-xs')}
@@ -470,18 +472,18 @@ function ContentSection() {
             disabled={compare.rows.length >= LIMITS.compareRows}
             onClick={() => editCompare((cmp) => void cmp.rows.push({ label: '', cells: cmp.columns.map(() => '') }))}
           >
-            <Icon name="plus" className="size-3.5" /> Add Criterion
+            <Icon name="plus" className="size-3.5" />{' '}{t('Add Criterion')}
           </Button>
         </fieldset>
       )}
       {template === 'code' && (
         <>
-          <Field label="File name">
-            <input value={content.codeFile} onChange={set('codeFile')} className={cx(inputCls, 'font-mono')} placeholder="e.g. index.ts" />
+          <Field label={t('File name')}>
+            <input value={content.codeFile} onChange={set('codeFile')} className={cx(inputCls, 'font-mono')} placeholder={t('e.g. index.ts')} />
           </Field>
-          <Field label="Code" hint={
+          <Field label={t('Code')} hint={
               <span className={cx(codeLines >= LIMITS.codeLines && 'text-warn')}>
-                {codeLines}/{LIMITS.codeLines} lines
+                {t('{n}/{max} lines', { n: codeLines, max: LIMITS.codeLines })}
               </span>
             }>
             <textarea
@@ -519,20 +521,20 @@ function LegendField({ legend, onChange }: { legend: LegendItem[]; onChange: (le
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [legend]);
   return (
-    <Field label="Legend" hint={`${legend.length}/${LEGEND_LIMITS.items}`}>
+    <Field label={t('Legend')} hint={`${legend.length}/${LEGEND_LIMITS.items}`}>
       <textarea
         value={draft}
         rows={Math.min(10, Math.max(4, legend.length + 1))}
         name="legend"
         spellCheck={false}
-        placeholder={'One numbered field per line:\nTitle | title\nButton link | ctaUrl | off'}
+        placeholder={t('One numbered field per line:\nTitle | title\nButton link | ctaUrl | off')}
         onChange={(e) => {
           setDraft(e.target.value);
           onChange(parseLegendText(e.target.value));
         }}
         className={cx(inputCls, 'resize-y text-xs leading-relaxed')}
       />
-      <span className="mt-1 block text-xs text-muted">Line 1 names badge 1 in the image. Add “| off” for a field that is greyed out.</span>
+      <span className="mt-1 block text-xs text-muted">{t('Line 1 names badge 1 in the image. Add “| off” for a field that is greyed out.')}</span>
     </Field>
   );
 }
@@ -553,11 +555,11 @@ function LayoutSection() {
   const custom = layout.mirror || layout.textPosition !== 'auto' || layout.textAlign !== 'auto' || layout.tilt !== 'none';
   return (
     <Section
-      title="Layout"
+      title={t('Layout')}
       action={
         custom ? (
           <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[11px]" onClick={() => update((d) => void (d.layout = { ...DEFAULT_LAYOUT }))}>
-            Reset
+            {t('Reset')}
           </Button>
         ) : undefined
       }
@@ -570,13 +572,13 @@ function LayoutSection() {
             onChange={(e) => update((d) => void (d.layout.mirror = e.target.checked))}
             className="size-4 accent-accent"
           />
-          Mirror: text on the other side
+          {t('Mirror: text on the other side')}
         </label>
       )}
       <div>
-          <p className="mb-1 text-xs font-medium text-muted">Text position</p>
+          <p className="mb-1 text-xs font-medium text-muted">{t('Text position')}</p>
         <Segmented<TextPosition>
-          label="Text position"
+          label={t('Text position')}
           value={layout.textPosition}
           options={[
             { value: 'auto', label: 'Auto' },
@@ -587,9 +589,9 @@ function LayoutSection() {
         />
       </div>
       <div>
-          <p className="mb-1 text-xs font-medium text-muted">Text alignment</p>
+          <p className="mb-1 text-xs font-medium text-muted">{t('Text alignment')}</p>
         <Segmented<TextAlign>
-          label="Text alignment"
+          label={t('Text alignment')}
           value={layout.textAlign}
           options={[
             { value: 'auto', label: 'Auto' },
@@ -602,9 +604,9 @@ function LayoutSection() {
       </div>
       {canTilt && (
         <div>
-          <p className="mb-1 text-xs font-medium text-muted">Screens</p>
+          <p className="mb-1 text-xs font-medium text-muted">{t('Screens')}</p>
           <Segmented<Tilt>
-            label="Screens"
+            label={t('Screens')}
             value={layout.tilt}
             options={[
               { value: 'none', label: 'Straight' },
@@ -616,8 +618,7 @@ function LayoutSection() {
         </div>
       )}
       <p className="text-[11px] text-muted">
-        Auto keeps the template’s own layout. Bottom puts the text under the screens; beside them, Top and Bottom align it to that edge.
-        Shared by every format and carousel page.
+        {t('Auto keeps the template’s own layout. Bottom puts the text under the screens; beside them, Top and Bottom align it to that edge. Shared by every format and carousel page.')}
       </p>
     </Section>
   );
@@ -636,8 +637,8 @@ function ImageSection() {
 
   if (!shot) {
     return (
-      <Section title="Image">
-        <p className="text-xs text-muted">Select a screenshot in the Images tab to adjust its crop and focal point.</p>
+      <Section title={t('Image')}>
+        <p className="text-xs text-muted">{t('Select a screenshot in the Images tab to adjust its crop and focal point.')}</p>
       </Section>
     );
   }
@@ -653,26 +654,26 @@ function ImageSection() {
 
   return (
     <Section
-      title={`Image ${index + 1}`}
+      title={t('Image {n}', { n: index + 1 })}
       action={
         <div className="flex">
-          <Button size="sm" variant="ghost" className="px-1.5" onClick={() => duplicateScreenshot(shot.id)} aria-label="Duplicate screenshot" title="Duplicate (Ctrl/Cmd+D)">
+          <Button size="sm" variant="ghost" className="px-1.5" onClick={() => duplicateScreenshot(shot.id)} aria-label={t('Duplicate screenshot')} title={t('Duplicate (Ctrl/Cmd+D)')}>
             <Icon name="copy" className="size-3.5" />
           </Button>
-          <Button size="sm" variant="ghost" className="px-1.5 text-danger" onClick={() => removeScreenshot(shot.id)} aria-label="Remove screenshot" title="Remove (Delete)">
+          <Button size="sm" variant="ghost" className="px-1.5 text-danger" onClick={() => removeScreenshot(shot.id)} aria-label={t('Remove screenshot')} title={t('Remove (Delete)')}>
             <Icon name="trash" className="size-3.5" />
           </Button>
         </div>
       }
     >
-      {index >= max && <p className="rounded-md bg-warn-soft px-2 py-1.5 text-xs text-warn-ink">This template shows {max} screenshot(s); this one is hidden.</p>}
-      <Field label="Carousel caption" hint={`${(shot.caption ?? '').length}/${LIMITS.caption}`}>
+      {index >= max && <p className="rounded-md bg-warn-soft px-2 py-1.5 text-xs text-warn-ink">{t('This template shows {max} screenshot(s); this one is hidden.', { max })}</p>}
+      <Field label={t('Carousel caption')} hint={`${(shot.caption ?? '').length}/${LIMITS.caption}`}>
         <input
           value={shot.caption ?? ''}
           maxLength={LIMITS.caption}
           name="caption"
           autoComplete="off"
-          placeholder="e.g. Every environment at a glance…"
+          placeholder={t('e.g. Every environment at a glance…')}
           onChange={(e) => set('caption', e.target.value.replace(/\n/g, ' ').slice(0, LIMITS.caption), `caption-${shot.id}`)}
           className={inputCls}
         />
@@ -701,7 +702,7 @@ function ImageSection() {
         onChange={(areas) => set('redact', areas)}
       />
       <Segmented
-        label="Fit"
+        label={t('Fit')}
         value={shot.fit}
         options={[
           { value: 'cover', label: 'Cover' },
@@ -710,7 +711,7 @@ function ImageSection() {
         onChange={(v) => set('fit', v)}
       />
       <Slider
-        label="Zoom"
+        label={t('Zoom')}
         min={ZOOM_RANGE.min}
         max={ZOOM_RANGE.max}
         step={0.05}
@@ -720,10 +721,10 @@ function ImageSection() {
       />
       <fieldset className="space-y-2">
         <legend className="flex w-full items-center justify-between text-xs font-medium text-muted">
-          Crop
+          {t('Crop')}
           {cropped && (
             <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[11px]" onClick={() => set('crop', { ...NO_CROP })}>
-              Reset Crop
+              {t('Reset Crop')}
             </Button>
           )}
         </legend>
@@ -731,7 +732,7 @@ function ImageSection() {
           {(['top', 'bottom', 'left', 'right'] as const).map((edge) => (
             <Slider
               key={edge}
-              label={`Crop ${edge}`}
+              label={t(`Crop ${edge}`)}
               min={0}
               max={CROP_MAX}
               step={0.01}
@@ -743,8 +744,8 @@ function ImageSection() {
         </div>
       </fieldset>
       <div className="grid grid-cols-2 gap-3">
-        <Slider label="Focal X" min={0} max={1} step={0.01} value={shot.focalX} format={(v) => `${Math.round(v * 100)}%`} onChange={(v) => set('focalX', v, `focal-${shot.id}`)} />
-        <Slider label="Focal Y" min={0} max={1} step={0.01} value={shot.focalY} format={(v) => `${Math.round(v * 100)}%`} onChange={(v) => set('focalY', v, `focal-${shot.id}`)} />
+        <Slider label={t('Focal X')} min={0} max={1} step={0.01} value={shot.focalX} format={(v) => `${Math.round(v * 100)}%`} onChange={(v) => set('focalX', v, `focal-${shot.id}`)} />
+        <Slider label={t('Focal Y')} min={0} max={1} step={0.01} value={shot.focalY} format={(v) => `${Math.round(v * 100)}%`} onChange={(v) => set('focalY', v, `focal-${shot.id}`)} />
       </div>
     </Section>
   );
@@ -766,7 +767,7 @@ function DevicePicker({ devices, orientation }: { devices: DeviceKind[]; orienta
   const atMin = devices.length <= MIN_DEVICES;
   return (
     <fieldset>
-      <legend className="mb-1 text-xs font-medium text-muted">Devices</legend>
+      <legend className="mb-1 text-xs font-medium text-muted">{t('Devices')}</legend>
       <div className="flex gap-1.5">
         {DEVICE_KINDS.map((d) => {
           const on = devices.includes(d);
@@ -779,7 +780,7 @@ function DevicePicker({ devices, orientation }: { devices: DeviceKind[]; orienta
               )}
             >
               <input type="checkbox" className="sr-only" checked={on} disabled={on && atMin} onChange={() => toggle(d)} />
-              {DEVICE_LABELS[d]}
+              {t(DEVICE_LABELS[d])}
             </label>
           );
         })}
@@ -788,7 +789,7 @@ function DevicePicker({ devices, orientation }: { devices: DeviceKind[]; orienta
         .filter((d) => devices.includes(d))
         .map((d) => (
           <div key={d} className="mt-2 flex items-center gap-2">
-            <span className="w-14 flex-none text-xs text-muted">{DEVICE_LABELS[d]}</span>
+            <span className="w-14 flex-none text-xs text-muted">{t(DEVICE_LABELS[d])}</span>
             <div className="flex-1">
               <Segmented
                 label={`${DEVICE_LABELS[d]} orientation`}
@@ -804,7 +805,10 @@ function DevicePicker({ devices, orientation }: { devices: DeviceKind[]; orienta
           </div>
         ))}
       <p className="mt-1 text-[11px] text-muted">
-        Pick {MIN_DEVICES} or 3. Screenshots fill the devices in order: {devices.map((d) => DEVICE_LABELS[d].toLowerCase()).join(', ')}.
+        {t('Pick {min} or 3. Screenshots fill the devices in order: {list}.', {
+          min: MIN_DEVICES,
+          list: devices.map((d) => t(DEVICE_LABELS[d]).toLowerCase()).join(', '),
+        })}
       </p>
     </fieldset>
   );
@@ -849,14 +853,14 @@ function FocalPicker({
   };
   return (
     <div>
-      <p className="mb-1 text-xs font-medium text-muted">Focal point</p>
+      <p className="mb-1 text-xs font-medium text-muted">{t('Focal point')}</p>
       <div className="checker flex justify-center rounded-lg p-1">
         <div
           ref={ref}
           role="slider"
           tabIndex={0}
-          aria-label="Focal point"
-          aria-valuetext={`${Math.round(x * 100)}% horizontal, ${Math.round(y * 100)}% vertical`}
+          aria-label={t('Focal point')}
+          aria-valuetext={t('{x}% horizontal, {y}% vertical', { x: Math.round(x * 100), y: Math.round(y * 100) })}
           onKeyDown={nudge}
           onPointerDown={(e) => {
             e.currentTarget.setPointerCapture(e.pointerId);
@@ -900,7 +904,7 @@ function FocalPicker({
           />
         </div>
       </div>
-      <p className="mt-1 text-[11px] text-muted">This area stays visible when the layout changes between formats.</p>
+      <p className="mt-1 text-[11px] text-muted">{t('This area stays visible when the layout changes between formats.')}</p>
     </div>
   );
 }
@@ -934,10 +938,10 @@ function RedactPicker({
   return (
     <fieldset className="space-y-1.5">
       <legend className="flex w-full items-center justify-between text-xs font-medium text-muted">
-        Hide sensitive areas
+        {t('Hide sensitive areas')}
         {areas.length > 0 && (
           <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[11px]" onClick={() => onChange([])}>
-            Clear
+            {t('Clear')}
           </Button>
         )}
       </legend>
@@ -945,7 +949,7 @@ function RedactPicker({
         <div
           ref={ref}
           data-testid="redact-area"
-          aria-label="Drag over the screenshot to hide an area"
+          aria-label={t('Drag over the screenshot to hide an area')}
           onPointerDown={(e) => {
             if (full) return;
             e.currentTarget.setPointerCapture(e.pointerId);
@@ -995,18 +999,17 @@ function RedactPicker({
                 size="sm"
                 variant="ghost"
                 className="h-6 px-1.5 text-[11px]"
-                aria-label={`Show area ${i + 1} again`}
+                aria-label={t('Show area {n} again', { n: i + 1 })}
                 onClick={() => onChange(areas.filter((_, j) => j !== i))}
               >
-                Area {i + 1} <Icon name="x" className="size-3" />
+                {t('Area {n}', { n: i + 1 })} <Icon name="x" className="size-3" />
               </Button>
             </li>
           ))}
         </ul>
       )}
       <p className="text-[11px] text-muted">
-        Drag over names, e-mail addresses or ids to cover them in every exported image. The original screenshot is kept in the project and in
-        its project.json backup.
+        {t('Drag over names, e-mail addresses or ids to cover them in every exported image. The original screenshot is kept in the project and in its project.json backup.')}
       </p>
     </fieldset>
   );
@@ -1018,9 +1021,9 @@ function Suggestions() {
   const { update } = useEditor.getState();
   const list = useMemo(() => (project ? analyzeProject(project, resolveFormat(active, project.customFormat)) : []), [project, active]);
   return (
-    <Section title={`Suggestions (${list.length})`}>
+    <Section title={t('Suggestions ({n})', { n: list.length })}>
       {list.length === 0 ? (
-        <p className="text-xs text-ok">Looks good for this format.</p>
+        <p className="text-xs text-ok">{t('Looks good for this format.')}</p>
       ) : (
         <ul className="space-y-2">
           {list.map((s) => (
@@ -1028,21 +1031,21 @@ function Suggestions() {
               key={s.id}
               className={cx('rounded-md px-2.5 py-2 text-xs', s.level === 'warning' ? 'bg-warn-soft text-warn-ink' : 'bg-surface text-ink-soft ring-1 ring-line')}
             >
-              {s.message}
+              {tMessage(s)}
               {s.action?.template && (
                 <button
                   type="button"
                   className="ml-1 font-medium text-accent-deep underline underline-offset-2"
                   onClick={() => update((d) => void (d.template = s.action!.template!))}
                 >
-                  {s.action.label}
+                  {t('Use {name}', { name: t(getTemplate(s.action.template).name) })}
                 </button>
               )}
             </li>
           ))}
         </ul>
       )}
-      <p className="text-[11px] text-faint">Checks run locally and never block export.</p>
+      <p className="text-[11px] text-faint">{t('Checks run locally and never block export.')}</p>
     </Section>
   );
 }

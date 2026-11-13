@@ -15,6 +15,7 @@ import { useEditor } from '../store/editor';
 import { notify } from '../store/toasts';
 import { collectGarbage, describeStorageError, getBlob, getProject, holdProjectLock, putThumbnail, saveProjectGuarded } from './db';
 import { renderThumbnail } from './exporter';
+import { t } from '../i18n';
 
 const SAVE_DELAY = 400;
 const THUMB_DELAY = 2500;
@@ -55,7 +56,7 @@ export function useProjectSession(projectId: string) {
       if (!res.ok) {
         if (res.reason === 'missing') {
           setSaveState('error');
-          notify('This project was deleted in another tab. Your changes cannot be saved.', 'error');
+          notify(t('This project was deleted in another tab. Your changes cannot be saved.'), 'error');
         } else {
           setConflict(true);
         }
@@ -194,7 +195,7 @@ export function useProjectSession(projectId: string) {
     saveNow: () => persist(),
     /** Conflict resolution: overwrite the other tab's version with ours. */
     keepMine: async () => {
-      if (await persist(true)) notify('Your version was saved.');
+      if (await persist(true)) notify(t('Your version was saved.'));
     },
     /** Conflict resolution: drop our changes and load the latest stored version. */
     loadLatest: reload,

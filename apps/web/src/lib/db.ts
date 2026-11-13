@@ -11,6 +11,7 @@
  */
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import { migrateBrandKit, migrateProject, type BrandKit, type Project } from '@svs/visual-core';
+import { t } from '../i18n';
 
 /**
  * Binary data is stored as ArrayBuffer + MIME type rather than Blob: WebKit cannot store
@@ -77,10 +78,10 @@ export class StorageError extends Error {}
 export function describeStorageError(e: unknown): string {
   const name = (e as { name?: string })?.name;
   if (name === 'QuotaExceededError') {
-    return 'Browser storage is full. Delete unused projects or export them as JSON, then try again.';
+    return t('Browser storage is full. Delete unused projects or export them as JSON, then try again.');
   }
   if (e instanceof StorageError) return e.message;
-  return `Could not save to browser storage (${name ?? 'unknown error'}).`;
+  return t('Could not save to browser storage ({error}).', { error: name ?? t('unknown error') });
 }
 
 // ---------------------------------------------------------------------------
