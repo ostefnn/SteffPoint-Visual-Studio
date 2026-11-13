@@ -29,6 +29,7 @@ import {
   TILT_TEMPLATES,
   TEMPLATES,
   applyVariant,
+  compareMark,
 } from './index';
 
 describe('Tint and Technical palettes', () => {
@@ -558,5 +559,46 @@ describe('brand footer and call to action', () => {
     expect(analyzeCarousel(p).map((s) => s.id)).toContain('carousel-cta');
     p.carousel.slides.push(createVariant({ template: 'cta' }));
     expect(analyzeCarousel(p).map((s) => s.id)).not.toContain('carousel-cta');
+  });
+});
+
+describe('carousel page content, steps and comparison', () => {
+  it('lets a page replace any content field, validated like the project', () => {
+    const p = createProject();
+    p.carousel.slides = [createVariant({ template: 'features', content: { features: ['Only here'] } })];
+    const m = migrateProject(JSON.parse(JSON.stringify(p)));
+    expect(m.carousel.slides[0].content).toEqual({ features: ['Only here'] });
+    expect(applyVariant(m, m.carousel.slides[0]).content.features).toEqual(['Only here']);
+    expect(m.content.features).toEqual(createProject().content.features); // the project is untouched
+
+    const raw = { carousel: { slides: [{ template: 'steps', content: { steps: [{ title: 'x'.repeat(99), text: 7 }], bogus: 1, qr: true } }] } };
+    expect(migrateProject(raw).carousel.slides[0].content).toEqual({ steps: [{ title: 'x'.repeat(40), text: '' }], qr: true });
+  });
+
+  it('keeps old pages that only replaced their texts', () => {
+    const m = migrateProject({ carousel: { slides: [{ template: 'minimal', content: { title: 'Hook', subtitle: '' } }] } });
+    expect(m.carousel.slides[0].content).toEqual({ title: 'Hook', subtitle: '' });
+  });
+
+  it('normalises comparison tables', () => {
+    const m = migrateProject({ content: { compare: { columns: ['A', 'B', 'C', 'D'], rows: [{ label: 'Speed', cells: ['fast'] }] } } });
+    expect(m.content.compare).toEqual({ columns: ['A', 'B', 'C'], rows: [{ label: 'Speed', cells: ['fast', '', ''] }] });
+    expect(migrateProject({ content: { compare: { columns: ['Only'], rows: [] } } }).content.compare.columns).toEqual(['Only', '']);
+    expect(migrateProject({ content: { compare: 'table' } }).content.compare).toEqual(createProject().content.compare);
+  });
+
+  it('reads yes and no in English, French and Dutch', () => {
+    expect(['yes', 'Oui', 'ja', '✓'].map(compareMark)).toEqual(['yes', 'yes', 'yes', 'yes']);
+    expect(['no', 'NON', 'nee', '-', '✗'].map(compareMark)).toEqual(['no', 'no', 'no', 'no', 'no']);
+    expect(compareMark('€29/mo')).toBe('text');
+  });
+
+  it('checks steps and comparisons', () => {
+    const p = createProject({ template: 'steps' });
+    p.content.steps = [{ title: 'Only one', text: '' }];
+    expect(analyzeProject(p, FORMAT_PRESETS.linkedin).map((s) => s.id)).toContain('steps-few');
+    const q = createProject({ template: 'comparison' });
+    q.content.compare = { columns: ['', 'Ours'], rows: [{ label: 'Speed', cells: ['', 'yes'] }] };
+    expect(analyzeProject(q, FORMAT_PRESETS.linkedin).map((s) => s.id)).toEqual(expect.arrayContaining(['compare-few', 'compare-header', 'compare-empty']));
   });
 });

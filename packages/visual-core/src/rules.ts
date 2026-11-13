@@ -204,6 +204,23 @@ export function analyzeProject(project: Project, format: FormatPreset, exportSca
     }
   }
 
+  if (tpl.id === 'steps') {
+    const filled = content.steps.filter((st) => st.title.trim());
+    if (filled.length < 2) out.push({ id: 'steps-few', level: 'warning', message: 'Add at least two steps, each with a title.' });
+    if (content.steps.some((st) => st.text.length > 70)) {
+      out.push({ id: 'steps-long', level: 'info', message: 'Keep each step’s text under about 70 characters so it stays legible in a feed.' });
+    }
+  }
+  if (tpl.id === 'comparison') {
+    const rows = content.compare.rows.filter((r) => r.label.trim());
+    if (rows.length < 2) out.push({ id: 'compare-few', level: 'warning', message: 'Add at least two criteria to compare.' });
+    if (content.compare.columns.some((c) => !c.trim())) {
+      out.push({ id: 'compare-header', level: 'warning', message: 'Name every column, so people know what is compared.' });
+    }
+    if (rows.some((r) => r.cells.some((c) => !c.trim()))) {
+      out.push({ id: 'compare-empty', level: 'info', message: 'Some cells are empty. Write yes or no for a tick or a cross, or a short value.' });
+    }
+  }
   if (tpl.id === 'cta') {
     if (!content.cta.trim() && !content.link.trim()) {
       out.push({ id: 'cta-empty', level: 'warning', message: 'Add a button text or a link: a call to action needs something to do.' });

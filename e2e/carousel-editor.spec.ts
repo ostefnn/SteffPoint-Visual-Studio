@@ -81,3 +81,24 @@ test('reorder carousel pages by drag and drop', async ({ page }) => {
   await expect(pages(page).first()).toContainText('Call to Action');
   expect((await pages(page).allInnerTexts()).length).toBe(before.length);
 });
+
+test('a carousel page can have its own template content', async ({ page }) => {
+  await newProject(page);
+  await page.getByRole('tab', { name: 'Carousel' }).click();
+  await page.getByRole('button', { name: 'Customize Pages' }).click();
+  await page.getByRole('button', { name: 'Add Page' }).click();
+  await page.getByRole('combobox').selectOption({ label: 'Features' });
+  const canvas = page.getByTestId('canvas');
+
+  // This page (the default): the change stays on the page.
+  await page.getByRole('textbox', { name: 'Feature 1' }).fill('Only on this page');
+  await expect(canvas).toContainText('Only on this page');
+  await expect(page.getByRole('button', { name: 'Use the project’s content again' })).toBeVisible();
+
+  // All pages: edits the project, which the page no longer follows for that field.
+  await page.getByRole('radio', { name: 'All pages' }).click();
+  await expect(page.getByRole('textbox', { name: 'Feature 1' })).not.toHaveValue('Only on this page');
+  await page.getByRole('radio', { name: 'This page' }).click();
+  await page.getByRole('button', { name: 'Use the project’s content again' }).click();
+  await expect(canvas).not.toContainText('Only on this page');
+});

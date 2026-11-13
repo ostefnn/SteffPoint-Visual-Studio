@@ -34,6 +34,8 @@ import {
   type DeviceKind,
   type Palette,
   type LegendItem,
+  compareMark,
+  type Step,
   type LayoutSettings,
   type TemplateId,
   type Project,
@@ -1866,6 +1868,187 @@ function Features(ctx: Ctx) {
   );
 }
 
+// --- Steps and Comparison --------------------------------------------------------
+
+/** Positions a content-sized block (list, table) beside or below the text, like Features does. */
+function placeBeside(ctx: Ctx, body: ReactNode, textScale = 1) {
+  const { w, h, o, wide } = ctx;
+  const box = (style: CSSProperties) => (
+    <div style={{ position: 'absolute', display: 'flex', flexDirection: 'column', justifyContent: 'center', ...style }}>{body}</div>
+  );
+  if (wide) {
+    return (
+      <>
+        <TextBlock ctx={ctx} style={leftColumn(ctx, 0.3)} scale={0.85 * textScale} subtitle={false} />
+        {box({ left: w * 0.38, right: w * 0.04, top: h * 0.1, bottom: h * 0.1 })}
+      </>
+    );
+  }
+  if (o === 'landscape') {
+    return (
+      <>
+        <TextBlock ctx={ctx} style={leftColumn(ctx, 0.36)} scale={textScale} />
+        {box({ left: w * 0.45, right: w * 0.05, top: h * 0.06, bottom: h * 0.06 })}
+      </>
+    );
+  }
+  const portrait = o === 'portrait';
+  return (
+    <>
+      <TextBlock ctx={ctx} align="center" style={topBlock(ctx)} subtitle={portrait} scale={textScale} />
+      {box({ left: w * 0.07, right: w * 0.07, top: h * (portrait ? 0.38 : 0.37), bottom: h * (portrait ? 0.16 : 0.05) })}
+    </>
+  );
+}
+
+/** Brand-coloured disc (black on Bold's brand ground). */
+const badgeColors = (ctx: Ctx) =>
+  ctx.style.brandBackground ? { bg: BOLD_INK, fg: HW.onDark } : { bg: ctx.pal.primary, fg: ctx.pal.onPrimary };
+
+function Steps(ctx: Ctx) {
+  const { u, o, pal, wide, p } = ctx;
+  const items = p.content.steps.filter((st) => st.title.trim() || st.text.trim()).slice(0, 5);
+  const row = wide; // banners read left to right
+  const size = u * (o === 'portrait' ? 3.6 : o === 'square' ? 3.1 : wide ? 4.6 : 3.3) * (items.length > 3 ? 0.86 : 1);
+  const badge = badgeColors(ctx);
+  const step = (st: Step, i: number) => (
+    <div key={i} style={{ display: 'flex', flexDirection: row ? 'column' : 'row', gap: size * 0.75, minWidth: 0 }}>
+      <span
+        style={{
+          flex: 'none',
+          width: size * 2,
+          height: size * 2,
+          borderRadius: '50%',
+          background: badge.bg,
+          color: badge.fg,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: size * 1.05,
+          fontWeight: 750,
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        {i + 1}
+      </span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: size * 0.25, minWidth: 0, paddingTop: row ? 0 : size * 0.2 }}>
+        {st.title.trim() && (
+          <span style={{ fontFamily: ctx.heading, fontSize: size * 1.12, fontWeight: ctx.heading === FONT_STACKS.serif ? 400 : 700, lineHeight: 1.2, color: pal.text, overflowWrap: 'break-word' }}>
+            {st.title}
+          </span>
+        )}
+        {st.text.trim() && <span style={{ fontSize: size * 0.82, lineHeight: 1.32, color: pal.textMuted, overflowWrap: 'break-word' }}>{st.text}</span>}
+      </div>
+    </div>
+  );
+  return placeBeside(
+    ctx,
+    <div data-steps="" style={{ display: 'grid', gridTemplateColumns: row ? `repeat(${Math.max(1, items.length)}, minmax(0, 1fr))` : '1fr', gap: size * (row ? 1.4 : 1.15) }}>
+      {items.map(step)}
+    </div>,
+  );
+}
+
+function Mark({ kind, size, ctx }: { kind: 'yes' | 'no'; size: number; ctx: Ctx }) {
+  const badge = badgeColors(ctx);
+  const yes = kind === 'yes';
+  return (
+    <span
+      role="img"
+      aria-label={yes ? 'Yes' : 'No'}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: yes ? badge.bg : 'transparent',
+        border: yes ? undefined : `${Math.max(1, size * 0.08)}px solid ${ctx.pal.textMuted}`,
+        boxSizing: 'border-box',
+      }}
+    >
+      <svg aria-hidden="true" viewBox="0 0 24 24" width={size * 0.56} height={size * 0.56} fill="none" stroke={yes ? badge.fg : ctx.pal.textMuted} strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round">
+        <path d={yes ? 'M5 12.5 10 17.5 19 7' : 'M7 7l10 10M17 7 7 17'} />
+      </svg>
+    </span>
+  );
+}
+
+function ComparisonTemplate(ctx: Ctx) {
+  const { u, o, pal, wide, p } = ctx;
+  const { columns } = p.content.compare;
+  const rows = p.content.compare.rows.filter((r) => r.label.trim() || r.cells.some((c) => c.trim()));
+  const n = columns.length;
+  const fs = u * (o === 'portrait' ? 3.1 : o === 'square' ? 2.7 : wide ? 4 : 3) * (rows.length > 4 ? 0.86 : 1);
+  const last = n - 1;
+  const hairline = `${Math.max(1, u * 0.1)}px solid ${pal.border}`;
+  const r = Math.min(ctx.radius, fs);
+  // The recommended (last) column is a tinted band from header to last row.
+  const cell = (row: number, col: number, total: number): CSSProperties => {
+    const hl = col === last + 1;
+    return {
+      padding: `${fs * 0.65}px ${fs * 0.7}px`,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: col === 0 ? 'flex-start' : 'center',
+      textAlign: col === 0 ? 'left' : 'center',
+      minWidth: 0,
+      borderBottom: row < total - 1 ? hairline : undefined,
+      background: hl ? (row === 0 ? (ctx.style.brandBackground ? BOLD_INK : pal.primary) : pal.primarySoft) : undefined,
+      color: hl && row === 0 ? (ctx.style.brandBackground ? HW.onDark : pal.onPrimary) : pal.text,
+      borderTopLeftRadius: hl && row === 0 ? r : undefined,
+      borderTopRightRadius: hl && row === 0 ? r : undefined,
+      borderBottomLeftRadius: hl && row === total - 1 ? r : undefined,
+      borderBottomRightRadius: hl && row === total - 1 ? r : undefined,
+    };
+  };
+  const total = rows.length + 1;
+  return placeBeside(
+    ctx,
+    <div
+      data-compare=""
+      role="table"
+      style={{
+        display: 'grid',
+        gridTemplateColumns: `minmax(0, 1.5fr) repeat(${n}, minmax(0, 1fr))`,
+        padding: fs * 0.8,
+        borderRadius: ctx.radius,
+        background: pal.surface,
+        border: ctx.edge,
+        boxShadow: smallCardShadow(ctx),
+        fontSize: fs,
+        lineHeight: 1.25,
+      }}
+    >
+      <div role="row" style={{ display: 'contents' }}>
+        <span role="columnheader" style={cell(0, 0, total)} />
+        {columns.map((c, j) => (
+          <span key={j} role="columnheader" style={{ ...cell(0, j + 1, total), fontWeight: 700, fontSize: fs * 0.92 }}>
+            {c}
+          </span>
+        ))}
+      </div>
+      {rows.map((row, i) => (
+        <div key={i} role="row" style={{ display: 'contents' }}>
+          <span role="rowheader" style={{ ...cell(i + 1, 0, total), fontWeight: 600 }}>
+            {row.label}
+          </span>
+          {row.cells.map((c, j) => {
+            const mark = compareMark(c);
+            return (
+              <span key={j} role="cell" style={{ ...cell(i + 1, j + 1, total), fontWeight: j === last ? 700 : 500 }}>
+                {mark === 'text' ? c : <Mark kind={mark} size={fs * 1.45} ctx={ctx} />}
+              </span>
+            );
+          })}
+        </div>
+      ))}
+    </div>,
+    0.92,
+  );
+}
+
 // --- Code ---------------------------------------------------------------------
 
 const KEYWORDS = new Set(
@@ -2330,5 +2513,7 @@ const TEMPLATE_COMPONENTS: Record<string, (ctx: Ctx) => ReactNode> = {
   'before-after': BeforeAfter,
   editorial: Editorial,
   cta: Cta,
+  steps: Steps,
+  comparison: ComparisonTemplate,
   minimal: Minimal,
 };

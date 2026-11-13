@@ -381,7 +381,8 @@ function PageEditor({
         </fieldset>
       )}
       <p className="text-[11px] text-muted">
-        Template content such as features, code, figures or quotes is shared with the project and edited in the Content panel.
+        Features, steps, figures, quotes and the other template fields are edited in the Content panel: choose “This page” there to give this
+        page its own.
       </p>
     </Section>
   );

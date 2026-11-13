@@ -53,7 +53,7 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 |---|---|
 | 🗂️ **Projects** | Create, rename, duplicate, delete, favourite, search. Automatic thumbnails. Autosave. |
 | 💾 **Local storage** | Projects, images and thumbnails stored in IndexedDB. Close the tab, come back later, everything is there. |
-| 🧩 **17 templates** | Browser Hero, Device Mix, App Store, Browser Duo, Mobile Trio, Bento, Spotlight, Before / After, Testimonial, Key Figures, Event, Features, Code, Annotated Panel, Editorial, Call to Action, Minimal. |
+| 🧩 **19 templates** | Browser Hero, Device Mix, App Store, Browser Duo, Mobile Trio, Bento, Spotlight, Before / After, Testimonial, Key Figures, Event, Features, Steps, Comparison, Code, Annotated Panel, Editorial, Call to Action, Minimal. |
 | 🔗 **Brand footer** | Optional line along the bottom of every visual with your logo and website or handle; carousel pages add “Swipe →” except the last. |
 | 🧭 **Layout** | Works on every template: **Mirror** (text on the other side), **text position** (above or below the screens; beside them, aligned to the top or bottom), **text alignment** (left, centre, right) and **screens** straight, tilted or in 3D. *Auto* keeps each template's own layout. Shared by every format and carousel page. |
 | 🖼️ **Screenshots** | Up to 4 per project. Add by click, drag & drop anywhere, or paste (Ctrl/Cmd+V). Desktop screenshots can sit in a browser, a macOS window, no frame, or a laptop. |
@@ -66,7 +66,7 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 | 🛟 **Safe zones** | Overlay showing where platform UI may cover your visual (e.g. stories, profile banners). |
 | ↩️ **Undo / redo** | Bounded history (60 steps); rapid edits like typing or sliders are merged into one step. |
 | 📦 **Export** | PNG, JPEG or WebP at 1×, 2× or 3×. One image, or a ZIP with every selected format plus `project.json`. |
-| 🗂️ **LinkedIn carousel** | A multi-page PDF for a LinkedIn document post, with 4:5 (default), 1:1 or 16:9 pages. Automatic pages (cover, one per screenshot, features), or your own: a template per page, page-specific kicker/title/subtitle and screenshots, add, duplicate, reorder (drag, buttons or Alt+↑/↓). Up to 12 pages, with carousel-specific advice. |
+| 🗂️ **LinkedIn carousel** | A multi-page PDF for a LinkedIn document post, with 4:5 (default), 1:1 or 16:9 pages. Automatic pages (cover, one per screenshot, features), or your own: a template per page, page-specific content (texts, features, steps, figures, table… choose **This page** in the Content panel) and screenshots, add, duplicate, reorder (drag, buttons or Alt+↑/↓). Up to 12 pages, with carousel-specific advice. |
 | 💡 **Smart suggestions** | Deterministic checks, no AI: title length, WCAG AA contrast, legibility in feeds, wrong template or device for the screenshot orientation, images or logo too small for the export size, missing quote author, figures or event date. Informative only, never blocks export. |
 | 🔁 **Import / export JSON** | Portable project file with images embedded. Backup, move between browsers, share. |
 
@@ -105,6 +105,8 @@ Projects created before styles existed open in **Soft**, unchanged. Picking a st
 | **Key Figures** | 2–4 big numbers: users, ratings, time saved | 0 |
 | **Event** | Webinars, meetups, launches: date, time, place, speakers and a call to action | 0–3 (speaker photos) |
 | **Features** | “What’s new”, release notes, feature highlights (up to 4 items) | 0 |
+| **Steps** | “How it works”, getting started: 2 to 5 numbered steps with a short text | 0 |
+| **Comparison** | Your product against another way: criteria, 2 or 3 columns, ticks and crosses (type yes / no, oui / non, ja / nee) or short values; the last column is highlighted | 0 |
 | **Code** | Code snippet in an editor window, with light syntax colouring | 0 |
 | **Annotated Panel** | A settings panel (or any UI) with numbered call-outs, next to its legend: field name, property, greyed when disabled. Import a capture report to get one page per group | 1 |
 | **Editorial** | Articles, announcements, blog covers | 0–1 |
@@ -288,7 +290,7 @@ Exported `project.json` / `*.svs.json`:
 
 `layout` holds the layout options: `mirror` (boolean), `textPosition` (`"auto"`, `"top"`, `"bottom"`), `textAlign` (`"auto"`, `"left"`, `"center"`, `"right"`) and `tilt` (`"none"`, `"tilt"`, `"perspective"`). Mirror is ignored by centred templates (App Store, Minimal, Testimonial); tilt only applies to templates that draw screens in frames.
 
-In `carousel.slides`, each page is a **variant**: a template, optional `content` overrides (a missing `kicker`, `title` or `subtitle` uses the project's), and `screenshotIds` (`null` = the project's screenshots). An empty `slides` list means automatic pages. `pageSize` is `"4:5"`, `"1:1"` or `"16:9"`.
+In `carousel.slides`, each page is a **variant**: a template, optional `content` overrides (any content field; a missing one uses the project's), and `screenshotIds` (`null` = the project's screenshots). An empty `slides` list means automatic pages. `pageSize` is `"4:5"`, `"1:1"` or `"16:9"`.
 
 ## Architecture
 

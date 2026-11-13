@@ -8,6 +8,8 @@ export type TemplateId =
   | 'stats'
   | 'event'
   | 'features'
+  | 'steps'
+  | 'comparison'
   | 'code'
   | 'annotated'
   | 'browser-duo'
@@ -61,6 +63,8 @@ export const MIRROR_TEMPLATES: readonly TemplateId[] = [
   'code',
   'annotated',
   'cta',
+  'steps',
+  'comparison',
 ];
 /**
  * Templates whose screens can be tilted. Full-bleed images, grids, legends and text-only
@@ -206,6 +210,22 @@ export const TEMPLATES: TemplateDefinition[] = [
     name: 'Features',
     category: 'announcement',
     description: 'Headline plus up to four highlights. Ideal for “What’s new” and release notes.',
+    shotKind: 'any',
+    slots: { ...text, screenshots: { min: 0, max: 0 } },
+  },
+  {
+    id: 'steps',
+    name: 'Steps',
+    category: 'documentation',
+    description: 'Two to five numbered steps: how it works, how to get started.',
+    shotKind: 'any',
+    slots: { ...text, screenshots: { min: 0, max: 0 } },
+  },
+  {
+    id: 'comparison',
+    name: 'Comparison',
+    category: 'announcement',
+    description: 'A table of criteria with ticks and crosses: your product against another way.',
     shotKind: 'any',
     slots: { ...text, screenshots: { min: 0, max: 0 } },
   },

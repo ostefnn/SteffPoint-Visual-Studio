@@ -80,6 +80,23 @@ const SAMPLE_CONTENT: Partial<Record<TemplateId, Partial<Project['content']>>> =
   features: {
     features: ['Brand colour picked from your logo', 'Every style compared side by side', 'LinkedIn carousel as a PDF', 'Nothing leaves your device'],
   },
+  steps: {
+    steps: [
+      { title: 'Add your screenshots', text: 'Drop, paste or pick up to 12 images.' },
+      { title: 'Pick a template', text: 'Then a style and your brand colour.' },
+      { title: 'Export every format', text: 'One ZIP, or a LinkedIn carousel PDF.' },
+    ],
+  },
+  comparison: {
+    compare: {
+      columns: ['One by one', 'This app'],
+      rows: [
+        { label: 'Formats per export', cells: ['1', String(FORMAT_ORDER.filter((f) => f !== 'custom').length)] },
+        { label: 'Brand colour from your logo', cells: ['no', 'yes'] },
+        { label: 'LinkedIn carousel PDF', cells: ['no', 'yes'] },
+      ],
+    },
+  },
   cta: {
     // The app's own public address, from the README.
     cta: 'Open the app',

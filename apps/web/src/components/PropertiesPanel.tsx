@@ -26,6 +26,8 @@ import {
   type DeviceKind,
   type DeviceOrientation,
   type LegendItem,
+  CONTENT_KEYS,
+  type Content,
   type TextAlign,
   type TextPosition,
   type Tilt,
@@ -48,19 +50,45 @@ export function PropertiesPanel({ className }: { className?: string }) {
 }
 
 function ContentSection() {
-  const content = useEditor((s) => s.project?.content);
+  const projectContent = useEditor((s) => s.project?.content);
   const projectTemplate = useEditor((s) => s.project?.template);
-  // When a carousel page is on the canvas, show the fields of that page's template:
-  // its content (features, code, figures…) is shared with the project.
-  const pageTemplate = useEditor((s) =>
-    s.project && s.carouselPage !== null ? buildCarouselSlides(s.project)[s.carouselPage]?.variant.template : undefined,
+  // When a carousel page is on the canvas, show the fields of that page's template.
+  const project = useEditor((s) => s.project);
+  const carouselPage = useEditor((s) => s.carouselPage);
+  const slide = useMemo(
+    () => (project && carouselPage !== null ? buildCarouselSlides(project)[carouselPage] : undefined),
+    [project, carouselPage],
   );
+  const pageTemplate = slide?.variant.template;
   const template = pageTemplate ?? projectTemplate;
+  // A custom page can have its own content (This page) or edit the project's (All pages).
+  const [scope, setScope] = useState<'page' | 'project'>('page');
+  const pageId = slide && !slide.auto ? slide.variant.id : null;
+  const pageScope = !!pageId && scope === 'page';
+  const ownKeys = pageId ? Object.keys(slide!.variant.content) : [];
+  const content = pageScope && projectContent ? { ...projectContent, ...slide!.variant.content } : projectContent;
   const devices = useEditor((s) => s.project?.devices);
   const orientation = useEditor((s) => s.project?.deviceOrientation);
   const desktopFrame = useEditor((s) => s.project?.desktopFrame);
   const brandFooter = useEditor((s) => s.project?.brand.footer);
   const { update } = useEditor.getState();
+  /**
+   * Apply a change to the content being edited. On a page, the page keeps the keys it already
+   * overrides and gains those that now differ from the project; the project is left untouched.
+   */
+  const write = (fn: (c: Content) => void, key?: string) =>
+    update((d) => {
+      if (!pageScope) return fn(d.content);
+      const v = d.carousel.slides.find((x) => x.id === pageId);
+      if (!v) return;
+      const c = structuredClone({ ...d.content, ...v.content });
+      fn(c);
+      const next: Partial<Content> = {};
+      for (const k of CONTENT_KEYS) {
+        if (k in v.content || JSON.stringify(c[k]) !== JSON.stringify(d.content[k])) (next as Record<string, unknown>)[k] = c[k];
+      }
+      v.content = next;
+    }, key && (pageScope ? `${pageId}-${key}` : key));
   if (!content || !template) return null;
   const showsDesktop =
     DESKTOP_FRAME_TEMPLATES.includes(template) && (template !== 'device-mix' || normalizeDevices(devices).includes('desktop'));
@@ -98,28 +126,50 @@ function ContentSection() {
   };
   // Single-line fields drop newlines; the quote keeps them.
   const set = (key: TextKey) => (e: { target: { value: string } }) =>
-    update((d) => {
+    write((d) => {
       const v = key === 'quote' || key === 'title' || key === 'subtitle' ? e.target.value : e.target.value.replace(/\n/g, ' ');
-      d.content[key] = v.slice(0, maxLen[key]);
+      d[key] = v.slice(0, maxLen[key]);
     }, `content-${key}`);
   const slots = getTemplate(template).slots;
   const stats = Array.from({ length: LIMITS.statItems }, (_, i) => content.stats[i] ?? { value: '', label: '' });
   const setStat = (i: number, key: 'value' | 'label', value: string) =>
-    update((d) => {
-      const list = Array.from({ length: LIMITS.statItems }, (_, j) => (d.content.stats[j] ? { ...d.content.stats[j] } : { value: '', label: '' }));
+    write((d) => {
+      const list = Array.from({ length: LIMITS.statItems }, (_, j) => (d.stats[j] ? { ...d.stats[j] } : { value: '', label: '' }));
       list[i] = { ...list[i], [key]: value.replace(/\n/g, ' ').slice(0, key === 'value' ? LIMITS.statValue : LIMITS.statLabel) };
       // Keep trailing empty rows out of the project.
       while (list.length && !list[list.length - 1].value && !list[list.length - 1].label) list.pop();
-      d.content.stats = list;
+      d.stats = list;
     }, `stat-${i}-${key}`);
   const setFeature = (i: number, value: string) =>
-    update((d) => {
-      const list = [...d.content.features];
+    write((d) => {
+      const list = [...d.features];
       while (list.length <= i) list.push('');
       list[i] = value.replace(/\n/g, ' ').slice(0, LIMITS.feature);
-      d.content.features = list.slice(0, LIMITS.featureItems);
+      d.features = list.slice(0, LIMITS.featureItems);
     }, `feature-${i}`);
   const features = Array.from({ length: LIMITS.featureItems }, (_, i) => content.features[i] ?? '');
+  const steps = Array.from({ length: LIMITS.stepItems }, (_, i) => content.steps[i] ?? { title: '', text: '' });
+  const setStep = (i: number, key: 'title' | 'text', value: string) =>
+    write((d) => {
+      const list = Array.from({ length: LIMITS.stepItems }, (_, j) => ({ ...(d.steps[j] ?? { title: '', text: '' }) }));
+      list[i][key] = value.replace(/\n/g, ' ').slice(0, key === 'title' ? LIMITS.stepTitle : LIMITS.stepText);
+      while (list.length && !list[list.length - 1].title && !list[list.length - 1].text) list.pop();
+      d.steps = list;
+    }, `step-${i}-${key}`);
+  const compare = content.compare;
+  const editCompare = (fn: (c: Content['compare']) => void, key?: string) => write((d) => fn(d.compare), key);
+  // The last column is the highlighted one (yours): add or remove columns just before it.
+  const resize = <T,>(list: T[], n: number, blank: T): T[] => {
+    const next = [...list];
+    while (next.length < n) next.splice(Math.max(0, next.length - 1), 0, blank);
+    while (next.length > n) next.splice(next.length - 2, 1);
+    return next;
+  };
+  const setColumns = (n: number) =>
+    editCompare((c) => {
+      c.columns = resize(c.columns, n, '');
+      c.rows = c.rows.map((r) => ({ ...r, cells: resize(r.cells, n, '') }));
+    });
   const codeLines = content.code.split('\n').length;
   const count = (v: string, max: number) => (
     <span className={cx(v.length > max * 0.8 && 'text-warn')}>
@@ -129,11 +179,41 @@ function ContentSection() {
 
   return (
     <Section title="Content">
-      {pageTemplate && (
-        <p className="rounded-md bg-accent-soft px-2 py-1.5 text-xs text-accent-deep">
-          Shared content, used by the project and every carousel page. A page’s own kicker, title and subtitle are set in the
-          Carousel tab.
-        </p>
+      {pageId ? (
+        <div className="space-y-1.5 rounded-md bg-accent-soft px-2 py-2 text-xs text-accent-deep">
+          <Segmented<'page' | 'project'>
+            label="Edit content of"
+            value={scope}
+            options={[
+              { value: 'page', label: 'This page' },
+              { value: 'project', label: 'All pages' },
+            ]}
+            onChange={setScope}
+          />
+          <p>
+            {scope === 'page'
+              ? ownKeys.length
+                ? 'Changes apply to this carousel page only. Fields you have not changed follow the project.'
+                : 'Changes apply to this carousel page only. It follows the project until you change something.'
+              : 'Changes apply to the project and to every page that has not changed that field.'}
+          </p>
+          {scope === 'page' && ownKeys.length > 0 && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 px-1.5 text-[11px]"
+              onClick={() => update((d) => void (d.carousel.slides.find((x) => x.id === pageId)!.content = {}))}
+            >
+              Use the project’s content again
+            </Button>
+          )}
+        </div>
+      ) : (
+        pageTemplate && (
+          <p className="rounded-md bg-accent-soft px-2 py-1.5 text-xs text-accent-deep">
+            Automatic carousel pages use the project’s content. Click “Customize Pages” in the Carousel tab to give a page its own.
+          </p>
+        )
       )}
       <Field label="Kicker" hint={count(content.kicker, LIMITS.kicker)}>
         <input value={content.kicker} onChange={set('kicker')} className={inputCls} placeholder="e.g. Version 2.4…" />
@@ -197,7 +277,7 @@ function ContentSection() {
             <input
               type="checkbox"
               checked={content.qr}
-              onChange={(e) => update((d) => void (d.content.qr = e.target.checked))}
+              onChange={(e) => write((d) => void (d.qr = e.target.checked))}
               className="size-4 accent-accent"
             />
             QR code of the link
@@ -276,6 +356,106 @@ function ContentSection() {
           ))}
         </fieldset>
       )}
+      {template === 'steps' && (
+        <fieldset className="space-y-3">
+          <legend className="mb-1 text-xs font-medium text-muted">Steps (up to {LIMITS.stepItems}, in order)</legend>
+          {steps.map((st, i) => (
+            <div key={i} className="space-y-1">
+              <input
+                value={st.title}
+                aria-label={`Step ${i + 1} title`}
+                placeholder={i < 2 ? `Step ${i + 1}, e.g. Import your screenshots…` : 'Optional…'}
+                maxLength={LIMITS.stepTitle}
+                onChange={(e) => setStep(i, 'title', e.target.value)}
+                className={inputCls}
+              />
+              {(st.title || st.text) && (
+                <input
+                  value={st.text}
+                  aria-label={`Step ${i + 1} text`}
+                  placeholder="One short sentence…"
+                  maxLength={LIMITS.stepText}
+                  onChange={(e) => setStep(i, 'text', e.target.value)}
+                  className={cx(inputCls, 'text-xs')}
+                />
+              )}
+            </div>
+          ))}
+        </fieldset>
+      )}
+      {template === 'comparison' && (
+        <fieldset className="space-y-2">
+          <legend className="mb-1 text-xs font-medium text-muted">Comparison</legend>
+          <Segmented<'2' | '3'>
+            label="Columns compared"
+            value={String(compare.columns.length) as '2' | '3'}
+            options={[
+              { value: '2', label: '2 columns' },
+              { value: '3', label: '3 columns' },
+            ]}
+            onChange={(v) => setColumns(Number(v))}
+          />
+          <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${compare.columns.length}, minmax(0, 1fr))` }}>
+            {compare.columns.map((c, j) => (
+              <input
+                key={j}
+                value={c}
+                aria-label={`Column ${j + 1} name`}
+                placeholder={j === compare.columns.length - 1 ? 'Yours…' : 'Other…'}
+                maxLength={LIMITS.compareHeader}
+                onChange={(e) => editCompare((cmp) => void (cmp.columns[j] = e.target.value.replace(/\n/g, ' ')), `compare-col-${j}`)}
+                className={cx(inputCls, 'text-xs', j === compare.columns.length - 1 && 'font-semibold')}
+              />
+            ))}
+          </div>
+          <p className="text-[11px] text-muted">The last column is highlighted. Write yes or no in a cell for a tick or a cross.</p>
+          <ol className="space-y-2">
+            {compare.rows.map((r, i) => (
+              <li key={i} className="space-y-1 rounded-md bg-surface p-1.5 ring-1 ring-line">
+                <div className="flex gap-1">
+                  <input
+                    value={r.label}
+                    aria-label={`Criterion ${i + 1}`}
+                    placeholder="Criterion…"
+                    maxLength={LIMITS.compareLabel}
+                    onChange={(e) => editCompare((cmp) => void (cmp.rows[i].label = e.target.value.replace(/\n/g, ' ')), `compare-row-${i}`)}
+                    className={cx(inputCls, 'text-xs')}
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="px-1.5 text-danger"
+                    aria-label={`Remove criterion ${i + 1}`}
+                    onClick={() => editCompare((cmp) => void cmp.rows.splice(i, 1))}
+                  >
+                    <Icon name="trash" className="size-3.5" />
+                  </Button>
+                </div>
+                <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${compare.columns.length}, minmax(0, 1fr))` }}>
+                  {r.cells.map((cell, j) => (
+                    <input
+                      key={j}
+                      value={cell}
+                      aria-label={`Criterion ${i + 1}, ${compare.columns[j] || `column ${j + 1}`}`}
+                      placeholder="yes / no / text"
+                      maxLength={LIMITS.compareCell}
+                      onChange={(e) => editCompare((cmp) => void (cmp.rows[i].cells[j] = e.target.value.replace(/\n/g, ' ')), `compare-${i}-${j}`)}
+                      className={cx(inputCls, 'px-1.5 text-xs')}
+                    />
+                  ))}
+                </div>
+              </li>
+            ))}
+          </ol>
+          <Button
+            size="sm"
+            disabled={compare.rows.length >= LIMITS.compareRows}
+            onClick={() => editCompare((cmp) => void cmp.rows.push({ label: '', cells: cmp.columns.map(() => '') }))}
+          >
+            <Icon name="plus" className="size-3.5" /> Add Criterion
+          </Button>
+        </fieldset>
+      )}
       {template === 'code' && (
         <>
           <Field label="File name">
@@ -290,14 +470,14 @@ function ContentSection() {
               value={content.code}
               spellCheck={false}
               rows={10}
-              onChange={(e) => update((d) => void (d.content.code = clampCode(e.target.value)), 'content-code')}
+              onChange={(e) => write((d) => void (d.code = clampCode(e.target.value)), 'content-code')}
               onKeyDown={(e) => {
                 // Tab inserts two spaces instead of leaving the field.
                 if (e.key !== 'Tab' || e.shiftKey) return;
                 e.preventDefault();
                 const el = e.currentTarget;
                 const { selectionStart: a, selectionEnd: b, value } = el;
-                update((d) => void (d.content.code = clampCode(value.slice(0, a) + '  ' + value.slice(b))), 'content-code');
+                write((d) => void (d.code = clampCode(value.slice(0, a) + '  ' + value.slice(b))), 'content-code');
                 requestAnimationFrame(() => el.setSelectionRange(a + 2, a + 2));
               }}
               className={cx(inputCls, 'resize-y font-mono text-xs leading-relaxed')}
