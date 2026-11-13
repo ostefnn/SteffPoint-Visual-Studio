@@ -30,7 +30,28 @@ const cspPlugin = (): Plugin => ({
  */
 const base = process.env.BASE_PATH || '/';
 
+/**
+ * Link previews (LinkedIn, Teams, Slack…). Crawlers need an absolute image URL, so the tags that
+ * point to the site are added only when SITE_URL (the public address, ending with /) is known.
+ */
+const SITE_URL = process.env.SITE_URL;
+const ogPlugin = (): Plugin => ({
+  name: 'svs-og',
+  apply: 'build',
+  transformIndexHtml: (html) =>
+    SITE_URL
+      ? html.replace(
+          '  </head>',
+          `    <meta property="og:url" content="${SITE_URL}" />\n` +
+            `    <meta property="og:image" content="${SITE_URL}og-image.png" />\n` +
+            `    <meta property="og:image:width" content="1200" />\n` +
+            `    <meta property="og:image:height" content="630" />\n` +
+            `    <meta name="twitter:image" content="${SITE_URL}og-image.png" />\n  </head>`,
+        )
+      : html,
+});
+
 export default defineConfig({
   base,
-  plugins: [react(), tailwindcss(), cspPlugin()],
+  plugins: [react(), tailwindcss(), cspPlugin(), ogPlugin()],
 });

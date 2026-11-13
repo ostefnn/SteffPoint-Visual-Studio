@@ -197,9 +197,10 @@ export const FORMAT_PRESETS: Record<FormatId, FormatPreset> = {
 /** Formats by use, in display order; `FORMAT_ORDER` is the same list flattened. */
 export const FORMAT_GROUPS: { label: string; formats: FormatId[] }[] = [
   { label: 'Social', formats: ['linkedin', 'linkedin-carousel', 'open-graph', 'square', 'story', 'banner', 'linkedin-company', 'thumbnail', 'youtube-banner'] },
+  // LinkedIn and Microsoft 365 first: the main audience of the app.
+  { label: 'Microsoft 365 and e-mail', formats: ['sharepoint-news', 'slide', 'email-header'] },
   { label: 'Developers', formats: ['github', 'product-hunt', 'chrome-store', 'chrome-promo'] },
   { label: 'App stores', formats: ['appstore-iphone', 'appstore-ipad', 'appstore-mac', 'google-play-phone', 'google-play-feature', 'teams-store'] },
-  { label: 'Microsoft 365 and e-mail', formats: ['sharepoint-news', 'slide', 'email-header'] },
   { label: 'Custom', formats: ['custom'] },
 ];
 

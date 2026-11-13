@@ -278,7 +278,28 @@ export async function requestPersistence(): Promise<boolean> {
   try {
     if (!navigator.storage?.persist) return false;
     if (await navigator.storage.persisted()) return true;
-    return await navigator.storage.persist();
+    const granted = await navigator.storage.persist();
+    rememberPersistenceAnswer(granted);
+    return granted;
+  } catch {
+    return false;
+  }
+}
+
+const PERSIST_KEY = 'svs-persistence';
+
+function rememberPersistenceAnswer(granted: boolean) {
+  try {
+    localStorage.setItem(PERSIST_KEY, granted ? 'granted' : 'refused');
+  } catch {
+    // Not remembered: the dashboard stays neutral.
+  }
+}
+
+/** True once the browser was asked to keep the data and said no. Until then, no warning is shown. */
+export function persistenceRefused(): boolean {
+  try {
+    return localStorage.getItem(PERSIST_KEY) === 'refused';
   } catch {
     return false;
   }

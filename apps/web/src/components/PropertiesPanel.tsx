@@ -39,6 +39,7 @@ import {
   type ScreenshotSlot,
 } from '@svs/visual-core';
 import { useEditor } from '../store/editor';
+import { nameAfterTitleChange } from '../lib/projectName';
 import { duplicateScreenshot, removeScreenshot } from '../lib/actions';
 import { Button, cx, Field, Icon, inputCls, Section, Segmented, Slider } from './ui';
 
@@ -131,11 +132,19 @@ function ContentSection() {
     link: LIMITS.link,
   };
   // Single-line fields drop newlines; the quote keeps them.
-  const set = (key: TextKey) => (e: { target: { value: string } }) =>
+  const set = (key: TextKey) => (e: { target: { value: string } }) => {
+    const v = (key === 'quote' || key === 'title' || key === 'subtitle' ? e.target.value : e.target.value.replace(/\n/g, ' ')).slice(0, maxLen[key]);
+    // The project title also names an untitled project, in the same undo step.
+    if (key === 'title' && !pageScope) {
+      return update((d) => {
+        d.name = nameAfterTitleChange(d.name, d.content.title, v);
+        d.content.title = v;
+      }, 'content-title');
+    }
     write((d) => {
-      const v = key === 'quote' || key === 'title' || key === 'subtitle' ? e.target.value : e.target.value.replace(/\n/g, ' ');
-      d[key] = v.slice(0, maxLen[key]);
+      d[key] = v;
     }, `content-${key}`);
+  };
   const slots = getTemplate(template).slots;
   const stats = Array.from({ length: LIMITS.statItems }, (_, i) => content.stats[i] ?? { value: '', label: '' });
   const setStat = (i: number, key: 'value' | 'label', value: string) =>
@@ -226,24 +235,24 @@ function ContentSection() {
       </Field>
       {slots.title && (
         <Field label={t('Title')} hint={count(content.title, LIMITS.title)}>
-          <textarea value={content.title} onChange={set('title')} rows={2} className={cx(inputCls, 'resize-y')} />
+          <textarea data-example-field="Title" value={content.title} onChange={set('title')} rows={2} className={cx(inputCls, 'resize-y')} />
         </Field>
       )}
       {slots.subtitle && (
         <Field label={t('Subtitle')} hint={count(content.subtitle, LIMITS.subtitle)}>
-          <textarea value={content.subtitle} onChange={set('subtitle')} rows={3} className={cx(inputCls, 'resize-y')} />
+          <textarea data-example-field="Subtitle" value={content.subtitle} onChange={set('subtitle')} rows={3} className={cx(inputCls, 'resize-y')} />
         </Field>
       )}
       {template === 'testimonial' && (
         <>
           <Field label={t('Quote')} hint={count(content.quote, LIMITS.quote)}>
-            <textarea value={content.quote} onChange={set('quote')} rows={4} className={cx(inputCls, 'resize-y')} />
+            <textarea data-example-field="Quote" value={content.quote} onChange={set('quote')} rows={4} className={cx(inputCls, 'resize-y')} />
           </Field>
           <Field label={t('Name')}>
-            <input value={content.author} onChange={set('author')} className={inputCls} placeholder={t('Their full name…')} />
+            <input data-example-field="Name" value={content.author} onChange={set('author')} className={inputCls} placeholder={t('Their full name…')} />
           </Field>
           <Field label={t('Role')}>
-            <input value={content.authorRole} onChange={set('authorRole')} className={inputCls} placeholder={t('Their role and company…')} />
+            <input data-example-field="Role" value={content.authorRole} onChange={set('authorRole')} className={inputCls} placeholder={t('Their role and company…')} />
           </Field>
           <p className="text-[11px] text-muted">{t('The first screenshot is used as the photo; without one, the initials are shown.')}</p>
         </>
@@ -300,7 +309,7 @@ function ContentSection() {
         <>
           <div className="grid grid-cols-2 gap-2">
             <Field label={t('Date')}>
-              <input value={content.eventDate} onChange={set('eventDate')} className={inputCls} placeholder={t('e.g. Thu 12 Dec…')} />
+              <input data-example-field="Event" value={content.eventDate} onChange={set('eventDate')} className={inputCls} placeholder={t('e.g. Thu 12 Dec…')} />
             </Field>
             <Field label={t('Time')}>
               <input value={content.eventTime} onChange={set('eventTime')} className={inputCls} placeholder={t('e.g. 14:00 CET…')} />

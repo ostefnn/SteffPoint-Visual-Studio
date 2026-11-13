@@ -1,0 +1,31 @@
+<!doctype html>
+<!-- Fictional product used only for the dashboard examples. Rendered to PNG by capture-showcase.mjs. -->
+<html><head><meta charset="utf-8"><style>
+*{box-sizing:border-box;margin:0}body{width:1600px;height:1000px;font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;color:#1d2433;background:#f5f6f8;display:grid;grid-template-columns:232px 1fr}
+aside{background:#101828;color:#cbd2e0;padding:22px 16px;display:flex;flex-direction:column;gap:4px}
+.brand{display:flex;align-items:center;gap:10px;color:#fff;font-weight:700;font-size:17px;margin-bottom:22px}.logo{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#34d399,#0ea5e9)}
+nav a{display:flex;gap:10px;align-items:center;padding:9px 12px;border-radius:8px;color:inherit;text-decoration:none}nav a.on{background:#1e293b;color:#fff}.dot{width:8px;height:8px;border-radius:2px;background:#475569}nav a.on .dot{background:#34d399}
+main{padding:28px 34px;display:flex;flex-direction:column;gap:22px}
+header{display:flex;align-items:center;justify-content:space-between}h1{font-size:24px}.btn{background:#0f766e;color:#fff;padding:10px 16px;border-radius:8px;font-weight:600}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.card{background:#fff;border:1px solid #e4e7ec;border-radius:12px;padding:18px}
+.k{color:#667085;font-size:13px}.v{font-size:28px;font-weight:700;margin-top:6px;font-variant-numeric:tabular-nums}.d{font-size:12px;color:#079455;margin-top:4px}.d.n{color:#d92d20}
+.row{display:grid;grid-template-columns:1.6fr 1fr;gap:16px}.chart{height:300px;display:flex;align-items:flex-end;gap:14px;padding-top:20px}.bar{flex:1;border-radius:6px 6px 0 0;background:#99f6e4}.bar.hi{background:#0f766e}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;border-bottom:1px solid #eef0f3;text-align:left}th{color:#667085;font-weight:500}.pill{padding:3px 9px;border-radius:99px;font-size:12px;font-weight:600}.paid{background:#dcfae6;color:#067647}.due{background:#fef0c7;color:#b54708}.late{background:#fee4e2;color:#b42318}
+.list div{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #eef0f3}
+</style></head><body>
+<aside><div class="brand"><span class="logo"></span>Ledgerly</div><nav>
+<a class="on"><span class="dot"></span>Overview</a><a><span class="dot"></span>Invoices</a><a><span class="dot"></span>Clients</a><a><span class="dot"></span>Payments</a><a><span class="dot"></span>Reports</a><a><span class="dot"></span>Settings</a></nav></aside>
+<main><header><h1>Overview</h1><span class="btn">+ New invoice</span></header>
+<section class="kpis"><div class="card"><div class="k">Paid this month</div><div class="v">€48,920</div><div class="d">+12.4% vs October</div></div>
+<div class="card"><div class="k">Outstanding</div><div class="v">€12,310</div><div class="d n">3 invoices late</div></div>
+<div class="card"><div class="k">Average time to pay</div><div class="v">9 days</div><div class="d">−4 days</div></div>
+<div class="card"><div class="k">Active clients</div><div class="v">64</div><div class="d">+5 this month</div></div></section>
+<section class="row"><div class="card"><div class="k">Revenue, last 12 months</div><div class="chart">
+<div class="bar" style="height:38%"></div><div class="bar" style="height:44%"></div><div class="bar" style="height:41%"></div><div class="bar" style="height:52%"></div><div class="bar" style="height:57%"></div><div class="bar" style="height:55%"></div><div class="bar" style="height:63%"></div><div class="bar" style="height:68%"></div><div class="bar" style="height:66%"></div><div class="bar" style="height:74%"></div><div class="bar" style="height:81%"></div><div class="bar hi" style="height:92%"></div></div></div>
+<div class="card list"><div class="k" style="border:0;padding-top:0">Next payments</div><div><span>Northwind Studio</span><b>€3,200</b></div><div><span>Blue Harbor Café</span><b>€840</b></div><div><span>Atelier Mono</span><b>€2,150</b></div><div><span>Fieldwork Labs</span><b>€5,600</b></div><div><span>Oak &amp; Pine</span><b>€1,120</b></div></div></section>
+<section class="card"><table><tr><th>Invoice</th><th>Client</th><th>Issued</th><th>Amount</th><th>Status</th></tr>
+<tr><td>INV-2041</td><td>Northwind Studio</td><td>Nov 2</td><td>€3,200.00</td><td><span class="pill paid">Paid</span></td></tr>
+<tr><td>INV-2040</td><td>Fieldwork Labs</td><td>Nov 1</td><td>€5,600.00</td><td><span class="pill due">Due Nov 15</span></td></tr>
+<tr><td>INV-2039</td><td>Atelier Mono</td><td>Oct 28</td><td>€2,150.00</td><td><span class="pill late">Late</span></td></tr>
+<tr><td>INV-2038</td><td>Blue Harbor Café</td><td>Oct 25</td><td>€840.00</td><td><span class="pill paid">Paid</span></td></tr></table></section>
+</main></body></html>

@@ -38,6 +38,10 @@ import {
   migrateBrandKit,
   backgroundPeak,
   withStyle,
+  placeholderFields,
+  addPlaceholderTexts,
+  isPlaceholder,
+  defaultExportPresets,
 } from './index';
 
 describe('Tint and Technical palettes', () => {
@@ -300,10 +304,12 @@ describe('screenshot crop and logo size', () => {
 
 describe('desktop frame', () => {
   it('defaults to the style frame and keeps a valid choice', () => {
-    expect(createProject().desktopFrame).toBe('plain'); // Minimal
+    expect(createProject().desktopFrame).toBe('window'); // Tint, the default style
     expect(migrateProject({ desktopFrame: 'laptop' }).desktopFrame).toBe('laptop');
     expect(migrateProject({ desktopFrame: 'tv' }).desktopFrame).toBe('browser'); // legacy project: Soft default
     expect(migrateProject({ brand: { style: 'minimal' }, desktopFrame: 'tv' }).desktopFrame).toBe('plain');
+    // An unknown style falls back to Minimal, as before Tint became the default.
+    expect(migrateProject({ brand: { style: 'neon' }, desktopFrame: 'tv' }).desktopFrame).toBe('plain');
   });
 });
 
@@ -352,6 +358,7 @@ describe('LinkedIn carousel', () => {
 
   it('generates cover, one page per screenshot and features automatically', () => {
     const p = withShots();
+    p.content.features = ['Invoices in two clicks', 'Exports to Excel'];
     const slides = buildCarouselSlides(p);
     expect(templates(p)).toEqual(['browser-hero', 'spotlight', 'mobile-trio', 'features']);
     expect(slides.every((s) => s.auto)).toBe(true);
@@ -360,6 +367,13 @@ describe('LinkedIn carousel', () => {
     expect(slides[2].label).toBe('Mobile Trio');
     expect(slides[0].project.content.kicker).toBe(p.content.kicker); // cover keeps its kicker
     expect(slides[3].project.content.kicker).toBe('4 / 4');
+  });
+
+  it('skips the features page while it only holds the example features', () => {
+    const p = withShots();
+    expect(templates(p)).not.toContain('features');
+    p.content.features = ['First thing people can do', 'Invoices in two clicks'];
+    expect(templates(p)).toContain('features');
   });
 
   it('skips the features page when empty or already the cover', () => {
@@ -435,13 +449,18 @@ describe('LinkedIn carousel', () => {
 });
 
 describe('style presets', () => {
-  it('new projects use Minimal with honest placeholders', () => {
+  it('new projects use Tint with honest placeholders', () => {
     const p = createProject();
-    expect(p.brand.style).toBe('minimal');
+    expect(p.brand.style).toBe('tint');
     expect(p.background.type).toBe('solid');
     expect(p.content.kicker).toBe('');
     expect(p.content.stats.every((s) => !/\d[1-9]/.test(s.value))).toBe(true); // no invented figures
     expect(p.content.quote).toMatch(/real quote/);
+  });
+
+  it('saved projects keep their style when the default changes', () => {
+    expect(migrateProject({ brand: { style: 'minimal' } }).brand.style).toBe('minimal');
+    expect(migrateProject({ brand: { style: 'neon' } }).brand.style).toBe('minimal');
   });
 
   it('projects saved before styles keep their original look', () => {
@@ -744,5 +763,61 @@ describe('background image and second colour', () => {
     expect(backgroundPeak(pal, 'gradient', 1, '#000000')).not.toBe(backgroundPeak(pal, 'gradient', 1));
     const p = withImage();
     expect(analyzeProject(p, FORMAT_PRESETS.linkedin).map((s) => s.id)).toContain('contrast-image');
+  });
+});
+
+describe('example texts', () => {
+  it('flags the example title and subtitle of a new project, not real text', () => {
+    const p = createProject();
+    expect(placeholderFields(p)).toEqual(['Title', 'Subtitle']);
+    const ids = analyzeProject(p, FORMAT_PRESETS.linkedin).map((s) => s.id);
+    expect(ids).toContain('placeholder-Title');
+    expect(ids).toContain('placeholder-Subtitle');
+    p.content.title = 'Acme Billing 2.0';
+    p.content.subtitle = 'Send invoices in two clicks.';
+    expect(placeholderFields(p)).toEqual([]);
+  });
+
+  it('only checks the fields the template draws', () => {
+    const p = createProject({ template: 'testimonial' });
+    expect(placeholderFields(p)).toEqual(['Quote', 'Name', 'Role']);
+    p.template = 'stats';
+    expect(placeholderFields(p)).toContain('Key Figures');
+    p.template = 'code';
+    expect(placeholderFields(p)).toContain('Code');
+    p.content.code = 'const x = 1;';
+    expect(placeholderFields(p)).not.toContain('Code');
+  });
+
+  it('recognises registered translations', () => {
+    const p = createProject();
+    p.content.title = 'Nom de votre produit (test)';
+    expect(placeholderFields(p)).not.toContain('Title');
+    addPlaceholderTexts(['Nom de votre produit (test)']);
+    expect(placeholderFields(p)).toContain('Title');
+    expect(isPlaceholder('  Nom de votre produit (test) ')).toBe(true);
+  });
+});
+
+describe('default export formats', () => {
+  it('tick two or three formats that suit the template, LinkedIn first', () => {
+    expect(createProject().exportPresets).toEqual(['linkedin', 'linkedin-carousel', 'open-graph']);
+    expect(createProject({ template: 'mobile-trio' }).exportPresets).toEqual(['linkedin-carousel', 'story', 'square']);
+    expect(createProject({ template: 'annotated' }).exportPresets).toEqual(['linkedin-carousel', 'slide']);
+    for (const t of TEMPLATES) {
+      const list = defaultExportPresets(t.id);
+      expect(list.length).toBeGreaterThanOrEqual(2);
+      expect(list.length).toBeLessThanOrEqual(3);
+      expect(list.every((f) => FORMAT_ORDER.includes(f))).toBe(true);
+    }
+  });
+
+  it('keep the formats saved with a project, and the old list for files that name none', () => {
+    expect(migrateProject({ exportPresets: ['github'] }).exportPresets).toEqual(['github']);
+    expect(migrateProject({}).exportPresets).toEqual(['linkedin', 'open-graph', 'square', 'story', 'github']);
+  });
+
+  it('put LinkedIn and Microsoft 365 formats first', () => {
+    expect(FORMAT_GROUPS.map((g) => g.label).slice(0, 2)).toEqual(['Social', 'Microsoft 365 and e-mail']);
   });
 });

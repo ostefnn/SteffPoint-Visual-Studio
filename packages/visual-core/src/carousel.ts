@@ -10,6 +10,7 @@
  * An Annotated Panel project is a guide instead: a title cover, then one annotated page per screenshot.
  */
 import type { FormatId } from './formats';
+import { hasRealFeatures } from './placeholders';
 import {
   applyVariant,
   CAROUSEL_MAX_SLIDES,
@@ -63,7 +64,8 @@ export function autoCarouselVariants(project: Project): Variant[] {
       }),
     );
   }
-  if (project.content.features.some((f) => f.trim()) && project.template !== 'features') {
+  // Example features are not content: the page is added only once a feature is real.
+  if (hasRealFeatures(project.content) && project.template !== 'features') {
     out.push(createVariant({ template: 'features', screenshotIds: [] }));
   }
   return out.slice(0, CAROUSEL_MAX_SLIDES);

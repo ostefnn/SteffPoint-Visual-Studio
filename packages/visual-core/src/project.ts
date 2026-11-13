@@ -329,6 +329,48 @@ export function uid(prefix = ''): string {
 
 export const BRAND_COLOR_PRESETS = ['#2563eb', '#0078d4', '#7c3aed', '#742774', '#db2777', '#ea580c', '#16a34a', '#0f766e', '#111827'];
 
+/** Formats ticked in projects saved before they depended on the template; kept for files that name none. */
+const LEGACY_EXPORT_PRESETS: FormatId[] = ['linkedin', 'open-graph', 'square', 'story', 'github'];
+
+/**
+ * Formats ticked for export in a new project: two or three that suit the template, LinkedIn first.
+ * Every other format stays one click away in the Export dialog.
+ */
+export function defaultExportPresets(template: TemplateId): FormatId[] {
+  switch (template) {
+    case 'mobile-trio':
+    case 'app-store':
+      return ['linkedin-carousel', 'story', 'square'];
+    case 'before-after':
+      return ['linkedin', 'linkedin-carousel', 'sharepoint-news'];
+    case 'annotated':
+      return ['linkedin-carousel', 'slide'];
+    case 'cover':
+    case 'editorial':
+      return ['linkedin', 'open-graph', 'sharepoint-news'];
+    case 'features':
+    case 'steps':
+    case 'stats':
+    case 'testimonial':
+    case 'comparison':
+    case 'code':
+    case 'cta':
+    case 'minimal':
+    case 'event':
+      return ['linkedin-carousel', 'square', 'linkedin'];
+    default:
+      return ['linkedin', 'linkedin-carousel', 'open-graph'];
+  }
+}
+
+/** Style of new projects: Tint stands out in a light feed without depending on a loud brand colour. */
+export const DEFAULT_STYLE: StyleId = 'tint';
+/**
+ * Style assumed when a saved or imported project names none it knows. It stays Minimal, the default
+ * when styles were added, so changing DEFAULT_STYLE never changes an existing project.
+ */
+const FALLBACK_STYLE: StyleId = 'minimal';
+
 export function createProject(init: Partial<Pick<Project, 'name' | 'template'>> = {}): Project {
   const now = Date.now();
   return {
@@ -388,15 +430,15 @@ export function createProject(init: Partial<Pick<Project, 'name' | 'template'>> 
       },
       magnify: 2.5,
     },
-    brand: { primary: '#2b59c3', theme: 'light', headingFont: 'sans', radius: 0.5, shadow: 0.5, logoAssetId: null, logoSize: 'medium', style: 'minimal', footer: false },
-    background: { type: STYLES.minimal.defaults.background, intensity: 0.6, angle: 135, imageAssetId: null, secondary: null },
+    brand: { primary: '#2b59c3', theme: 'light', headingFont: 'sans', radius: 0.5, shadow: 0.5, logoAssetId: null, logoSize: 'medium', style: DEFAULT_STYLE, footer: false },
+    background: { type: STYLES[DEFAULT_STYLE].defaults.background, intensity: 0.6, angle: 135, imageAssetId: null, secondary: null },
     assets: [],
     screenshots: [],
-    exportPresets: ['linkedin', 'open-graph', 'square', 'story', 'github'],
+    exportPresets: defaultExportPresets(init.template ?? 'browser-hero'),
     customFormat: { width: 1600, height: 900 },
     devices: [...DEVICE_KINDS],
     deviceOrientation: { tablet: 'portrait', mobile: 'portrait' },
-    desktopFrame: STYLES.minimal.defaults.desktopFrame,
+    desktopFrame: STYLES[DEFAULT_STYLE].defaults.desktopFrame,
     carousel: { slides: [], pageNumbers: true, pageSize: '4:5' },
     layout: { ...DEFAULT_LAYOUT },
   };
@@ -518,7 +560,7 @@ export function migrateProject(raw: unknown): Project {
 
   const presets = Array.isArray(r.exportPresets)
     ? (r.exportPresets.filter((f) => FORMAT_ORDER.includes(f as FormatId)) as FormatId[])
-    : d.exportPresets;
+    : LEGACY_EXPORT_PRESETS;
 
   return {
     schemaVersion: PROJECT_SCHEMA_VERSION,
@@ -539,11 +581,11 @@ export function migrateProject(raw: unknown): Project {
       logoAssetId: logo,
       logoSize: oneOf(brand.logoSize, LOGO_SIZES, d.brand.logoSize),
       // Projects saved before styles existed keep their original (Soft) look.
-      style: legacy ? 'soft' : oneOf(brand.style, STYLE_IDS, d.brand.style),
+      style: legacy ? 'soft' : oneOf(brand.style, STYLE_IDS, FALLBACK_STYLE),
       footer: brand.footer === true,
     },
     background: {
-      type: oneOf(bg.type, BACKGROUND_TYPES, legacy ? STYLES.soft.defaults.background : d.background.type),
+      type: oneOf(bg.type, BACKGROUND_TYPES, STYLES[legacy ? 'soft' : FALLBACK_STYLE].defaults.background),
       intensity: num(bg.intensity, d.background.intensity, 0, 1),
       angle: num(bg.angle, d.background.angle, 0, 360),
       imageAssetId: typeof bg.imageAssetId === 'string' && assetIds.has(bg.imageAssetId) ? bg.imageAssetId : null,
@@ -561,7 +603,7 @@ export function migrateProject(raw: unknown): Project {
       tablet: oneOf(orient.tablet, ['portrait', 'landscape'] as const, 'portrait'),
       mobile: oneOf(orient.mobile, ['portrait', 'landscape'] as const, 'portrait'),
     },
-    desktopFrame: oneOf(r.desktopFrame, DESKTOP_FRAMES, legacy ? STYLES.soft.defaults.desktopFrame : d.desktopFrame),
+    desktopFrame: oneOf(r.desktopFrame, DESKTOP_FRAMES, STYLES[legacy ? 'soft' : FALLBACK_STYLE].defaults.desktopFrame),
     carousel: migrateCarousel(obj(r.carousel), new Set(screenshots.map((x) => x.id)), migrated),
     layout: {
       mirror: layout.mirror === true,

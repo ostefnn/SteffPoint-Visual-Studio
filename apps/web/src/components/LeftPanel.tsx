@@ -17,6 +17,7 @@ import {
   type BrandKit,
   KIT_NAME_MAX,
   withStyle,
+  screenshotRange,
   type LogoSize,
 } from '@svs/visual-core';
 import { useEditor } from '../store/editor';
@@ -44,7 +45,11 @@ const TABS: { id: Tab; label: string }[] = [
 ];
 
 export function LeftPanel({ className }: { className?: string }) {
-  const [tab, setTab] = useState<Tab>('templates');
+  // A project without screenshots opens on Images: adding one is the first thing to do.
+  const [tab, setTab] = useState<Tab>(() => {
+    const p = useEditor.getState().project;
+    return p && p.screenshots.length === 0 && screenshotRange(p).max > 0 ? 'images' : 'templates';
+  });
   const tabRefs = useRef<Partial<Record<Tab, HTMLButtonElement | null>>>({});
 
   // WAI-ARIA tabs pattern: arrows / Home / End move focus and select (automatic activation).

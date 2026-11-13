@@ -16,10 +16,10 @@ async function exportLinkedIn(page: import('@playwright/test').Page) {
   return (await readZip(download)).file('linkedin.png')!.async('uint8array');
 }
 
-test('new projects start in Minimal with neutral ground and no invented copy', async ({ page }) => {
+test('new projects start in Tint with no invented copy', async ({ page }) => {
   await newProject(page);
   await page.getByRole('tab', { name: 'Brand' }).click();
-  await expect(page.getByRole('radio', { name: /^Minimal/ })).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByRole('radio', { name: /^Tint/ })).toHaveAttribute('aria-checked', 'true');
   await expect(page.getByRole('textbox', { name: 'Kicker', exact: true })).toHaveValue('');
   // The canvas never shows tracked capitals for the kicker in the new styles.
   await page.getByRole('textbox', { name: 'Kicker', exact: true }).fill('Version 2.4');
@@ -50,7 +50,7 @@ test('switching style is undoable and keeps the content', async ({ page }) => {
   await expect(page.getByTestId('canvas').locator('h1', { hasText: 'Kept title' })).toHaveCSS('font-family', /Instrument Serif/);
   await page.locator('main').click({ position: { x: 5, y: 5 } });
   await page.keyboard.press('ControlOrMeta+z');
-  await expect(page.getByRole('radio', { name: /^Minimal/ })).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByRole('radio', { name: /^Tint/ })).toHaveAttribute('aria-checked', 'true');
   await expect(titleBox(page)).toHaveValue('Kept title');
 });
 

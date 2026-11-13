@@ -64,7 +64,7 @@ test('Compare Styles shows the content in every style and applies the one picked
   const matrix = page.getByRole('radiogroup', { name: 'Compare styles' });
   await expect(matrix.getByRole('radio')).toHaveCount(6);
   await expect(matrix.locator('h1', { hasText: 'Matrix title' })).toHaveCount(6);
-  await expect(matrix.getByRole('radio', { name: /^Minimal/ })).toHaveAttribute('aria-checked', 'true');
+  await expect(matrix.getByRole('radio', { name: /^Tint/ })).toHaveAttribute('aria-checked', 'true');
   // Each cell really renders its own style.
   await expect(matrix.getByRole('radio', { name: /^Editorial/ }).locator('h1')).toHaveCSS('font-family', /Instrument Serif/);
   await expect(matrix.getByRole('radio', { name: /^Bold/ }).locator('h1')).toHaveCSS('font-family', /Bricolage Grotesque/);
@@ -79,7 +79,7 @@ test('Compare Styles shows the content in every style and applies the one picked
   }
   // Landscape: two columns. The active cell is named plainly, without a suffix.
   await expect(matrix).toHaveAttribute('data-columns', '2');
-  await expect(matrix.getByRole('radio', { name: 'Minimal', exact: true })).toBeVisible();
+  await expect(matrix.getByRole('radio', { name: 'Tint', exact: true })).toBeVisible();
   await matrix.getByRole('radio', { name: /^Editorial/ }).click();
   await expect(matrix.getByRole('radio', { name: /^Editorial/ })).toHaveAttribute('aria-checked', 'true');
   await page.getByRole('tab', { name: 'Brand' }).click();

@@ -9,6 +9,7 @@ import type { Project } from './project';
 import { getTemplate, TEMPLATES, type TemplateId } from './templates';
 import { logoHeight, subtitleSize } from './typography';
 import { LIMITS, normalizeDevices, screenshotRange } from './project';
+import { placeholderFields } from './placeholders';
 
 export type SuggestionLevel = 'info' | 'warning';
 
@@ -56,6 +57,12 @@ export function analyzeProject(project: Project, format: FormatPreset, exportSca
   if (lines > 3) out.push({ id: 'title-lines', level: 'warning', ...msg('Title has more than 3 lines.') });
   if (content.subtitle.trim().length > 140) {
     out.push({ id: 'subtitle-long', level: 'info', ...msg('Subtitle is long. Shorter subtitles stay legible on small previews.') });
+  }
+
+  // --- Example texts ---------------------------------------------------------------
+  // New projects start with texts that ask for real content: never let one reach an image unnoticed.
+  for (const field of placeholderFields(project)) {
+    out.push({ id: `placeholder-${field}`, level: 'warning', ...msg('{field} still contains the example text. Replace it before publishing.', { field }) });
   }
 
   // --- Contrast (WCAG AA) ----------------------------------------------------

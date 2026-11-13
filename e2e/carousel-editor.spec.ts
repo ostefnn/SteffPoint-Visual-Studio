@@ -12,9 +12,10 @@ test('custom carousel: templates per page, own text, reorder, add, undo, export'
   await addScreenshot(page, 'desktop-cyan.png');
 
   await page.getByRole('tab', { name: 'Carousel' }).click();
+  // Cover and one page per screenshot: the example features do not get a page.
   // Opening the tab shows page 1 on the canvas.
-  await expect(page.getByText('Carousel page 1 of 4')).toBeVisible();
-  await expect(pages(page)).toHaveCount(4);
+  await expect(page.getByText('Carousel page 1 of 3')).toBeVisible();
+  await expect(pages(page)).toHaveCount(3);
 
   await page.getByRole('button', { name: 'Customize Pages' }).click();
   await expect(page.getByRole('button', { name: 'Add Page' })).toBeVisible();
@@ -28,18 +29,18 @@ test('custom carousel: templates per page, own text, reorder, add, undo, export'
 
   // Add a closing page: it is added last and selected.
   await page.getByRole('button', { name: 'Add Page' }).click();
-  await expect(pages(page)).toHaveCount(5);
-  await expect(page.getByText('Carousel page 5 of 5')).toBeVisible();
-  await page.getByRole('checkbox', { name: 'Page 5 title: same as project' }).uncheck();
-  await page.getByRole('textbox', { name: 'Page 5 title' }).fill('Try it today');
+  await expect(pages(page)).toHaveCount(4);
+  await expect(page.getByText('Carousel page 4 of 4')).toBeVisible();
+  await page.getByRole('checkbox', { name: 'Page 4 title: same as project' }).uncheck();
+  await page.getByRole('textbox', { name: 'Page 4 title' }).fill('Try it today');
 
   // Reorder with the keyboard: move the closing page up one place, then undo it.
-  await page.getByRole('button', { name: /^Page 5: Try it today/ }).focus();
+  await page.getByRole('button', { name: /^Page 4: Try it today/ }).focus();
   await page.keyboard.press('Alt+ArrowUp');
-  await expect(pages(page).nth(3)).toContainText('Try it today');
+  await expect(pages(page).nth(2)).toContainText('Try it today');
   await page.locator('main').click({ position: { x: 5, y: 5 } });
   await page.keyboard.press('ControlOrMeta+z');
-  await expect(pages(page).nth(4)).toContainText('Try it today');
+  await expect(pages(page).nth(3)).toContainText('Try it today');
 
   // The project itself is unchanged by page overrides.
   await page.getByRole('button', { name: 'Show Project' }).click();
@@ -49,16 +50,16 @@ test('custom carousel: templates per page, own text, reorder, add, undo, export'
   await expect(page.getByTestId('save-state')).toHaveText('Saved');
   await page.reload();
   await page.getByRole('tab', { name: 'Carousel' }).click();
-  await expect(pages(page)).toHaveCount(5);
+  await expect(pages(page)).toHaveCount(4);
   await expect(pages(page).first()).toContainText('Too many tabs?');
 
-  // Export: 5 pages in the PDF, matching the custom list.
+  // Export: 4 pages in the PDF, matching the custom list.
   await page.getByRole('button', { name: 'Export', exact: true }).click();
   const dialog = page.getByRole('dialog');
-  await expect(dialog.getByRole('list', { name: 'Carousel slides' }).getByRole('listitem')).toHaveCount(5);
-  const [download] = await Promise.all([page.waitForEvent('download'), dialog.getByRole('button', { name: /Export Carousel PDF \(5 Pages\)/ }).click()]);
+  await expect(dialog.getByRole('list', { name: 'Carousel slides' }).getByRole('listitem')).toHaveCount(4);
+  const [download] = await Promise.all([page.waitForEvent('download'), dialog.getByRole('button', { name: /Export Carousel PDF \(4 Pages\)/ }).click()]);
   const pdf = await PDFDocument.load(await readFile(await download.path()));
-  expect(pdf.getPageCount()).toBe(5);
+  expect(pdf.getPageCount()).toBe(4);
 });
 
 test('reset to automatic pages', async ({ page }) => {

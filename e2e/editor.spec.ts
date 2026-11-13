@@ -46,18 +46,23 @@ test('export pack contains every format with the screenshot rendered', async ({ 
   await newProject(page);
   await addScreenshot(page, 'desktop-magenta.png');
   await page.getByRole('button', { name: 'Export', exact: true }).click();
+  // Browser Hero ticks LinkedIn, LinkedIn 4:5 and Open Graph; add a square and a tall format.
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('checkbox', { name: /^Square 1:1/ }).check();
+  await dialog.getByRole('checkbox', { name: /^Story 9:16/ }).check();
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: /Export ZIP/ }).click()]);
   const zip = await readZip(download);
 
   expect(Object.keys(zip.files).sort()).toEqual(
-    ['github@2x.png', 'linkedin@2x.png', 'open-graph@2x.png', 'project.json', 'square@2x.png', 'story@2x.png'].sort(),
+    ['linkedin-carousel@2x.png', 'linkedin@2x.png', 'open-graph@2x.png', 'project.json', 'square@2x.png', 'story@2x.png'].sort(),
   );
 
   // Browser Hero: the screenshot sits inside the browser frame.
   const cases: [string, number, number, [number, number]][] = [
     ['linkedin@2x.png', 2400, 1254, [0.75, 0.6]],
     ['square@2x.png', 2160, 2160, [0.5, 0.8]],
-    ['story@2x.png', 2160, 3840, [0.5, 0.8]],
+    // Portrait: the screenshot sits right under the text, in the middle of the canvas.
+    ['story@2x.png', 2160, 3840, [0.5, 0.6]],
   ];
   for (const [name, w, h, at] of cases) {
     const png = await zip.file(name)!.async('uint8array');
@@ -88,7 +93,12 @@ test('project JSON round trip through import', async ({ page }) => {
 test('editor tabs follow the ARIA tabs keyboard pattern', async ({ page }) => {
   await newProject(page);
   const tab = (name: string) => page.getByRole('tab', { name });
-  await tab('Templates').focus();
+  // A new project has no screenshot yet, so the editor opens on Images.
+  await expect(tab('Images')).toHaveAttribute('aria-selected', 'true');
+  await tab('Images').focus();
+  await page.keyboard.press('ArrowLeft');
+  await expect(tab('Templates')).toBeFocused();
+  await expect(tab('Templates')).toHaveAttribute('aria-selected', 'true');
   await page.keyboard.press('ArrowRight');
   await expect(tab('Images')).toBeFocused();
   await expect(tab('Images')).toHaveAttribute('aria-selected', 'true');

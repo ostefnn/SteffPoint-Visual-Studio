@@ -851,7 +851,7 @@ function PhoneFrame({
     ? { left: width * 0.035, top: '50%', width: width * 0.075, height: width * 0.3, marginTop: -width * 0.15 }
     : { top: width * 0.035, left: '50%', width: width * 0.3, height: width * 0.075, marginLeft: -width * 0.15 };
   return (
-    <div
+    <div data-device="mobile"
       style={{
         ...style,
         borderRadius: width * 0.16,
@@ -885,7 +885,7 @@ function TabletFrame({
   const bezel = width * 0.04;
   const camera: CSSProperties = landscape ? { left: bezel / 2, top: '50%' } : { top: bezel / 2, left: '50%' };
   return (
-    <div
+    <div data-device="tablet"
       style={{
         ...style,
         borderRadius: width * 0.07,
@@ -1129,6 +1129,52 @@ const topBlock = (ctx: Ctx): CSSProperties => ({
   top: ctx.h * (ctx.o === 'portrait' ? 0.14 : 0.08),
 });
 
+/**
+ * Rough height of a text block, used only to balance a stacked layout on the canvas. Text is never
+ * placed against a screen with it: there the text is anchored to the screen's edge.
+ */
+function estimateTextHeight(ctx: Ctx, width: number, scale = 1, withSubtitle = true): number {
+  const { u, o, p, style: spec } = ctx;
+  const parts: number[] = [];
+  if (!ctx.footer && p.brand.logoAssetId) parts.push(logoHeight(u, p.brand.logoSize ?? 'medium', scale));
+  if (p.content.kicker.trim()) parts.push(kickerSize(u, scale) * 2);
+  const lines = (text: string, perLine: number) => text.split('\n').reduce((n, l) => n + Math.max(1, Math.ceil(l.length / perLine)), 0);
+  const title = p.content.title;
+  if (title.trim()) {
+    const size = titleSize(u, o, title.length, scale) * spec.titleScale;
+    parts.push(lines(title, Math.max(4, width / (size * 0.5))) * size * (spec.heading ? spec.titleLeading : 1.06));
+  }
+  const sub = p.content.subtitle;
+  if (withSubtitle && sub.trim()) {
+    const size = subtitleSize(u, o, scale) * (spec.italicSubtitle ? 1.2 : 1);
+    parts.push(lines(sub, Math.max(8, (width * 0.92) / (size * 0.48))) * size * 1.38);
+  }
+  return parts.reduce((a, b) => a + b, 0) + Math.max(0, parts.length - 1) * u * 1.8 * scale;
+}
+
+/**
+ * Portrait stack: the text directly above a screen of height `frameH`, the pair centred on the canvas.
+ * The text is anchored to the top edge of the screen (its `bottom`), so a short or long title never
+ * leaves a gap or overlaps it. A screen taller than the room left bleeds off the bottom: the bottom of
+ * the screenshot is cropped, never its sides. Returns the text box and the top of the screen.
+ */
+function portraitStack(ctx: Ctx, frameH: number, scale = 1, extraGap = 0): { text: CSSProperties; top: number } {
+  const { w, h, u } = ctx;
+  const gap = u * 5 + extraGap;
+  const textH = estimateTextHeight(ctx, w * 0.84, scale);
+  const groupTop = Math.max(h * 0.08, (h - (textH + gap + frameH)) / 2);
+  const top = groupTop + textH + gap;
+  return { top, text: { position: 'absolute', left: w * 0.08, right: w * 0.08, bottom: h - top + gap } };
+}
+
+/** Height of a desktop frame `width` wide that shows screenshot `index` whole: title bar included. */
+function desktopFrameHeight(ctx: Ctx, index: number, width: number): number {
+  const kind = ctx.p.desktopFrame ?? 'browser';
+  if (kind === 'laptop') return laptopHeight(width);
+  const bar = kind === 'plain' ? 0 : ctx.u * (kind === 'window' ? 2.8 : 3.6);
+  return width / shotRatio(ctx, ctx.shots[index], 1.6) + bar;
+}
+
 function BrowserHero(ctx: Ctx) {
   const { w, h, o } = ctx;
   if (o === 'landscape') {
@@ -1139,11 +1185,22 @@ function BrowserHero(ctx: Ctx) {
       </>
     );
   }
-  const portrait = o === 'portrait';
+  if (o === 'portrait') {
+    // The whole screenshot, at its own proportions, right under the text (a very tall one is capped).
+    const fw = w * 0.86;
+    const fh = Math.min(desktopFrameHeight(ctx, 0, fw), h * 0.62);
+    const { text, top } = portraitStack(ctx, fh);
+    return (
+      <>
+        <TextBlock ctx={ctx} align="center" style={text} />
+        <BrowserFrame ctx={ctx} index={0} style={abs(w * 0.07, top, fw, fh)} />
+      </>
+    );
+  }
   return (
     <>
       <TextBlock ctx={ctx} align="center" style={topBlock(ctx)} />
-      <BrowserFrame ctx={ctx} index={0} style={abs(w * 0.07, h * (portrait ? 0.46 : 0.47), w * 0.86, h * 0.62)} />
+      <BrowserFrame ctx={ctx} index={0} style={abs(w * 0.07, h * 0.47, w * 0.86, h * 0.62)} />
     </>
   );
 }
@@ -1296,8 +1353,12 @@ function Spotlight(ctx: Ctx) {
     text = topBlock(ctx);
     frame = abs(w * 0.1, h * 0.44, w * 0.8, h * 0.66);
   } else {
-    text = topBlock(ctx);
-    frame = abs(w * 0.07, h * 0.43, w * 0.86, h * 0.42);
+    // Portrait: the whole screenshot at its own proportions, right under the text.
+    const fw = w * 0.86;
+    const fh = Math.min(fw / shotRatio(ctx, ctx.shots[0], 1.6), h * 0.5);
+    const stack = portraitStack(ctx, fh);
+    text = stack.text;
+    frame = abs(w * 0.07, stack.top, fw, fh);
   }
   const fx = Number(frame.left) + Number(frame.width) / 2;
   const fy = Number(frame.top) + Number(frame.height) / 2;
@@ -1580,17 +1641,21 @@ function AppStore(ctx: Ctx) {
       style={{ position: 'absolute', left: w * 0.08, right: w * 0.08, top: h * (r < 0.95 ? 0.06 : 0.07) }}
     />
   );
+  // The format picks the device: tall canvases get a phone, near-square ones a tablet, wide ones a
+  // window. A phone screen always stays in a phone, whatever the format (never stretched into a tablet).
+  const shot = shotRatio(ctx, ctx.shots[0], 0);
+  const kind: DeviceKind = (shot > 0 && shot < 0.65) || r < 0.6 ? 'mobile' : r < 0.95 ? 'tablet' : 'desktop';
+  // Where the device starts: under the caption, which takes more of the height on squarer canvases.
+  const top = h * (r < 0.6 ? 0.33 : r < 0.95 ? 0.41 : r > 1.15 ? 0.47 : 0.53);
   let device: ReactNode;
-  if (r < 0.6) {
-    const pw = w * 0.74;
-    device = <PhoneFrame ctx={ctx} index={0} width={pw} style={abs((w - pw) / 2, h * 0.33, pw, pw / DEVICE_RATIO.mobile)} />;
-  } else if (r < 0.95) {
-    const tw = w * 0.84;
-    device = <TabletFrame ctx={ctx} index={0} width={tw} style={abs((w - tw) / 2, h * 0.41, tw, tw / DEVICE_RATIO.tablet)} />;
+  if (kind === 'mobile') {
+    const pw = w * (r < 0.6 ? 0.74 : r < 0.95 ? 0.6 : r <= 1.15 ? 0.5 : 0.3);
+    device = <PhoneFrame ctx={ctx} index={0} width={pw} style={abs((w - pw) / 2, top, pw, pw / DEVICE_RATIO.mobile)} />;
+  } else if (kind === 'tablet') {
+    const tw = w * (r < 0.95 ? 0.84 : r <= 1.15 ? 0.7 : 0.5);
+    device = <TabletFrame ctx={ctx} index={0} width={tw} style={abs((w - tw) / 2, top, tw, tw / DEVICE_RATIO.tablet)} />;
   } else {
-    // The caption takes more of the height on square canvases, so the window starts lower there.
     const dw = w * (r > 1.15 ? 0.8 : 0.86);
-    const top = h * (r > 1.15 ? 0.47 : 0.53);
     device = <BrowserFrame ctx={ctx} index={0} style={abs((w - dw) / 2, top, dw, dw * 0.625)} />;
   }
   return (
@@ -1960,7 +2025,13 @@ function Features(ctx: Ctx) {
  * Text above a content-sized block (list, table) in square and portrait formats. One flex column,
  * so a long title pushes the block down instead of running into it; Text position Bottom reverses it.
  */
-function stackText(ctx: Ctx, body: ReactNode, textScale = 1) {
+/**
+ * Square and portrait: the text above the content (below it when flipped), the two kept together and
+ * centred on the canvas, so no gap opens between the title and what it introduces. `fit` narrows the
+ * content to its own width and centres it (a short list under a centred title); otherwise it spans the
+ * width (cards, tables).
+ */
+function stackText(ctx: Ctx, body: ReactNode, textScale = 1, fit = false) {
   const { w, h, u, o } = ctx;
   const portrait = o === 'portrait';
   return (
@@ -1973,16 +2044,28 @@ function stackText(ctx: Ctx, body: ReactNode, textScale = 1) {
         bottom: h * (portrait ? 0.1 : 0.05),
         display: 'flex',
         flexDirection: ctx.flipY ? 'column-reverse' : 'column',
-        gap: u * (portrait ? 5 : 3.5),
+        justifyContent: 'center',
+        gap: u * (portrait ? 5 : 4),
       }}
     >
-      <TextBlock ctx={ctx} align="center" style={{ flex: 'none' }} subtitle={portrait} scale={textScale} />
-      <div style={{ flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>{body}</div>
+      <TextBlock ctx={ctx} align="center" style={{ flex: 'none' }} subtitle={portrait || o === 'square'} scale={textScale} />
+      <div
+        style={{
+          flex: '0 1 auto',
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          ...(fit && { width: 'fit-content', maxWidth: '100%', alignSelf: 'center' }),
+        }}
+      >
+        {body}
+      </div>
     </div>
   );
 }
 
-function placeBeside(ctx: Ctx, body: ReactNode, textScale = 1) {
+function placeBeside(ctx: Ctx, body: ReactNode, textScale = 1, fit = false) {
   const { w, h, o, wide } = ctx;
   const box = (style: CSSProperties) => (
     <div style={{ position: 'absolute', display: 'flex', flexDirection: 'column', justifyContent: 'center', ...style }}>{body}</div>
@@ -2003,7 +2086,7 @@ function placeBeside(ctx: Ctx, body: ReactNode, textScale = 1) {
       </>
     );
   }
-  return stackText(ctx, body, textScale);
+  return stackText(ctx, body, textScale, fit);
 }
 
 /** Brand-coloured disc (black on Bold's brand ground). */
@@ -2051,6 +2134,8 @@ function Steps(ctx: Ctx) {
     <div data-steps="" style={{ display: 'grid', gridTemplateColumns: row ? `repeat(${Math.max(1, items.length)}, minmax(0, 1fr))` : '1fr', gap: size * (row ? 1.4 : 1.15) }}>
       {items.map(step)}
     </div>,
+    1,
+    true,
   );
 }
 
@@ -2522,11 +2607,23 @@ function DetailZoom(ctx: Ctx) {
       text = mirrorX(text, w);
       area = { ...area, x: w - area.x - area.w };
     }
+  } else if (o === 'portrait') {
+    // The screenshot right under the text, so no gap opens between them (the area is the card itself).
+    align = 'center';
+    const cw = Math.min(w * 0.76, h * 0.4 * ratio);
+    // Room for the ring drawn around the focal point, which can sit on the top edge.
+    const ringRoom = Math.min(Math.min(cw, cw / ratio) * 0.66, Math.min(w, h) * 0.5) / (ctx.p.content.magnify || 2.5) / 2;
+    const stack = portraitStack(ctx, cw / ratio, 0.9, ringRoom);
+    text = stack.text;
+    area = { x: (w - cw / 0.86) / 2, y: stack.top - (cw / ratio) * (1 / 0.86 - 1) / 2, w: cw / 0.86, h: cw / ratio / 0.86 };
+    if (ctx.flipY) {
+      text = mirrorY(text, ctx, false);
+      area = { ...area, y: h - area.y - area.h };
+    }
   } else {
     align = 'center';
     text = topBlock(ctx);
-    const portrait = o === 'portrait';
-    area = { x: w * 0.06, y: h * (portrait ? 0.4 : 0.42), w: w * 0.88, h: h * (portrait ? 0.46 : 0.54) };
+    area = { x: w * 0.06, y: h * 0.42, w: w * 0.88, h: h * 0.54 };
     if (ctx.flipY) {
       text = mirrorY(text, ctx, false);
       area = { ...area, y: h - area.y - area.h };

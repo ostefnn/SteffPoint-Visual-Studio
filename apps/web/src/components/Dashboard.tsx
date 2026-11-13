@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   createProject,
+  getTemplate,
   createScreenshotSlot,
   FORMAT_ORDER,
   FORMAT_PRESETS,
@@ -20,7 +21,7 @@ import {
 import { copyBlobs, createProjectRecord, deleteProject, getThumbnail, listBrandKits, listProjects, patchProject } from '../lib/db';
 import { getDefaultKitId, setDefaultKitId, withBrandKit } from '../lib/brandKits';
 import { buildProjectFile, importProjectFile } from '../lib/projectFile';
-import { importLegendBundle } from '../lib/legendImport';
+import { noteBackup } from '../lib/backups';
 import { notify } from '../store/toasts';
 import { downloadBlob, slugify } from '../lib/download';
 import { Button, cx, Icon, inputCls, useObjectUrl } from './ui';
@@ -165,18 +166,53 @@ function TemplatePreview({ template, style, kit }: { template: TemplateId; style
 }
 
 /** Four filters instead of one per category: most categories hold one or two templates. */
-const GALLERY_GROUPS: { id: 'all' | 'screens' | 'words' | 'proof'; label: string; categories: TemplateCategory[] }[] = [
+/** Templates shown first: the ones LinkedIn and Microsoft 365 posts use most. The others stay under All. */
+const RECOMMENDED: TemplateId[] = ['browser-hero', 'before-after', 'annotated', 'features', 'steps', 'cta'];
+
+const GALLERY_GROUPS: { id: 'recommended' | 'all' | 'screens' | 'words' | 'proof'; label: string; categories: TemplateCategory[] }[] = [
+  { id: 'recommended', label: 'Recommended', categories: [] },
   { id: 'all', label: 'All', categories: [] },
   { id: 'screens', label: 'Screenshots', categories: ['app-showcase', 'browser', 'mobile', 'product', 'before-after'] },
   { id: 'words', label: 'Text and announcements', categories: ['announcement', 'documentation', 'editorial', 'minimal'] },
   { id: 'proof', label: 'Quotes, figures and events', categories: ['social-proof', 'event'] },
 ];
 
+/** Finished examples (fictional products), made with the app by scripts/capture-showcase.mjs. */
+const SHOWCASE: { file: string; template: TemplateId; format: string; style: StyleId; width: number; height: number; alt: string }[] = [
+  {
+    file: 'ledgerly-linkedin.webp',
+    template: 'browser-hero',
+    format: 'LinkedIn',
+    style: 'tint',
+    width: 1200,
+    height: 627,
+    alt: 'LinkedIn post for an invoicing app: headline on the left, its dashboard in a window on the right.',
+  },
+  {
+    file: 'tidepool-linkedin-4x5.webp',
+    template: 'mobile-trio',
+    format: 'LinkedIn 4:5',
+    style: 'bold',
+    width: 1080,
+    height: 1350,
+    alt: 'Portrait LinkedIn post on an orange ground: a big headline above a phone showing a weekly planner.',
+  },
+  {
+    file: 'ledgerly-features-square.webp',
+    template: 'features',
+    format: 'Square 1:1',
+    style: 'technical',
+    width: 1080,
+    height: 1080,
+    alt: 'Square changelog visual on a drafting grid: a title and four new features, each with a tick.',
+  },
+];
+
 export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [query, setQuery] = useState('');
   const [favOnly, setFavOnly] = useState(false);
-  const [category, setCategory] = useState<(typeof GALLERY_GROUPS)[number]['id']>('all');
+  const [category, setCategory] = useState<(typeof GALLERY_GROUPS)[number]['id']>('recommended');
   // The gallery previews every template in one style; a card opens in that same style.
   const [galleryStyle, setGalleryStyle] = useState<StyleId>(() => createProject().brand.style);
   const [error, setError] = useState<string | null>(null);
@@ -232,6 +268,7 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
     },
     exportJson: async (p: Project) => {
       downloadBlob(await buildProjectFile(p), `${slugify(p.name)}.svs.json`);
+      noteBackup(p.id);
     },
   };
 
@@ -254,6 +291,8 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
     setError(null);
     setImporting(true);
     try {
+      // Loaded only when a legend is imported.
+      const { importLegendBundle } = await import('../lib/legendImport');
       const { project, missing, skipped } = await importLegendBundle([...files]);
       const pages = project.screenshots.length;
       notify(pages > 1 ? t('{n} annotated pages created from the legend.', { n: pages }) : t('One annotated page created from the legend.'));
@@ -269,7 +308,10 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
   };
 
   const group = GALLERY_GROUPS.find((g) => g.id === category) ?? GALLERY_GROUPS[0];
-  const templates = TEMPLATES.filter((t) => group.id === 'all' || group.categories.includes(t.category));
+  const templates =
+    group.id === 'recommended'
+      ? RECOMMENDED.map((id) => TEMPLATES.find((t) => t.id === id)!).filter(Boolean)
+      : TEMPLATES.filter((t) => group.id === 'all' || group.categories.includes(t.category));
 
   return (
     <div className="min-h-full">
@@ -278,7 +320,7 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
           <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="size-8" />
           <div className="mr-auto">
             <h1 className="text-lg font-semibold leading-tight">{t('SteffPoint Visual Studio')}</h1>
-            <p className="text-xs text-muted">{t('Create once. Publish everywhere.')}</p>
+            <p className="text-xs text-muted">{t('Create once. Publish everywhere: LinkedIn, Microsoft 365 and more.')}</p>
           </div>
           <PrivacyBadge />
           <Button variant="ghost" onClick={openHelp} aria-label={t('Help')} title={t('Help (?)')}>
@@ -302,13 +344,21 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
             <Icon name="upload" />{' '}{t('Import Project')}
           </Button>
           <input ref={fileInput} type="file" accept="application/json,.json" className="hidden" onChange={(e) => onImport(e.target.files)} />
-          <Button
-            onClick={() => legendInput.current?.click()}
-            disabled={importing}
-            title={t('Select a legend file (.md) and the screenshots it describes: one annotated page per section')}
-          >
-            <Icon name="image" /> {importing ? 'Importing…' : t('Import Legend')}
-          </Button>
+          <MoreMenu>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => legendInput.current?.click()}
+              disabled={importing}
+              className="flex w-full items-start gap-2 rounded-md px-3 py-2 text-left text-sm hover:bg-subtle focus-visible:bg-subtle focus-visible:outline-none disabled:opacity-50"
+            >
+              <Icon name="image" className="mt-0.5 size-4 flex-none" />
+              <span>
+                <span className="block font-medium">{importing ? t('Importing…') : t('Import Legend')}</span>
+                <span className="block text-xs text-muted">{t('Select a legend file (.md) and the screenshots it describes: one annotated page per section')}</span>
+              </span>
+            </button>
+          </MoreMenu>
           <input
             ref={legendInput}
             type="file"
@@ -377,9 +427,43 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
           )}
         </section>
 
-        <section>
+        <section aria-labelledby="showcase-title">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="showcase-title" className="text-base font-semibold">
+              {t('Made with SteffPoint Visual Studio')}
+            </h2>
+            <p className="text-xs text-muted">{t('Examples with fictional products. Click one to start from its template.')}</p>
+          </div>
+          <ul className="grid gap-4 sm:grid-cols-3">
+            {SHOWCASE.map((ex) => (
+              <li key={ex.file}>
+                <button
+                  type="button"
+                  onClick={() => create(ex.template)}
+                  className="group block w-full overflow-hidden rounded-xl bg-surface text-left ring-1 ring-line transition hover:ring-2 hover:ring-accent"
+                >
+                  <span className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-subtle p-3">
+                    <img
+                      src={`${import.meta.env.BASE_URL}showcase/${ex.file}`}
+                      alt={t(ex.alt)}
+                      width={ex.width}
+                      height={ex.height}
+                      loading="lazy"
+                      className="max-h-full max-w-full rounded shadow-md"
+                    />
+                  </span>
+                  <span className="block p-3 text-xs text-muted">
+                    <span className="font-medium text-ink">{t(getTemplate(ex.template).name)}</span> · {t(ex.format)} · {t(STYLES[ex.style].name)}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section aria-labelledby="gallery-title">
           <div className="mb-4 flex flex-wrap items-center gap-2">
-            <h2 className="mr-3 text-base font-semibold">{t('Start from a Template')}</h2>
+            <h2 id="gallery-title" className="mr-3 text-base font-semibold">{t('Start from a Template')}</h2>
             {GALLERY_GROUPS.map((c) => (
               <button
                 key={c.id}
@@ -446,9 +530,24 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
                     <p className="mt-0.5 text-xs text-muted">{t(tpl.description)}</p>
                   </div>
                 </button>
+                {tpl.id === 'annotated' && (
+                  <button
+                    type="button"
+                    onClick={() => legendInput.current?.click()}
+                    disabled={importing}
+                    className="mt-1.5 px-1 text-xs font-medium text-accent-deep underline-offset-2 hover:underline disabled:opacity-50"
+                  >
+                    {t('Or start from a legend file (.md and its screenshots)')}
+                  </button>
+                )}
               </li>
             ))}
           </ul>
+          {group.id === 'recommended' && (
+            <div className="mt-4 flex justify-center">
+              <Button onClick={() => setCategory('all')}>{t('Show All {n} Templates', { n: TEMPLATES.length })}</Button>
+            </div>
+          )}
         </section>
       </main>
     </div>
@@ -550,5 +649,44 @@ function ProjectCard({ project, onOpen, actions }: { project: Project; onOpen: (
         </Button>
       </div>
     </li>
+  );
+}
+
+/** Secondary dashboard actions, kept out of the header so the main ones stand out. */
+function MoreMenu({ children }: { children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (!root.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey);
+    root.current?.querySelector<HTMLElement>('[role=menuitem]')?.focus();
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+  return (
+    <div ref={root} className="relative">
+      <Button aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+        {t('More')}{' '}<span aria-hidden="true">▾</span>
+      </Button>
+      {open && (
+        <div
+          role="menu"
+          aria-label={t('More')}
+          onClick={() => setOpen(false)}
+          className="absolute right-0 top-full z-20 mt-1 w-72 rounded-lg bg-surface p-1 shadow-xl ring-1 ring-line"
+        >
+          {children}
+        </div>
+      )}
+    </div>
   );
 }

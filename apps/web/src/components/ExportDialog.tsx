@@ -6,6 +6,7 @@ import {
   FORMAT_ORDER,
   IOS_CANVAS_PIXELS,
   isScaleReasonable,
+  placeholderFields,
   resolveFormat,
   type FormatId,
 } from '@svs/visual-core';
@@ -14,7 +15,11 @@ import {
 const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 import { useEditor } from '../store/editor';
 import { exportPack, type ImageType } from '../lib/exporter';
-import { downloadBlob } from '../lib/download';
+import { downloadBlob, slugify } from '../lib/download';
+import { requestPersistence } from '../lib/db';
+import { noteBackup, noteExportWithoutBackup } from '../lib/backups';
+import { buildProjectFile } from '../lib/projectFile';
+import { notify } from '../store/toasts';
 import { exportCarouselPdf } from '../lib/carouselPdf';
 import { Stage } from './Stage';
 import { Button, cx, Icon, Segmented, Slider } from './ui';
@@ -58,6 +63,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
         setProgress({ done, total }),
       );
       downloadBlob(blob, filename);
+      afterExport(includeProject);
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -66,10 +72,45 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
     }
   };
 
+  /**
+   * After a successful export the project clearly has value: ask the browser to keep the data
+   * (silent in most browsers), and after a few exports without project.json, suggest a backup once.
+   */
+  const afterExport = (withBackup: boolean) => {
+    void requestPersistence();
+    if (withBackup) return noteBackup(project.id);
+    if (!noteExportWithoutBackup(project.id)) return;
+    notify(t('This project only lives in this browser. Keep a copy as a JSON file.'), 'info', {
+      label: t('Save a Copy'),
+      run: async () => {
+        const p = useEditor.getState().project ?? project;
+        downloadBlob(await buildProjectFile(p), `${slugify(p.name)}.svs.json`);
+        noteBackup(p.id);
+      },
+    });
+  };
+
   const busy = progress !== null;
 
   // LinkedIn carousel: slides derived from the project (cover, one per screenshot, features).
   const slides = useMemo(() => buildCarouselSlides(project), [project]);
+  // Example texts still drawn in the images or on carousel pages. Shown, never blocking.
+  const examples = useMemo(() => placeholderFields(project), [project]);
+  const slideExamples = useMemo(
+    () => slides.map((s, i) => ({ page: i + 1, fields: placeholderFields(s.project) })).filter((x) => x.fields.length),
+    [slides],
+  );
+  const fieldList = (fields: string[]) => fields.map((f) => t(f)).join(', ');
+  const editText = () => {
+    const first = examples[0] ?? slideExamples[0]?.fields[0];
+    onClose();
+    // After the dialog closes, take the user to the first field to fix when the Content panel shows it.
+    requestAnimationFrame(() => {
+      const el = first ? document.querySelector<HTMLElement>(`[data-example-field="${first}"]`) : null;
+      el?.scrollIntoView({ block: 'center' });
+      el?.focus();
+    });
+  };
   const carouselFormat = resolveFormat(carouselFormatOf(project));
   const carouselBlocked = IS_IOS && !isScaleReasonable(carouselFormat.width, carouselFormat.height, scale, IOS_CANVAS_PIXELS);
   const runCarousel = async () => {
@@ -80,6 +121,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
         setProgress({ done, total }),
       );
       downloadBlob(blob, filename);
+      afterExport(false);
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -107,6 +149,14 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
         </Button>
       </div>
       <div className="space-y-5 px-5 py-4">
+        {examples.length > 0 && (
+          <div role="status" className="flex items-center gap-3 rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn-ink ring-1 ring-warn-line">
+            <p className="min-w-0 flex-1">{t('Example text is still in: {fields}. Replace it before publishing, or export anyway.', { fields: fieldList(examples) })}</p>
+            <Button size="sm" className="flex-none" onClick={editText} disabled={busy}>
+              {t('Edit Text')}
+            </Button>
+          </div>
+        )}
         <fieldset>
           <legend className="mb-2 text-sm font-semibold text-ink">{t('Formats')}</legend>
           <div className="space-y-3">
@@ -199,6 +249,13 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
               : t('Your custom pages.')}{' '}
             {t('Choose templates, text and order in the Carousel tab. Post the PDF on LinkedIn as a document.')}
           </p>
+          {slideExamples.length > 0 && (
+            <p role="status" className="mt-2 rounded-lg bg-warn-soft px-3 py-2 text-xs text-warn-ink ring-1 ring-warn-line">
+              {t('Pages with example text: {pages}.', {
+                pages: slideExamples.map((x) => `${x.page} (${fieldList(x.fields)})`).join(', '),
+              })}
+            </p>
+          )}
           <Button className="mt-3" onClick={runCarousel} disabled={busy || carouselBlocked}>
             <Icon name="download" /> {slides.length === 1 ? t('Export Carousel PDF (1 Page)') : t('Export Carousel PDF ({n} Pages)', { n: slides.length })}
           </Button>

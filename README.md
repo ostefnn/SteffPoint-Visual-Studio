@@ -38,6 +38,7 @@ Runs entirely in your browser: **your images never leave your device.**
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [License & credits](#license--credits)
+- [Changelog](CHANGELOG.md)
 
 ## Why
 
@@ -51,6 +52,7 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 
 | | |
 |---|---|
+| 🖼️ **Examples** | The dashboard opens with three finished visuals made with the app (fictional products): click one to start from its template. |
 | 🗂️ **Projects** | Create, rename, duplicate, delete, favourite, search. Automatic thumbnails. Autosave. |
 | 💾 **Local storage** | Projects, images and thumbnails stored in IndexedDB. Close the tab, come back later, everything is there. |
 | 🧩 **21 templates** | Browser Hero, Device Mix, App Store, Browser Duo, Mobile Trio, Bento, Spotlight, Before / After, Detail Zoom, Cover, Testimonial, Key Figures, Event, Features, Steps, Comparison, Code, Annotated Panel, Editorial, Call to Action, Minimal. |
@@ -59,7 +61,7 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 | 🖼️ **Screenshots** | Up to 4 per project. Add by click, drag & drop anywhere, or paste (Ctrl/Cmd+V). Desktop screenshots can sit in a browser, a macOS window, no frame, or a laptop. |
 | 🕶️ **Hide sensitive areas** | Drag over names, e-mail addresses or ids in a screenshot: they are covered by opaque bars in every image, the Detail Zoom lens included. Non destructive: the original stays in the project and in `project.json`. |
 | 🎯 **Crop & focal point** | Crop each edge, cover / contain, zoom in or out (0.5×–3×), and a focal point that stays visible when the layout changes between landscape, square and portrait. |
-| ✒️ **Styles** | One click sets typefaces, title scale, kicker, frames, shadows and background for every template: **Minimal** (default), **Editorial**, **Bold**, or **Soft** (the original look, kept as an option). Fonts are bundled, so exports look the same on every computer. |
+| ✒️ **Styles** | One click sets typefaces, title scale, kicker, frames, shadows and background for every template: **Tint** (default for new projects), **Minimal**, **Editorial**, **Bold**, **Technical**, or **Soft** (the original look, kept as an option). Fonts are bundled, so exports look the same on every computer. |
 | 🧳 **Brand kits** | Save a project's style, colour, theme, logo, footer and link, background and desktop frame as a named kit (Brand tab). Apply it to any project in one click (one undo step), or pick it on the dashboard so every new project starts with it. Stored in the browser like projects. |
 | 🎨 **Brand** | One primary colour → derived palette (accents stay in your brand's hue outside Soft). Light / dark theme, corner radius, logo (small / medium / large); heading font and shadow in Soft. Importing a logo samples its dominant colours on a canvas: the main brand colour becomes the primary (one undo step), the others are offered as one-click swatches. |
 | 🌈 **Backgrounds** | Solid, gradient, soft glow, grid, mesh, or a photo under a veil of the ground colour (its visibility is adjustable). Gradient, glow and mesh can take a second colour of your choice. |
@@ -69,8 +71,8 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 | ↩️ **Undo / redo** | Bounded history (60 steps); rapid edits like typing or sliders are merged into one step. |
 | 📋 **Copy Image** | Copies the format on screen (or the carousel page) as a PNG, to paste straight into LinkedIn, Teams or an e-mail without downloading anything. |
 | 📦 **Export** | PNG, JPEG or WebP at 1×, 2× or 3×. One image, or a ZIP with every selected format plus `project.json`. |
-| 🗂️ **LinkedIn carousel** | A multi-page PDF for a LinkedIn document post, with 4:5 (default), 1:1 or 16:9 pages. Automatic pages (cover, one per screenshot, features), or your own: a template per page, page-specific content (texts, features, steps, figures, table… choose **This page** in the Content panel) and screenshots, add, duplicate, reorder (drag, buttons or Alt+↑/↓). Up to 12 pages, with carousel-specific advice. |
-| 💡 **Smart suggestions** | Deterministic checks, no AI: title length, WCAG AA contrast, legibility in feeds, wrong template or device for the screenshot orientation, images or logo too small for the export size, missing quote author, figures or event date. Informative only, never blocks export. |
+| 🗂️ **LinkedIn carousel** | A multi-page PDF for a LinkedIn document post, with 4:5 (default), 1:1 or 16:9 pages. Automatic pages (cover, one per screenshot, then your features once they are real), or your own: a template per page, page-specific content (texts, features, steps, figures, table… choose **This page** in the Content panel) and screenshots, add, duplicate, reorder (drag, buttons or Alt+↑/↓). Up to 12 pages, with carousel-specific advice. |
+| 💡 **Smart suggestions** | Deterministic checks, no AI: title length, WCAG AA contrast, legibility in feeds, wrong template or device for the screenshot orientation, images or logo too small for the export size, missing quote author, figures or event date, and **example text left in** (also shown in the Export dialog). Informative only, never blocks export. |
 | ❓ **Help and dark mode** | Press **?** (or the ? button) for the steps, the keyboard shortcuts and where your data lives. The editor follows the system's light or dark mode, or the one chosen in Help; exported visuals keep their own theme. |
 | 🌍 **English, French, Dutch** | The whole interface, suggestions and messages in EN, FR or NL (dashboard, top right). Detected from the browser, remembered per browser. New projects start with placeholder content in that language. |
 | 🔁 **Import / export JSON** | Portable project file with images embedded. Backup, move between browsers, share. |
@@ -83,14 +85,14 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 
 | Style | Typefaces | Ground | Kicker | Screenshots |
 |---|---|---|---|---|
-| **Minimal** (default) | Geist | Neutral grey | Plain text with a brand square | Thin outline, no shadow |
+| **Minimal** | Geist | Neutral grey | Plain text with a brand square | Thin outline, no shadow |
 | **Editorial** | Instrument Serif titles, Geist body, italic serif subtitle | White | Plain text over a hairline | Square corners, no shadow |
 | **Bold** | Bricolage Grotesque, condensed | Your brand colour | Black label | Thick outline, hard offset shadow |
 | **Technical** | Geist titles, Geist Mono kicker | White (or near-black) drafting grid | `// text` in mono, brand-coloured slashes | Window frame, square corners, hairline |
-| **Tint** | Geist | Light tint of your brand; text in a dark shade of it | Plain text with a brand square | Window frame on a soft brand-coloured mat, no shadow |
+| **Tint** (default) | Geist | Light tint of your brand; text in a dark shade of it | Plain text with a brand square | Window frame on a soft brand-coloured mat, no shadow |
 | **Soft** | Inter / system, your heading font | Tinted with glows | Pill | Browser chrome, soft shadow |
 
-Projects created before styles existed open in **Soft**, unchanged. Picking a style also applies its background and screenshot frame; both stay editable. No style uses tracked capitals or invented content: template defaults are placeholders that ask for your real quote, figures and event details.
+New projects start in **Tint**; existing projects keep the style they were saved with. Projects created before styles existed open in **Soft**, unchanged. Picking a style also applies its background and screenshot frame; both stay editable. No style uses tracked capitals or invented content: template defaults are placeholders that ask for your real quote, figures and event details.
 
 ## Templates
 
@@ -120,7 +122,7 @@ Projects created before styles existed open in **Soft**, unchanged. Picking a st
 | **Call to Action** | Closing page: a button, your link and an optional QR code (encoded locally) | 0 |
 | **Minimal** | Text-only announcements | 0 |
 
-Every template adapts its layout to landscape, square, portrait and very wide (banner) formats.
+Every template adapts its layout to landscape, square, portrait and very wide (banner) formats. In portrait formats (Story, LinkedIn 4:5, carousel pages), Browser Hero, Spotlight and Detail Zoom show the whole screenshot at its own proportions, right under the text, the pair centred on the canvas. Features, Steps, Key Figures and Comparison keep their title and subtitle right above their content in square and portrait formats. App Store keeps a phone screenshot in a phone, whatever the format.
 
 ## Output formats
 
@@ -152,14 +154,14 @@ Every template adapts its layout to landscape, square, portrait and very wide (b
 | E-mail Header | 600 × 200 | Newsletter header (export at 2×) |
 | Custom | 64 – 4096 px | Any size |
 
-Formats are grouped by use in the Export dialog (Social, Developers, App stores, Microsoft 365 and e-mail). Platform sizes change: check each platform's current guidelines before publishing.
+Formats are grouped by use in the Export dialog (Social, Microsoft 365 and e-mail, Developers, App stores). A new project ticks two or three formats that suit its template (for example LinkedIn, LinkedIn 4:5 and Open Graph for Browser Hero); the others are one click away. Platform sizes change: check each platform's current guidelines before publishing.
 
 At 2× and 3× the pixel size is multiplied. Very large exports (> ~33 MP) show a warning.
 
 ## How to use
 
-1. **New project** from the dashboard, or click a template to start from it.
-2. **Images** tab: add 1 to 4 screenshots (click, drop or paste).
+1. **New project** from the dashboard, or click a template to start from it. The gallery opens on six recommended templates for LinkedIn and Microsoft 365 posts; **All** (or *Show All 21 Templates*) lists the others.
+2. **Images** tab (opened first while the project has no screenshot): add 1 to 4 screenshots (click the empty preview or the Add button, drop or paste). The title is then selected so you can type your headline; until you rename the project, its name follows the title.
 3. **Content** panel (right): kicker, title, subtitle, plus the fields of the current template (quote and author, figures, event details, devices and their orientation, desktop frame). Below it, **Layout**: mirror, text position and alignment, and straight, tilted or 3D screens.
 4. **Templates** tab: pick a layout. Previews use your own screenshots.
 5. **Brand** tab: pick a **style** first, then colour, theme, radius, logo and its size (heading font and shadow in Soft). Best logo file: a transparent PNG or WebP cropped tight, at least 512 × 512 px for an icon or 800 px wide for a wordmark.
@@ -171,7 +173,7 @@ At 2× and 3× the pixel size is multiplied. Very large exports (> ~33 MP) show 
 
 ### Annotated guide from a legend file
 
-Have screenshots of a settings panel with numbered badges and a Markdown report that names each field (for example a SharePoint property pane capture)? On the dashboard, click **Import Legend** and select the `.md` file **together with its images**. Each `## Group (image.png)` section followed by a `| N° | Field | Property | State |` table becomes one screenshot with its caption and legend; the carousel becomes a guide: a title page (name, version), then one annotated page per group.
+Have screenshots of a settings panel with numbered badges and a Markdown report that names each field (for example a SharePoint property pane capture)? On the dashboard, open **More → Import Legend** (or click *Or start from a legend file* under the Annotated Panel template) and select the `.md` file **together with its images**. Each `## Group (image.png)` section followed by a `| N° | Field | Property | State |` table becomes one screenshot with its caption and legend; the carousel becomes a guide: a title page (name, version), then one annotated page per group.
 
 - Column names are recognised in English, French and Dutch (*Champ / Propriété / État*, *Veld / Eigenschap / Staat*); *Disabled*, *Désactivé* or *Uitgeschakeld* draws a hollow badge.
 - Images named in the report but not selected are listed, never replaced by placeholders.
@@ -181,7 +183,7 @@ Have screenshots of a settings panel with numbered badges and a Markdown report 
 Your work is saved automatically in the browser. Use **JSON** on a project card to back it up, and **Import project** to restore it.
 
 > ℹ️ Data lives in the storage of the browser and site you use. Clearing site data deletes your projects; export JSON backups for anything important.
-> The dashboard shows how much storage is used and whether the browser agreed to keep it ("persistent storage"). Browsers can clear non-persistent site data, for example after a long period without visits.
+> The dashboard shows how much storage is used and whether the browser agreed to keep it ("persistent storage"). The app asks for it when you add images and after each export; the dashboard warns only if the browser refused. Browsers can clear non-persistent site data, for example after a long period without visits. After three exports of a project without `project.json`, the editor offers once to save a copy as JSON.
 
 ### Devices
 
@@ -189,7 +191,7 @@ Your work is saved automatically in the browser. Use **JSON** on a project card 
 |---|---|
 | Desktop (Chrome, Edge, Firefox, Safari) | Full editor. Recommended. |
 | iPad (landscape) | Full three-column editor. |
-| iPad (portrait), iPhone | Stacked layout: preview, formats, then panels. Fine for edits and export; designed for quick changes rather than long sessions. |
+| iPad (portrait), iPhone | Stacked layout: one-row editor bar, a preview shaped like the format, then formats and panels. Fine for edits and export; designed for quick changes rather than long sessions. |
 
 On iPhone/iPad, very large exports (> 16.7 MP per image, e.g. Story at 3×) are blocked because Safari cannot render canvases that big. Exported ZIPs go to the Files app.
 
@@ -232,6 +234,7 @@ Open http://localhost:5173.
 | `npm test` | Unit tests (`packages/visual-core`, Vitest) and the translation check |
 | `npm run e2e` | End-to-end tests (Playwright) on Chromium, Firefox, WebKit, iPhone and iPad emulation |
 | `npm run samples` | Recapture the phone and tablet screens shown in the template gallery (`apps/web/public/samples`); needs `npm run build && npm run preview -w @svs/web -- --port 4173` running |
+| `npm run showcase` | Recaptures the dashboard examples (`apps/web/public/showcase`) and the app's link preview image (`apps/web/public/og-image.png`) from the fictional products in `scripts/showcase`; same server as `npm run samples` |
 | `npm run typecheck` | TypeScript check of all workspaces |
 
 Interface texts are written in English and wrapped in `t()` (`apps/web/src/i18n`); `fr.ts` and `nl.ts` map each English text to its translation. `npm test` fails if a text has no French or Dutch translation (`scripts/check-i18n.mjs`); texts built at run time are listed in `i18n/extra-keys.json`.
@@ -249,7 +252,7 @@ One-time setup:
 1. **Settings → Pages → Build and deployment → Source: _GitHub Actions_.**
 2. Push to `main`. The site is published at `https://<owner>.github.io/<repo>/`.
 
-The workflow sets `BASE_PATH=/<repo>/` so assets resolve under the project sub-path. Routing uses the URL hash (`#/p/<id>`), so reloads never 404.
+The workflow sets `BASE_PATH=/<repo>/` so assets resolve under the project sub-path, and `SITE_URL` (the public address) so link previews on LinkedIn, Teams or Slack show `og-image.png`. Routing uses the URL hash (`#/p/<id>`), so reloads never 404.
 
 > GitHub Pages on a **private** repository requires a paid GitHub plan.
 
@@ -258,6 +261,7 @@ The workflow sets `BASE_PATH=/<repo>/` so assets resolve under the project sub-p
 ```bash
 npm run build                                   # site at root, e.g. Netlify, Vercel, Cloudflare Pages
 BASE_PATH=/some/sub/path/ npm run build         # site served under a sub-path
+SITE_URL=https://example.com/ npm run build     # adds the absolute og:image URL for link previews
 ```
 
 Publish `apps/web/dist`. No server configuration or rewrites are needed.
