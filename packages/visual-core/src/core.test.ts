@@ -303,10 +303,12 @@ describe('screenshot crop and logo size', () => {
 
 describe('desktop frame', () => {
   it('defaults to the style frame and keeps a valid choice', () => {
-    expect(createProject().desktopFrame).toBe('plain'); // Minimal
+    expect(createProject().desktopFrame).toBe('window'); // Tint, the default style
     expect(migrateProject({ desktopFrame: 'laptop' }).desktopFrame).toBe('laptop');
     expect(migrateProject({ desktopFrame: 'tv' }).desktopFrame).toBe('browser'); // legacy project: Soft default
     expect(migrateProject({ brand: { style: 'minimal' }, desktopFrame: 'tv' }).desktopFrame).toBe('plain');
+    // An unknown style falls back to Minimal, as before Tint became the default.
+    expect(migrateProject({ brand: { style: 'neon' }, desktopFrame: 'tv' }).desktopFrame).toBe('plain');
   });
 });
 
@@ -446,13 +448,18 @@ describe('LinkedIn carousel', () => {
 });
 
 describe('style presets', () => {
-  it('new projects use Minimal with honest placeholders', () => {
+  it('new projects use Tint with honest placeholders', () => {
     const p = createProject();
-    expect(p.brand.style).toBe('minimal');
+    expect(p.brand.style).toBe('tint');
     expect(p.background.type).toBe('solid');
     expect(p.content.kicker).toBe('');
     expect(p.content.stats.every((s) => !/\d[1-9]/.test(s.value))).toBe(true); // no invented figures
     expect(p.content.quote).toMatch(/real quote/);
+  });
+
+  it('saved projects keep their style when the default changes', () => {
+    expect(migrateProject({ brand: { style: 'minimal' } }).brand.style).toBe('minimal');
+    expect(migrateProject({ brand: { style: 'neon' } }).brand.style).toBe('minimal');
   });
 
   it('projects saved before styles keep their original look', () => {

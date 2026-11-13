@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import path from 'node:path';
-import { addScreenshot, CYAN, expectColor, FIXTURES, MAGENTA, newProject, probePng, readZip } from './helpers';
+import { addScreenshot, CYAN, expectColor, FIXTURES, MAGENTA, newProject, probePng, readZip, titleBox } from './helpers';
 
 async function useTemplate(page: Page, name: string) {
   await page.getByRole('tab', { name: 'Templates' }).click();
@@ -336,4 +336,19 @@ test('Laptop frame keeps a real 16:10 screen in every format', async ({ page }) 
     ]);
     expect(laptop!.y + laptop!.height, format).toBeLessThanOrEqual(canvas!.y + canvas!.height + 1);
   }
+});
+
+test('portrait formats show the whole screenshot width, right under the text', async ({ page }) => {
+  await newProject(page);
+  await titleBox(page).fill('Cockpit 365');
+  await addScreenshot(page, 'split-cyan-magenta.png'); // left half cyan, right half magenta
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: /Export ZIP/ }).click()]);
+  const story = await (await readZip(download)).file('story@2x.png')!.async('uint8array');
+  // Both edges of the screenshot are on the image: it is not cropped at the sides any more.
+  expectColor((await probePng(page, story, [0.1, 0.55])).rgb, CYAN);
+  expectColor((await probePng(page, story, [0.9, 0.55])).rgb, MAGENTA);
+  // And it is not pushed to the bottom: the lower part of the canvas is the ground again.
+  // (light ground: high green, unlike the cyan or magenta halves).
+  expect((await probePng(page, story, [0.5, 0.92])).rgb[1]).toBeGreaterThan(200);
 });

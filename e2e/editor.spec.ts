@@ -57,7 +57,8 @@ test('export pack contains every format with the screenshot rendered', async ({ 
   const cases: [string, number, number, [number, number]][] = [
     ['linkedin@2x.png', 2400, 1254, [0.75, 0.6]],
     ['square@2x.png', 2160, 2160, [0.5, 0.8]],
-    ['story@2x.png', 2160, 3840, [0.5, 0.8]],
+    // Portrait: the screenshot sits right under the text, in the middle of the canvas.
+    ['story@2x.png', 2160, 3840, [0.5, 0.6]],
   ];
   for (const [name, w, h, at] of cases) {
     const png = await zip.file(name)!.async('uint8array');
