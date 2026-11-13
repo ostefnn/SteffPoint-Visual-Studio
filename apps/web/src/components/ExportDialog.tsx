@@ -95,7 +95,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
         e.preventDefault();
         if (!busy) onClose();
       }}
-      className="m-auto w-[min(560px,calc(100vw-32px))] overscroll-contain rounded-2xl bg-surface p-0 shadow-2xl backdrop:bg-ink/40"
+      className="m-auto w-[min(560px,calc(100vw-32px))] overscroll-contain rounded-2xl bg-surface p-0 shadow-2xl backdrop:bg-[rgb(0_0_0/0.45)]"
       aria-labelledby="export-title"
     >
       <div className="flex items-center justify-between border-b border-line px-5 py-4">

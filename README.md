@@ -62,7 +62,7 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 | ✒️ **Styles** | One click sets typefaces, title scale, kicker, frames, shadows and background for every template: **Minimal** (default), **Editorial**, **Bold**, or **Soft** (the original look, kept as an option). Fonts are bundled, so exports look the same on every computer. |
 | 🧳 **Brand kits** | Save a project's style, colour, theme, logo, footer and link, background and desktop frame as a named kit (Brand tab). Apply it to any project in one click (one undo step), or pick it on the dashboard so every new project starts with it. Stored in the browser like projects. |
 | 🎨 **Brand** | One primary colour → derived palette (accents stay in your brand's hue outside Soft). Light / dark theme, corner radius, logo (small / medium / large); heading font and shadow in Soft. Importing a logo samples its dominant colours on a canvas: the main brand colour becomes the primary (one undo step), the others are offered as one-click swatches. |
-| 🌈 **Backgrounds** | Solid, gradient, soft glow, grid, mesh, with intensity and angle. |
+| 🌈 **Backgrounds** | Solid, gradient, soft glow, grid, mesh, or a photo under a veil of the ground colour (its visibility is adjustable). Gradient, glow and mesh can take a second colour of your choice. |
 | 📐 **Multi-format preview** | Every format previewed live, side by side. |
 | 🔲 **Compare Styles** | A matrix on the canvas renders the same content in every style at the current format, laid out so each is drawn as large as possible; click one to apply it. |
 | 🛟 **Safe zones** | Overlay showing where platform UI may cover your visual (e.g. stories, profile banners). |
@@ -70,6 +70,7 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 | 📦 **Export** | PNG, JPEG or WebP at 1×, 2× or 3×. One image, or a ZIP with every selected format plus `project.json`. |
 | 🗂️ **LinkedIn carousel** | A multi-page PDF for a LinkedIn document post, with 4:5 (default), 1:1 or 16:9 pages. Automatic pages (cover, one per screenshot, features), or your own: a template per page, page-specific content (texts, features, steps, figures, table… choose **This page** in the Content panel) and screenshots, add, duplicate, reorder (drag, buttons or Alt+↑/↓). Up to 12 pages, with carousel-specific advice. |
 | 💡 **Smart suggestions** | Deterministic checks, no AI: title length, WCAG AA contrast, legibility in feeds, wrong template or device for the screenshot orientation, images or logo too small for the export size, missing quote author, figures or event date. Informative only, never blocks export. |
+| ❓ **Help and dark mode** | Press **?** (or the ? button) for the steps, the keyboard shortcuts and where your data lives. The editor follows the system's light or dark mode, or the one chosen in Help; exported visuals keep their own theme. |
 | 🌍 **English, French, Dutch** | The whole interface, suggestions and messages in EN, FR or NL (dashboard, top right). Detected from the browser, remembered per browser. New projects start with placeholder content in that language. |
 | 🔁 **Import / export JSON** | Portable project file with images embedded. Backup, move between browsers, share. |
 
@@ -206,6 +207,7 @@ The same project can be open in several tabs. A tab without unsaved changes foll
 | Delete / Backspace | Remove selected screenshot |
 | Ctrl/Cmd + V | Paste an image as a screenshot |
 | Esc | Leave a field / deselect / close dialog |
+| ? | Open the help |
 | Arrow keys (focal point) | Move focal point (Shift = larger steps) |
 
 ## Getting started (development)
@@ -280,7 +282,7 @@ Exported `project.json` / `*.svs.json`:
       "link": "https://example.com", "qr": false
     },
     "brand": { "primary": "#0078d4", "theme": "light", "headingFont": "sans", "radius": 0.5, "shadow": 0.5, "logoAssetId": null, "logoSize": "medium", "style": "minimal", "footer": false },
-    "background": { "type": "glow", "intensity": 0.6, "angle": 135 },
+    "background": { "type": "glow", "intensity": 0.6, "angle": 135, "imageAssetId": null, "secondary": "#db2777" },
     "assets": [{ "id": "ast_…", "name": "home.png", "mime": "image/png", "width": 1600, "height": 1000, "size": 123456 }],
     "screenshots": [{
       "id": "shot_…", "assetId": "ast_…", "fit": "cover", "zoom": 1, "focalX": 0.5, "focalY": 0,

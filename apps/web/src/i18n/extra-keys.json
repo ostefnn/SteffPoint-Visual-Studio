@@ -85,5 +85,22 @@
  "Saved",
  "Saving…",
  "Not saved",
- "Not saved (conflict)"
+ "Not saved (conflict)",
+ "Undo",
+ "Redo",
+ "Save now",
+ "Paste an image as a screenshot",
+ "Duplicate the selected screenshot",
+ "Remove the selected screenshot",
+ "Leave a field, deselect, close a window",
+ "Move the focal point (Shift: larger steps)",
+ "Reorder carousel pages",
+ "Open this help",
+ "Add screenshots in the Images tab: click, drop them anywhere or paste them.",
+ "Pick a template, then a style and your colour in the Brand tab.",
+ "Write the title and the template’s fields in the Content panel; adjust the layout below it.",
+ "Check every format in the strip under the preview and tick the ones to export.",
+ "Click Export: one image, a ZIP of every format, or a LinkedIn carousel PDF.",
+ "Editor theme",
+ "Image"
 ]

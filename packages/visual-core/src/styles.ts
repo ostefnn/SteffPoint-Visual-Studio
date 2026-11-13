@@ -188,7 +188,8 @@ export function withStyle(project: Project, id: StyleId): Project {
   return {
     ...project,
     brand: { ...project.brand, style: id },
-    background: { ...project.background, type: st.defaults.background },
+    // A chosen photo stays: the style's own ground would silently replace it.
+    background: { ...project.background, type: project.background.type === 'image' && project.background.imageAssetId ? 'image' : st.defaults.background },
     desktopFrame: st.defaults.desktopFrame,
   };
 }

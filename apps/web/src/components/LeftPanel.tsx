@@ -20,7 +20,7 @@ import {
   type LogoSize,
 } from '@svs/visual-core';
 import { useEditor } from '../store/editor';
-import { applyStyle, imageFilesFrom, importImages, moveScreenshot, removeLogo, removeScreenshot } from '../lib/actions';
+import { applyStyle, imageFilesFrom, importImages, moveScreenshot, removeBackgroundImage, removeLogo, removeScreenshot } from '../lib/actions';
 import { Button, cx, Field, Icon, inputCls, Section, Segmented, Slider } from './ui';
 import { Stage } from './Stage';
 import { CarouselPanel } from './CarouselPanel';
@@ -557,7 +557,10 @@ const BACKGROUNDS: { value: BackgroundType; label: string }[] = [
   { value: 'glow', label: 'Soft glow' },
   { value: 'grid', label: 'Grid' },
   { value: 'mesh', label: 'Mesh' },
+  { value: 'image', label: 'Image' },
 ];
+/** Grounds that use the second colour. */
+const TWO_COLOUR: readonly BackgroundType[] = ['gradient', 'glow', 'mesh'];
 
 function BackgroundTab() {
   const project = useEditor((s) => s.project)!;
@@ -565,6 +568,20 @@ function BackgroundTab() {
   const bg = project.background;
   const { update } = useEditor.getState();
   const spec = getStyle(project.brand.style);
+  const imageInput = useRef<HTMLInputElement>(null);
+  const imageUrl = bg.imageAssetId ? urls[bg.imageAssetId] : undefined;
+  const pal = derivePalette(project.brand.primary, project.brand.theme, project.brand.style);
+  const [hex, setHex] = useState(bg.secondary ?? '');
+  useEffect(() => setHex(bg.secondary ?? ''), [bg.secondary]); // keep in sync with undo/redo
+  const setSecondary = (c: string) => {
+    setHex(c);
+    if (isHexColor(c)) update((d) => void (d.background.secondary = c.toLowerCase()), 'bg-secondary');
+  };
+  const pick = (type: BackgroundType) => {
+    // Image without a photo yet: ask for one first; the type changes once it is imported.
+    if (type === 'image' && !bg.imageAssetId) return imageInput.current?.click();
+    update((d) => void (d.background.type = type));
+  };
   return (
     <Section title={t('Background')}>
       {spec.brandBackground && (
@@ -578,27 +595,94 @@ function BackgroundTab() {
             key={b.value}
             type="button"
             aria-pressed={bg.type === b.value}
-            onClick={() => update((d) => void (d.background.type = b.value))}
+            onClick={() => pick(b.value)}
             className={cx(
               'overflow-hidden rounded-lg bg-surface text-left ring-1',
               bg.type === b.value ? 'ring-2 ring-accent' : 'ring-line hover:ring-field',
             )}
           >
-            <Stage
-              project={{ ...project, template: 'minimal', content: { ...project.content, kicker: '', title: '', subtitle: '' }, brand: { ...project.brand, logoAssetId: null }, background: { ...bg, type: b.value } }}
-              format={FORMAT_PRESETS.linkedin}
-              urls={urls}
-              maxWidth={124}
-              maxHeight={48}
-              className="w-full"
-            />
+            {b.value === 'image' && !imageUrl ? (
+              <span className="flex h-12 items-center justify-center gap-1.5 bg-subtle text-xs text-muted">
+                <Icon name="upload" className="size-3.5" /> {t('Choose…')}
+              </span>
+            ) : (
+              <Stage
+                project={{ ...project, template: 'minimal', content: { ...project.content, kicker: '', title: '', subtitle: '' }, brand: { ...project.brand, logoAssetId: null }, background: { ...bg, type: b.value } }}
+                format={FORMAT_PRESETS.linkedin}
+                urls={urls}
+                maxWidth={124}
+                maxHeight={48}
+                className="w-full"
+              />
+            )}
             <span className="block px-2 py-1 text-xs font-medium">{t(b.label)}</span>
           </button>
         ))}
       </div>
-      <Slider label={t('Intensity')} min={0} max={1} step={0.05} value={bg.intensity} format={(v) => `${Math.round(v * 100)}%`} onChange={(v) => update((d) => void (d.background.intensity = v), 'bg-intensity')} />
+      <input
+        ref={imageInput}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif"
+        className="hidden"
+        aria-label={t('Background image')}
+        onChange={(e) => {
+          importImages(imageFilesFrom(e.target.files), 'background');
+          e.target.value = '';
+        }}
+      />
+      {bg.type === 'image' && imageUrl && (
+        <div className="flex items-center gap-2">
+          <span className="checker block h-10 w-16 flex-none overflow-hidden rounded">
+            <img src={imageUrl} alt="" className="size-full object-cover" />
+          </span>
+          <Button size="sm" onClick={() => imageInput.current?.click()}>
+            {t('Replace')}
+          </Button>
+          <Button size="sm" variant="danger" onClick={removeBackgroundImage}>
+            {t('Remove')}
+          </Button>
+        </div>
+      )}
+      <Slider
+        label={bg.type === 'image' ? t('Photo visibility') : t('Intensity')}
+        min={0}
+        max={1}
+        step={0.05}
+        value={bg.intensity}
+        format={(v) => `${Math.round(v * 100)}%`}
+        onChange={(v) => update((d) => void (d.background.intensity = v), 'bg-intensity')}
+      />
+      {bg.type === 'image' && (
+        <p className="text-xs text-muted">{t('A veil of the background colour keeps the text readable. Lower the visibility if the title is hard to read.')}</p>
+      )}
       {bg.type === 'gradient' && (
         <Slider label={t('Angle')} min={0} max={360} step={5} value={bg.angle} format={(v) => `${v}°`} onChange={(v) => update((d) => void (d.background.angle = v), 'bg-angle')} />
+      )}
+      {TWO_COLOUR.includes(bg.type) && (
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 text-xs font-medium text-ink">
+            <input
+              type="checkbox"
+              checked={bg.secondary !== null}
+              onChange={(e) => update((d) => void (d.background.secondary = e.target.checked ? pal.accent : null))}
+              className="size-4 accent-accent"
+            />
+            {t('Second colour')}
+          </label>
+          {bg.secondary !== null && (
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                aria-label={t('Second colour')}
+                value={bg.secondary}
+                onChange={(e) => setSecondary(e.target.value)}
+                className="h-9 w-12 cursor-pointer rounded-lg border-0 bg-transparent p-0"
+              />
+              <input aria-label={t('Second colour hex')} value={hex} onChange={(e) => setSecondary(e.target.value.trim())} className={cx(inputCls, 'font-mono')} />
+            </div>
+          )}
+          <p className="text-xs text-muted">{t('Without it, the background uses an accent derived from your brand colour.')}</p>
+        </div>
       )}
     </Section>
   );

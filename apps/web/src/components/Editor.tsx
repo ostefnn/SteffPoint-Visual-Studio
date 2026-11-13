@@ -13,6 +13,7 @@ import { FormatStrip } from './FormatStrip';
 import { ExportDialog } from './ExportDialog';
 
 import { t } from '../i18n';
+import { openHelp } from '../store/help';
 
 function isTextField(t: EventTarget | null) {
   const el = t as HTMLElement | null;
@@ -175,6 +176,9 @@ function TopBar({ saveState, onExit, onExport }: { saveState: SaveState; onExit:
         <span className="hidden md:inline">
           <PrivacyBadge />
         </span>
+        <Button variant="ghost" onClick={openHelp} aria-label={t('Help')} title={t('Help (?)')}>
+          <span aria-hidden="true" className="flex size-5 items-center justify-center rounded-full text-sm font-semibold ring-1 ring-field">?</span>
+        </Button>
         <Button variant="primary" onClick={onExport}>
           <Icon name="download" />{' '}{t('Export')}
         </Button>
@@ -347,7 +351,7 @@ function Toasts() {
           role={toast.tone === 'error' ? 'alert' : 'status'}
           className={cx(
             'flex items-center gap-3 rounded-lg px-4 py-2 text-sm shadow-lg',
-            toast.tone === 'error' ? 'bg-danger text-on-accent' : 'bg-ink text-on-accent',
+            toast.tone === 'error' ? 'bg-danger text-on-accent' : 'bg-inverse text-on-inverse',
           )}
         >
           {toast.message}

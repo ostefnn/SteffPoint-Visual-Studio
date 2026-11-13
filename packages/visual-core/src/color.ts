@@ -232,17 +232,18 @@ export function derivePalette(primary: string, theme: Theme, style: PaletteStyle
   };
 }
 
-export type BackgroundKind = 'solid' | 'gradient' | 'glow' | 'grid' | 'mesh';
+export type BackgroundKind = 'solid' | 'gradient' | 'glow' | 'grid' | 'mesh' | 'image';
 
 /**
  * The most tinted colour a background reaches. Used both by the renderer
  * and by the contrast checker so text is tested against the worst case.
  */
-export function backgroundPeak(pal: Palette, type: BackgroundKind, intensity: number): string {
+export function backgroundPeak(pal: Palette, type: BackgroundKind, intensity: number, secondary?: string | null): string {
   const i = Math.min(1, Math.max(0, intensity));
+  // With a second colour, the gradient ends on it: that end is the strongest tint.
   switch (type) {
     case 'gradient':
-      return mix(pal.bg, pal.primary, 0.12 + 0.5 * i);
+      return mix(pal.bg, secondary ?? pal.primary, 0.12 + 0.5 * i);
     case 'glow':
       return mix(pal.bg, pal.primary, 0.1 + 0.3 * i);
     case 'mesh':

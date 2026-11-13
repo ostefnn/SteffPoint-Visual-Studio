@@ -36,6 +36,8 @@ import {
   applyBrandKit,
   brandKitFromProject,
   migrateBrandKit,
+  backgroundPeak,
+  withStyle,
 } from './index';
 
 describe('Tint and Technical palettes', () => {
@@ -668,7 +670,7 @@ describe('brand kits', () => {
     const p = createProject();
     p.assets.push({ id: 'logo1', name: 'logo.png', mime: 'image/png', width: 512, height: 512, size: 2048 });
     p.brand = { ...p.brand, primary: '#0f766e', style: 'bold', logoAssetId: 'logo1', footer: true, radius: 0.2 };
-    p.background = { type: 'mesh', intensity: 0.3, angle: 90 };
+    p.background = { type: 'mesh', intensity: 0.3, angle: 90, imageAssetId: null, secondary: null };
     p.desktopFrame = 'laptop';
     p.content.link = 'example.com';
     return p;
@@ -708,5 +710,39 @@ describe('brand kits', () => {
     expect(k.desktopFrame).toBe('plain');
     const round = brandKitFromProject(branded(), 'Teal');
     expect(migrateBrandKit(JSON.parse(JSON.stringify(round)))).toEqual(round);
+  });
+});
+
+describe('background image and second colour', () => {
+  const withImage = () => {
+    const p = createProject();
+    p.assets.push({ id: 'bg', name: 'bg.jpg', mime: 'image/jpeg', width: 1600, height: 900, size: 1 });
+    p.background = { ...p.background, type: 'image', imageAssetId: 'bg' };
+    return p;
+  };
+
+  it('keeps a valid photo and colour, drops dangling or invalid ones', () => {
+    const p = withImage();
+    p.background.secondary = '#DB2777';
+    expect(migrateProject(JSON.parse(JSON.stringify(p))).background).toMatchObject({ type: 'image', imageAssetId: 'bg', secondary: '#db2777' });
+    expect(migrateProject({ background: { type: 'image', imageAssetId: 'missing', secondary: 'pink' } }).background).toMatchObject({
+      imageAssetId: null,
+      secondary: null,
+    });
+    expect(migrateProject({}).background).toMatchObject({ imageAssetId: null, secondary: null });
+  });
+
+  it('keeps the photo when the style changes, but not in a brand kit', () => {
+    expect(withStyle(withImage(), 'editorial').background.type).toBe('image');
+    expect(withStyle(createProject(), 'technical').background.type).toBe('grid');
+    const kit = brandKitFromProject(withImage(), 'Photo');
+    expect(kit.background).toMatchObject({ type: 'solid', imageAssetId: null });
+  });
+
+  it('checks contrast against the second colour of a gradient', () => {
+    const pal = derivePalette('#2563eb', 'light', 'minimal');
+    expect(backgroundPeak(pal, 'gradient', 1, '#000000')).not.toBe(backgroundPeak(pal, 'gradient', 1));
+    const p = withImage();
+    expect(analyzeProject(p, FORMAT_PRESETS.linkedin).map((s) => s.id)).toContain('contrast-image');
   });
 });
