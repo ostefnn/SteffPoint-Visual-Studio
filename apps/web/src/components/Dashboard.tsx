@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   createProject,
   createScreenshotSlot,
@@ -302,13 +302,21 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
             <Icon name="upload" />{' '}{t('Import Project')}
           </Button>
           <input ref={fileInput} type="file" accept="application/json,.json" className="hidden" onChange={(e) => onImport(e.target.files)} />
-          <Button
-            onClick={() => legendInput.current?.click()}
-            disabled={importing}
-            title={t('Select a legend file (.md) and the screenshots it describes: one annotated page per section')}
-          >
-            <Icon name="image" /> {importing ? 'Importing…' : t('Import Legend')}
-          </Button>
+          <MoreMenu>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => legendInput.current?.click()}
+              disabled={importing}
+              className="flex w-full items-start gap-2 rounded-md px-3 py-2 text-left text-sm hover:bg-subtle focus-visible:bg-subtle focus-visible:outline-none disabled:opacity-50"
+            >
+              <Icon name="image" className="mt-0.5 size-4 flex-none" />
+              <span>
+                <span className="block font-medium">{importing ? t('Importing…') : t('Import Legend')}</span>
+                <span className="block text-xs text-muted">{t('Select a legend file (.md) and the screenshots it describes: one annotated page per section')}</span>
+              </span>
+            </button>
+          </MoreMenu>
           <input
             ref={legendInput}
             type="file"
@@ -446,6 +454,16 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
                     <p className="mt-0.5 text-xs text-muted">{t(tpl.description)}</p>
                   </div>
                 </button>
+                {tpl.id === 'annotated' && (
+                  <button
+                    type="button"
+                    onClick={() => legendInput.current?.click()}
+                    disabled={importing}
+                    className="mt-1.5 px-1 text-xs font-medium text-accent-deep underline-offset-2 hover:underline disabled:opacity-50"
+                  >
+                    {t('Or start from a legend file (.md and its screenshots)')}
+                  </button>
+                )}
               </li>
             ))}
           </ul>
@@ -550,5 +568,44 @@ function ProjectCard({ project, onOpen, actions }: { project: Project; onOpen: (
         </Button>
       </div>
     </li>
+  );
+}
+
+/** Secondary dashboard actions, kept out of the header so the main ones stand out. */
+function MoreMenu({ children }: { children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (!root.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey);
+    root.current?.querySelector<HTMLElement>('[role=menuitem]')?.focus();
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+  return (
+    <div ref={root} className="relative">
+      <Button aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+        {t('More')}{' '}<span aria-hidden="true">▾</span>
+      </Button>
+      {open && (
+        <div
+          role="menu"
+          aria-label={t('More')}
+          onClick={() => setOpen(false)}
+          className="absolute right-0 top-full z-20 mt-1 w-72 rounded-lg bg-surface p-1 shadow-xl ring-1 ring-line"
+        >
+          {children}
+        </div>
+      )}
+    </div>
   );
 }

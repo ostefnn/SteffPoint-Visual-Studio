@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { buildCarouselSlides, carouselFormat, resolveFormat, fitGrid, STYLE_IDS, STYLES, withStyle, type FormatPreset, type Project } from '@svs/visual-core';
+import { buildCarouselSlides, carouselFormat, resolveFormat, fitGrid, isPlaceholder, screenshotRange, STYLE_IDS, STYLES, withStyle, type FormatPreset, type Project } from '@svs/visual-core';
 import { useEditor } from '../store/editor';
 import { notify, useToasts } from '../store/toasts';
 import { useProjectSession, type SaveState } from '../lib/useProjectSession';
@@ -33,6 +33,24 @@ export function Editor({ projectId, onExit }: { projectId: string; onExit: () =>
     if (session.hasUnsavedConflict() && !confirm(t('Your changes conflict with another tab and are not saved. Leave anyway?'))) return;
     onExit();
   };
+
+  // ---- After the first screenshot, go to the title ---------------------------------
+  // The next step is the headline: focus it when it still holds the example text.
+  // Only with a mouse or trackpad, so a phone keyboard does not pop up over the preview.
+  const shotCount = project?.screenshots.length ?? 0;
+  const prevShots = useRef(shotCount);
+  useEffect(() => {
+    const before = prevShots.current;
+    prevShots.current = shotCount;
+    if (before !== 0 || shotCount === 0) return;
+    const p = useEditor.getState().project;
+    if (!p || !isPlaceholder(p.content.title) || !window.matchMedia('(pointer: fine)').matches) return;
+    const el = document.querySelector<HTMLTextAreaElement>('[data-example-field="Title"]');
+    if (el && !isTextField(document.activeElement)) {
+      el.focus();
+      el.select();
+    }
+  }, [shotCount]);
 
   // ---- Keyboard shortcuts and paste ------------------------------------------
   const saveRef = useRef(session.saveNow);
@@ -205,6 +223,9 @@ function Canvas() {
   const format = slide ? resolveFormat(carouselFormat(project)) : resolveFormat(active, project.customFormat);
   const shown = slide ? slide.project : project;
   const pad = 32;
+  // An empty project that expects screenshots: the whole preview adds one.
+  const needsShot = !slide && project.screenshots.length === 0 && screenshotRange(project).max > 0;
+  const shotInput = useRef<HTMLInputElement>(null);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -279,20 +300,50 @@ function Canvas() {
       <div ref={ref} className="checker relative flex h-[56vh] max-h-[640px] flex-none items-center justify-center overflow-hidden lg:h-auto lg:max-h-none lg:min-h-0 lg:flex-1" data-testid="canvas">
         {size.width > 0 && compare && <StyleMatrix project={shown} format={format} urls={urls} width={size.width} height={size.height} showSafeZones={showSafe} />}
         {size.width > 0 && !compare && (
-          <Stage
-            project={shown}
-            format={format}
-            urls={urls}
-            maxWidth={size.width - pad * 2}
-            maxHeight={size.height - pad * 2}
-            showSafeZones={showSafe}
-            label={
-              slide
-                ? t('Preview: carousel page {n} of {total}', { n: carouselPage! + 1, total: slides.length })
-                : t('Preview: {format}, {w} × {h}', { format: t(format.label), w: format.width, h: format.height })
-            }
-            className="shadow-xl ring-1 ring-ink/5"
-          />
+          <div className="relative">
+            <Stage
+              project={shown}
+              format={format}
+              urls={urls}
+              maxWidth={size.width - pad * 2}
+              maxHeight={size.height - pad * 2}
+              showSafeZones={showSafe}
+              label={
+                slide
+                  ? t('Preview: carousel page {n} of {total}', { n: carouselPage! + 1, total: slides.length })
+                  : t('Preview: {format}, {w} × {h}', { format: t(format.label), w: format.width, h: format.height })
+              }
+              className="shadow-xl ring-1 ring-ink/5"
+            />
+            {needsShot && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => shotInput.current?.click()}
+                  className="group absolute inset-0 flex cursor-pointer items-end justify-center pb-[6%] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  data-testid="canvas-add-screenshot"
+                >
+                  <span className="flex flex-col items-center gap-1 rounded-xl bg-surface/95 px-4 py-3 text-center text-sm shadow-lg ring-1 ring-line group-hover:ring-accent">
+                    <span className="flex items-center gap-1.5 font-medium text-accent-deep">
+                      <Icon name="upload" />{' '}{t('Add a Screenshot')}
+                    </span>
+                    <span className="text-xs text-muted">{t('Click, drop anywhere, or paste (Ctrl/Cmd+V)')}</span>
+                  </span>
+                </button>
+                <input
+                  ref={shotInput}
+                  type="file"
+                  multiple
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  className="hidden"
+                  onChange={(e) => {
+                    importImages(imageFilesFrom(e.target.files), 'screenshot');
+                    e.target.value = '';
+                  }}
+                />
+              </>
+            )}
+          </div>
         )}
       </div>
     </div>

@@ -610,4 +610,12 @@ export const nl: Record<string, string> = {
   "Image copied. Paste it into a post, a chat or an e-mail.": "Afbeelding gekopieerd. Plak ze in een post, een chat of een e-mail.",
   "The browser refused to copy the image. Use Export instead.": "De browser weigerde de afbeelding te kopiëren. Gebruik in de plaats Exporteren.",
   "Swipe": "Volgende",
+  "Importing…": "Importeren…",
+  "Or start from a legend file (.md and its screenshots)": "Of begin met een legendabestand (.md en de bijbehorende screenshots)",
+  "More": "Meer",
+  "Add a Screenshot": "Screenshot toevoegen",
+  "Example text is still in: {fields}. Replace it before publishing, or export anyway.": "Er staat nog voorbeeldtekst in: {fields}. Vervang die vóór het publiceren, of exporteer toch.",
+  "Edit Text": "Tekst bewerken",
+  "Pages with example text: {pages}.": "Pagina’s met voorbeeldtekst: {pages}.",
+  "{field} still contains the example text. Replace it before publishing.": "Het veld ‘{field}’ bevat nog de voorbeeldtekst. Vervang die vóór het publiceren.",
 };

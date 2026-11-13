@@ -88,7 +88,12 @@ test('project JSON round trip through import', async ({ page }) => {
 test('editor tabs follow the ARIA tabs keyboard pattern', async ({ page }) => {
   await newProject(page);
   const tab = (name: string) => page.getByRole('tab', { name });
-  await tab('Templates').focus();
+  // A new project has no screenshot yet, so the editor opens on Images.
+  await expect(tab('Images')).toHaveAttribute('aria-selected', 'true');
+  await tab('Images').focus();
+  await page.keyboard.press('ArrowLeft');
+  await expect(tab('Templates')).toBeFocused();
+  await expect(tab('Templates')).toHaveAttribute('aria-selected', 'true');
   await page.keyboard.press('ArrowRight');
   await expect(tab('Images')).toBeFocused();
   await expect(tab('Images')).toHaveAttribute('aria-selected', 'true');

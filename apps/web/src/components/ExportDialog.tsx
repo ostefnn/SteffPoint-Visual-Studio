@@ -6,6 +6,7 @@ import {
   FORMAT_ORDER,
   IOS_CANVAS_PIXELS,
   isScaleReasonable,
+  placeholderFields,
   resolveFormat,
   type FormatId,
 } from '@svs/visual-core';
@@ -70,6 +71,23 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
 
   // LinkedIn carousel: slides derived from the project (cover, one per screenshot, features).
   const slides = useMemo(() => buildCarouselSlides(project), [project]);
+  // Example texts still drawn in the images or on carousel pages. Shown, never blocking.
+  const examples = useMemo(() => placeholderFields(project), [project]);
+  const slideExamples = useMemo(
+    () => slides.map((s, i) => ({ page: i + 1, fields: placeholderFields(s.project) })).filter((x) => x.fields.length),
+    [slides],
+  );
+  const fieldList = (fields: string[]) => fields.map((f) => t(f)).join(', ');
+  const editText = () => {
+    const first = examples[0] ?? slideExamples[0]?.fields[0];
+    onClose();
+    // After the dialog closes, take the user to the first field to fix when the Content panel shows it.
+    requestAnimationFrame(() => {
+      const el = first ? document.querySelector<HTMLElement>(`[data-example-field="${first}"]`) : null;
+      el?.scrollIntoView({ block: 'center' });
+      el?.focus();
+    });
+  };
   const carouselFormat = resolveFormat(carouselFormatOf(project));
   const carouselBlocked = IS_IOS && !isScaleReasonable(carouselFormat.width, carouselFormat.height, scale, IOS_CANVAS_PIXELS);
   const runCarousel = async () => {
@@ -107,6 +125,14 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
         </Button>
       </div>
       <div className="space-y-5 px-5 py-4">
+        {examples.length > 0 && (
+          <div role="status" className="flex items-center gap-3 rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn-ink ring-1 ring-warn-line">
+            <p className="min-w-0 flex-1">{t('Example text is still in: {fields}. Replace it before publishing, or export anyway.', { fields: fieldList(examples) })}</p>
+            <Button size="sm" className="flex-none" onClick={editText} disabled={busy}>
+              {t('Edit Text')}
+            </Button>
+          </div>
+        )}
         <fieldset>
           <legend className="mb-2 text-sm font-semibold text-ink">{t('Formats')}</legend>
           <div className="space-y-3">
@@ -199,6 +225,13 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
               : t('Your custom pages.')}{' '}
             {t('Choose templates, text and order in the Carousel tab. Post the PDF on LinkedIn as a document.')}
           </p>
+          {slideExamples.length > 0 && (
+            <p role="status" className="mt-2 rounded-lg bg-warn-soft px-3 py-2 text-xs text-warn-ink ring-1 ring-warn-line">
+              {t('Pages with example text: {pages}.', {
+                pages: slideExamples.map((x) => `${x.page} (${fieldList(x.fields)})`).join(', '),
+              })}
+            </p>
+          )}
           <Button className="mt-3" onClick={runCarousel} disabled={busy || carouselBlocked}>
             <Icon name="download" /> {slides.length === 1 ? t('Export Carousel PDF (1 Page)') : t('Export Carousel PDF ({n} Pages)', { n: slides.length })}
           </Button>

@@ -16,7 +16,7 @@ export async function newProject(page: Page) {
 export async function addScreenshot(page: Page, file: string) {
   await page.getByRole('tab', { name: 'Images' }).click();
   const before = await page.locator('[role=tabpanel] li').count();
-  await page.locator('input[type=file][multiple]').setInputFiles(path.join(FIXTURES, file));
+  await page.locator('[role=tabpanel] input[type=file][multiple]').setInputFiles(path.join(FIXTURES, file));
   try {
     await expect(page.locator('[role=tabpanel] li')).toHaveCount(before + 1);
   } catch (e) {

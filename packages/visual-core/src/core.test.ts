@@ -38,6 +38,9 @@ import {
   migrateBrandKit,
   backgroundPeak,
   withStyle,
+  placeholderFields,
+  addPlaceholderTexts,
+  isPlaceholder,
 } from './index';
 
 describe('Tint and Technical palettes', () => {
@@ -352,6 +355,7 @@ describe('LinkedIn carousel', () => {
 
   it('generates cover, one page per screenshot and features automatically', () => {
     const p = withShots();
+    p.content.features = ['Invoices in two clicks', 'Exports to Excel'];
     const slides = buildCarouselSlides(p);
     expect(templates(p)).toEqual(['browser-hero', 'spotlight', 'mobile-trio', 'features']);
     expect(slides.every((s) => s.auto)).toBe(true);
@@ -360,6 +364,13 @@ describe('LinkedIn carousel', () => {
     expect(slides[2].label).toBe('Mobile Trio');
     expect(slides[0].project.content.kicker).toBe(p.content.kicker); // cover keeps its kicker
     expect(slides[3].project.content.kicker).toBe('4 / 4');
+  });
+
+  it('skips the features page while it only holds the example features', () => {
+    const p = withShots();
+    expect(templates(p)).not.toContain('features');
+    p.content.features = ['First thing people can do', 'Invoices in two clicks'];
+    expect(templates(p)).toContain('features');
   });
 
   it('skips the features page when empty or already the cover', () => {
@@ -744,5 +755,38 @@ describe('background image and second colour', () => {
     expect(backgroundPeak(pal, 'gradient', 1, '#000000')).not.toBe(backgroundPeak(pal, 'gradient', 1));
     const p = withImage();
     expect(analyzeProject(p, FORMAT_PRESETS.linkedin).map((s) => s.id)).toContain('contrast-image');
+  });
+});
+
+describe('example texts', () => {
+  it('flags the example title and subtitle of a new project, not real text', () => {
+    const p = createProject();
+    expect(placeholderFields(p)).toEqual(['Title', 'Subtitle']);
+    const ids = analyzeProject(p, FORMAT_PRESETS.linkedin).map((s) => s.id);
+    expect(ids).toContain('placeholder-Title');
+    expect(ids).toContain('placeholder-Subtitle');
+    p.content.title = 'Acme Billing 2.0';
+    p.content.subtitle = 'Send invoices in two clicks.';
+    expect(placeholderFields(p)).toEqual([]);
+  });
+
+  it('only checks the fields the template draws', () => {
+    const p = createProject({ template: 'testimonial' });
+    expect(placeholderFields(p)).toEqual(['Quote', 'Name', 'Role']);
+    p.template = 'stats';
+    expect(placeholderFields(p)).toContain('Key Figures');
+    p.template = 'code';
+    expect(placeholderFields(p)).toContain('Code');
+    p.content.code = 'const x = 1;';
+    expect(placeholderFields(p)).not.toContain('Code');
+  });
+
+  it('recognises registered translations', () => {
+    const p = createProject();
+    p.content.title = 'Nom de votre produit (test)';
+    expect(placeholderFields(p)).not.toContain('Title');
+    addPlaceholderTexts(['Nom de votre produit (test)']);
+    expect(placeholderFields(p)).toContain('Title');
+    expect(isPlaceholder('  Nom de votre produit (test) ')).toBe(true);
   });
 });

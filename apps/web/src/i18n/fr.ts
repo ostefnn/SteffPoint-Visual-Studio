@@ -610,4 +610,12 @@ export const fr: Record<string, string> = {
   "Image copied. Paste it into a post, a chat or an e-mail.": "Image copiée. Collez-la dans une publication, une conversation ou un e-mail.",
   "The browser refused to copy the image. Use Export instead.": "Le navigateur a refusé de copier l’image. Utilisez plutôt Exporter.",
   "Swipe": "Suivant",
+  "Importing…": "Importation…",
+  "Or start from a legend file (.md and its screenshots)": "Ou partir d’un fichier de légende (.md et ses captures)",
+  "More": "Plus",
+  "Add a Screenshot": "Ajouter une capture",
+  "Example text is still in: {fields}. Replace it before publishing, or export anyway.": "Texte d’exemple encore présent : {fields}. Remplacez-le avant de publier, ou exportez quand même.",
+  "Edit Text": "Modifier le texte",
+  "Pages with example text: {pages}.": "Pages avec du texte d’exemple : {pages}.",
+  "{field} still contains the example text. Replace it before publishing.": "Le champ « {field} » contient encore le texte d’exemple. Remplacez-le avant de publier.",
 };

@@ -69,8 +69,8 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 | ↩️ **Undo / redo** | Bounded history (60 steps); rapid edits like typing or sliders are merged into one step. |
 | 📋 **Copy Image** | Copies the format on screen (or the carousel page) as a PNG, to paste straight into LinkedIn, Teams or an e-mail without downloading anything. |
 | 📦 **Export** | PNG, JPEG or WebP at 1×, 2× or 3×. One image, or a ZIP with every selected format plus `project.json`. |
-| 🗂️ **LinkedIn carousel** | A multi-page PDF for a LinkedIn document post, with 4:5 (default), 1:1 or 16:9 pages. Automatic pages (cover, one per screenshot, features), or your own: a template per page, page-specific content (texts, features, steps, figures, table… choose **This page** in the Content panel) and screenshots, add, duplicate, reorder (drag, buttons or Alt+↑/↓). Up to 12 pages, with carousel-specific advice. |
-| 💡 **Smart suggestions** | Deterministic checks, no AI: title length, WCAG AA contrast, legibility in feeds, wrong template or device for the screenshot orientation, images or logo too small for the export size, missing quote author, figures or event date. Informative only, never blocks export. |
+| 🗂️ **LinkedIn carousel** | A multi-page PDF for a LinkedIn document post, with 4:5 (default), 1:1 or 16:9 pages. Automatic pages (cover, one per screenshot, then your features once they are real), or your own: a template per page, page-specific content (texts, features, steps, figures, table… choose **This page** in the Content panel) and screenshots, add, duplicate, reorder (drag, buttons or Alt+↑/↓). Up to 12 pages, with carousel-specific advice. |
+| 💡 **Smart suggestions** | Deterministic checks, no AI: title length, WCAG AA contrast, legibility in feeds, wrong template or device for the screenshot orientation, images or logo too small for the export size, missing quote author, figures or event date, and **example text left in** (also shown in the Export dialog). Informative only, never blocks export. |
 | ❓ **Help and dark mode** | Press **?** (or the ? button) for the steps, the keyboard shortcuts and where your data lives. The editor follows the system's light or dark mode, or the one chosen in Help; exported visuals keep their own theme. |
 | 🌍 **English, French, Dutch** | The whole interface, suggestions and messages in EN, FR or NL (dashboard, top right). Detected from the browser, remembered per browser. New projects start with placeholder content in that language. |
 | 🔁 **Import / export JSON** | Portable project file with images embedded. Backup, move between browsers, share. |
@@ -159,7 +159,7 @@ At 2× and 3× the pixel size is multiplied. Very large exports (> ~33 MP) show 
 ## How to use
 
 1. **New project** from the dashboard, or click a template to start from it.
-2. **Images** tab: add 1 to 4 screenshots (click, drop or paste).
+2. **Images** tab (opened first while the project has no screenshot): add 1 to 4 screenshots (click the empty preview or the Add button, drop or paste). The title is then selected so you can type your headline; until you rename the project, its name follows the title.
 3. **Content** panel (right): kicker, title, subtitle, plus the fields of the current template (quote and author, figures, event details, devices and their orientation, desktop frame). Below it, **Layout**: mirror, text position and alignment, and straight, tilted or 3D screens.
 4. **Templates** tab: pick a layout. Previews use your own screenshots.
 5. **Brand** tab: pick a **style** first, then colour, theme, radius, logo and its size (heading font and shadow in Soft). Best logo file: a transparent PNG or WebP cropped tight, at least 512 × 512 px for an icon or 800 px wide for a wordmark.
@@ -171,7 +171,7 @@ At 2× and 3× the pixel size is multiplied. Very large exports (> ~33 MP) show 
 
 ### Annotated guide from a legend file
 
-Have screenshots of a settings panel with numbered badges and a Markdown report that names each field (for example a SharePoint property pane capture)? On the dashboard, click **Import Legend** and select the `.md` file **together with its images**. Each `## Group (image.png)` section followed by a `| N° | Field | Property | State |` table becomes one screenshot with its caption and legend; the carousel becomes a guide: a title page (name, version), then one annotated page per group.
+Have screenshots of a settings panel with numbered badges and a Markdown report that names each field (for example a SharePoint property pane capture)? On the dashboard, open **More → Import Legend** (or click *Or start from a legend file* under the Annotated Panel template) and select the `.md` file **together with its images**. Each `## Group (image.png)` section followed by a `| N° | Field | Property | State |` table becomes one screenshot with its caption and legend; the carousel becomes a guide: a title page (name, version), then one annotated page per group.
 
 - Column names are recognised in English, French and Dutch (*Champ / Propriété / État*, *Veld / Eigenschap / Staat*); *Disabled*, *Désactivé* or *Uitgeschakeld* draws a hollow badge.
 - Images named in the report but not selected are listed, never replaced by placeholders.

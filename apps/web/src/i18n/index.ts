@@ -5,7 +5,7 @@
  * `{name}` placeholders are filled from `params`.
  */
 import { useSyncExternalStore } from 'react';
-import type { Content } from '@svs/visual-core';
+import { addPlaceholderTexts, PLACEHOLDER_TEXTS, type Content } from '@svs/visual-core';
 import { fr } from './fr';
 import { nl } from './nl';
 
@@ -17,6 +17,9 @@ export const LANGS: { id: Lang; label: string }[] = [
 ];
 
 const DICTS: Record<Exclude<Lang, 'en'>, Record<string, string>> = { fr, nl };
+
+// Example texts are recognised in every language, whatever the interface language was when the project was created.
+addPlaceholderTexts(PLACEHOLDER_TEXTS.flatMap((s) => [fr[s], nl[s]]).filter((s): s is string => !!s));
 const KEY = 'svs-lang';
 
 function detect(): Lang {
