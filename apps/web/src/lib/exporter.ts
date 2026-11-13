@@ -6,7 +6,6 @@ import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
 import { domToBlob } from 'modern-screenshot';
-import JSZip from 'jszip';
 import { BUNDLED_FONT_FACES, resolveFormat, type FormatId, type Project } from '@svs/visual-core';
 import { Composition } from '../render/Composition';
 import { buildProjectFile } from './projectFile';
@@ -96,6 +95,8 @@ export async function exportPack(
     return { blob, filename: `${base}-${formats[0]}${suffix}.${ext}` };
   }
 
+  // Loaded on first export only.
+  const { default: JSZip } = await import('jszip');
   const zip = new JSZip();
   const total = formats.length + (opts.includeProject ? 1 : 0);
   let done = 0;

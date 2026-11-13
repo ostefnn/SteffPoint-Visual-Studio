@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Dashboard } from './components/Dashboard';
-import { Editor } from './components/Editor';
-import { useLang } from './i18n';
+import { t, useLang } from './i18n';
 import { HelpDialog } from './components/HelpDialog';
 import { openHelp, useHelp } from './store/help';
 import './theme';
+
+// The editor (and the export engine it pulls in) loads on demand: the dashboard opens faster.
+const loadEditor = () => import('./components/Editor');
+const Editor = lazy(() => loadEditor().then((m) => ({ default: m.Editor })));
 
 /** Minimal hash router: `#/` dashboard, `#/p/<id>` editor. Survives reloads. */
 function parseHash(): string | null {
@@ -46,9 +49,22 @@ export function App() {
     location.hash = '#/';
   };
 
+  // On the dashboard, fetch the editor once the page is idle, so opening a project stays instant.
+  useEffect(() => {
+    if (projectId) return;
+    const idle = window.requestIdleCallback ?? ((f: () => void) => window.setTimeout(f, 1500));
+    idle(() => void loadEditor());
+  }, [projectId]);
+
   return (
     <>
-      {projectId ? <Editor key={projectId} projectId={projectId} onExit={goHome} /> : <Dashboard onOpen={openProject} />}
+      {projectId ? (
+        <Suspense fallback={<div className="flex h-full items-center justify-center text-sm text-muted">{t('Loading project…')}</div>}>
+          <Editor key={projectId} projectId={projectId} onExit={goHome} />
+        </Suspense>
+      ) : (
+        <Dashboard onOpen={openProject} />
+      )}
       {helpOpen && <HelpDialog />}
     </>
   );

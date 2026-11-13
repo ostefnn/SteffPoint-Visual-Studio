@@ -22,7 +22,6 @@ import { copyBlobs, createProjectRecord, deleteProject, getThumbnail, listBrandK
 import { getDefaultKitId, setDefaultKitId, withBrandKit } from '../lib/brandKits';
 import { buildProjectFile, importProjectFile } from '../lib/projectFile';
 import { noteBackup } from '../lib/backups';
-import { importLegendBundle } from '../lib/legendImport';
 import { notify } from '../store/toasts';
 import { downloadBlob, slugify } from '../lib/download';
 import { Button, cx, Icon, inputCls, useObjectUrl } from './ui';
@@ -292,6 +291,8 @@ export function Dashboard({ onOpen }: { onOpen: (id: string) => void }) {
     setError(null);
     setImporting(true);
     try {
+      // Loaded only when a legend is imported.
+      const { importLegendBundle } = await import('../lib/legendImport');
       const { project, missing, skipped } = await importLegendBundle([...files]);
       const pages = project.screenshots.length;
       notify(pages > 1 ? t('{n} annotated pages created from the legend.', { n: pages }) : t('One annotated page created from the legend.'));

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { buildCarouselSlides, carouselFormat, resolveFormat, fitGrid, isPlaceholder, screenshotRange, STYLE_IDS, STYLES, withStyle, type FormatPreset, type Project } from '@svs/visual-core';
 import { useEditor } from '../store/editor';
 import { notify, useToasts } from '../store/toasts';
@@ -169,7 +169,8 @@ function TopBar({ saveState, onExit, onExport }: { saveState: SaveState; onExit:
   const canRedo = useEditor((s) => s.future.length > 0);
   const { update, undo, redo } = useEditor.getState();
   return (
-    <header className="flex flex-wrap items-center gap-2 border-b border-line bg-surface px-3 py-2">
+    // Phones: one row (back, name, undo / redo, help, Export); larger screens add labels and the badge.
+    <header className="flex items-center gap-1 border-b border-line bg-surface px-2 py-2 sm:flex-wrap sm:gap-2 sm:px-3">
       <h1 className="sr-only">{t('Editing: {name}', { name: name || t('Untitled project') })}</h1>
       <Button variant="ghost" onClick={onExit} aria-label={t('Back to Projects')}>
         <Icon name="back" /> <span className="hidden sm:inline">{t('Projects')}</span>
@@ -179,9 +180,9 @@ function TopBar({ saveState, onExit, onExport }: { saveState: SaveState; onExit:
         value={name}
         maxLength={80}
         onChange={(e) => update((d) => void (d.name = e.target.value), 'name')}
-        className={cx(inputCls, 'w-48 font-medium sm:w-64')}
+        className={cx(inputCls, 'min-w-0 flex-1 font-medium sm:w-64 sm:flex-none')}
       />
-      <div className="flex">
+      <div className="flex flex-none">
         <Button variant="ghost" onClick={undo} disabled={!canUndo} aria-label={t('Undo')} title={t('Undo (Ctrl/Cmd+Z)')}>
           <Icon name="undo" />
         </Button>
@@ -189,17 +190,22 @@ function TopBar({ saveState, onExit, onExport }: { saveState: SaveState; onExit:
           <Icon name="redo" />
         </Button>
       </div>
-      <span className={cx('text-xs', SAVE_LABEL[saveState].cls)} aria-live="polite" data-testid="save-state">
+      {/* On phones the routine states stay for screen readers only; a failure is always shown. */}
+      <span
+        className={cx('text-xs', SAVE_LABEL[saveState].cls, (saveState === 'saved' || saveState === 'saving') && 'max-sm:sr-only')}
+        aria-live="polite"
+        data-testid="save-state"
+      >
         {t(SAVE_LABEL[saveState].text)}
       </span>
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex flex-none items-center gap-1 sm:gap-2">
         <span className="hidden md:inline">
           <PrivacyBadge />
         </span>
         <Button variant="ghost" onClick={openHelp} aria-label={t('Help')} title={t('Help (?)')}>
           <span aria-hidden="true" className="flex size-5 items-center justify-center rounded-full text-sm font-semibold ring-1 ring-field">?</span>
         </Button>
-        <Button variant="primary" onClick={onExport}>
+        <Button variant="primary" onClick={onExport} className="max-sm:px-2.5">
           <Icon name="download" />{' '}{t('Export')}
         </Button>
       </div>
@@ -222,7 +228,8 @@ function Canvas() {
   const slide = carouselPage === null ? undefined : slides[carouselPage];
   const format = slide ? resolveFormat(carouselFormat(project)) : resolveFormat(active, project.customFormat);
   const shown = slide ? slide.project : project;
-  const pad = 32;
+  // Less margin around the preview on phones, where every pixel of width counts.
+  const pad = size.width > 0 && size.width < 640 ? 12 : 32;
   // An empty project that expects screenshots: the whole preview adds one.
   const needsShot = !slide && project.screenshots.length === 0 && screenshotRange(project).max > 0;
   const shotInput = useRef<HTMLInputElement>(null);
@@ -297,7 +304,13 @@ function Canvas() {
           </label>
         </span>
       </div>
-      <div ref={ref} className="checker relative flex h-[56vh] max-h-[640px] flex-none items-center justify-center overflow-hidden lg:h-auto lg:max-h-none lg:min-h-0 lg:flex-1" data-testid="canvas">
+      {/* Below lg the preview box takes the format's proportions (capped), so a wide format does not sit in a tall empty area. */}
+      <div
+        ref={ref}
+        className="checker relative flex max-h-[56vh] w-full flex-none items-center justify-center overflow-hidden lg:h-auto lg:max-h-none lg:min-h-0 lg:flex-1 max-lg:aspect-[var(--canvas-ratio)] max-lg:min-h-48"
+        style={{ '--canvas-ratio': compare ? '4 / 3' : `${format.width + 120} / ${format.height + 120}` } as CSSProperties}
+        data-testid="canvas"
+      >
         {size.width > 0 && compare && <StyleMatrix project={shown} format={format} urls={urls} width={size.width} height={size.height} showSafeZones={showSafe} />}
         {size.width > 0 && !compare && (
           <div className="relative">

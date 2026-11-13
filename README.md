@@ -190,7 +190,7 @@ Your work is saved automatically in the browser. Use **JSON** on a project card 
 |---|---|
 | Desktop (Chrome, Edge, Firefox, Safari) | Full editor. Recommended. |
 | iPad (landscape) | Full three-column editor. |
-| iPad (portrait), iPhone | Stacked layout: preview, formats, then panels. Fine for edits and export; designed for quick changes rather than long sessions. |
+| iPad (portrait), iPhone | Stacked layout: one-row editor bar, a preview shaped like the format, then formats and panels. Fine for edits and export; designed for quick changes rather than long sessions. |
 
 On iPhone/iPad, very large exports (> 16.7 MP per image, e.g. Story at 3×) are blocked because Safari cannot render canvases that big. Exported ZIPs go to the Files app.
 
