@@ -89,6 +89,57 @@ test('Device Mix turns the tablet and phone to landscape', async ({ page }) => {
   await expect(page.getByRole('radiogroup', { name: 'Mobile orientation' }).getByRole('radio', { name: 'Landscape' })).toBeChecked();
 });
 
+test('Layout options mirror and tilt the template, and are saved', async ({ page }) => {
+  await newProject(page);
+  await addScreenshot(page, 'desktop-magenta.png');
+  await useTemplate(page, 'Browser Hero');
+  // Browser Hero puts the screenshot on the right of the text.
+  let png = await exportLinkedIn(page);
+  expectColor((await probePng(page, png, [0.75, 0.55])).rgb, MAGENTA);
+
+  // Mirrored: the screenshot moves to the left, the text to the right.
+  await page.getByRole('checkbox', { name: /^Mirror/ }).check();
+  png = await exportLinkedIn(page);
+  expectColor((await probePng(page, png, [0.25, 0.55])).rgb, MAGENTA);
+  expect((await probePng(page, png, [0.75, 0.55])).rgb).not.toEqual([...MAGENTA]);
+
+  // Tilted and 3D screens still show the screenshot.
+  for (const tilt of ['Tilted', '3D']) {
+    await page.getByRole('radiogroup', { name: 'Screens' }).getByRole('radio', { name: tilt, exact: true }).click();
+    await expect(page.getByTestId('canvas').locator('[data-tilt]')).toHaveCount(1);
+    expectColor((await probePng(page, await exportLinkedIn(page), [0.25, 0.55])).rgb, MAGENTA);
+  }
+
+  // Templates without tilt do not offer it, and their canvas stays straight.
+  await useTemplate(page, 'Minimal');
+  await expect(page.getByRole('radiogroup', { name: 'Screens' })).toHaveCount(0);
+  await expect(page.getByRole('checkbox', { name: /^Mirror/ })).toHaveCount(0);
+  await expect(page.getByTestId('canvas').locator('[data-tilt]')).toHaveCount(0);
+
+  await expect(page.getByTestId('save-state')).toHaveText('Saved');
+  await page.reload();
+  await useTemplate(page, 'Browser Hero');
+  await expect(page.getByRole('checkbox', { name: /^Mirror/ })).toBeChecked();
+  await expect(page.getByRole('radiogroup', { name: 'Screens' }).getByRole('radio', { name: '3D' })).toBeChecked();
+});
+
+test('Text position Bottom puts the text below the screens in stacked formats', async ({ page }) => {
+  await newProject(page);
+  await addScreenshot(page, 'desktop-magenta.png');
+  await useTemplate(page, 'Spotlight');
+  await page.getByRole('button', { name: 'Preview Square 1:1', exact: true }).click();
+  const canvas = page.getByTestId('canvas');
+  const title = canvas.locator('h1');
+  const shot = canvas.locator('img').first();
+  const centre = async (l: typeof title) => {
+    const b = (await l.boundingBox())!;
+    return b.y + b.height / 2;
+  };
+  expect(await centre(title)).toBeLessThan(await centre(shot));
+  await page.getByRole('radiogroup', { name: 'Text position' }).getByRole('radio', { name: 'Bottom' }).click();
+  await expect.poll(async () => (await centre(title)) > (await centre(shot))).toBe(true);
+});
+
 test('Crop and zoom out reshape the screenshot in the export', async ({ page }) => {
   await newProject(page);
   await addScreenshot(page, 'split-cyan-magenta.png'); // left half cyan, right half magenta

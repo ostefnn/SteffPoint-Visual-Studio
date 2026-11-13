@@ -3,7 +3,7 @@
  * Everything uses inline styles in pixels derived from the canvas size so the
  * exact same tree can be previewed (scaled with CSS) and exported (modern-screenshot).
  */
-import type { CSSProperties, ReactNode } from 'react';
+import { Children, cloneElement, Fragment, isValidElement, type CSSProperties, type ReactElement, type ReactNode } from 'react';
 import {
   BOLD_INK,
   BUNDLED_FONTS,
@@ -18,6 +18,9 @@ import {
   FONT_STACKS,
   getOrientation,
   getTemplate,
+  DEFAULT_LAYOUT,
+  MIRROR_TEMPLATES,
+  TILT_TEMPLATES,
   kickerSize,
   logoHeight,
   mix,
@@ -31,6 +34,8 @@ import {
   type DeviceKind,
   type Palette,
   type LegendItem,
+  type LayoutSettings,
+  type TemplateId,
   type Project,
   type ScreenshotSlot,
 } from '@svs/visual-core';
@@ -67,6 +72,12 @@ interface Ctx {
   /** Builds a box-shadow from soft layers. */
   softShadow: (layers: ShadowLayer[]) => string;
   shots: (ScreenshotSlot | undefined)[];
+  /** Layout options in effect: mirror and tilt are off for templates that do not offer them. */
+  layout: LayoutSettings;
+  /** The text sits above (or below) the screens rather than beside them. */
+  stacked: boolean;
+  /** Stacked layout drawn upside down: the text goes to the other end. */
+  flipY: boolean;
 }
 
 interface ShadowLayer {
@@ -134,8 +145,20 @@ export function Composition({ project, width, height, urls }: CompositionProps) 
           ]),
     softShadow: boxShadow,
     shots: project.screenshots.slice(0, 4),
+    layout: DEFAULT_LAYOUT,
+    stacked: false,
+    flipY: false,
   };
-  const Template = TEMPLATE_COMPONENTS[getTemplate(project.template).id];
+  const id = getTemplate(project.template).id;
+  const layout = project.layout ?? DEFAULT_LAYOUT;
+  ctx.layout = {
+    ...layout,
+    mirror: layout.mirror && MIRROR_TEMPLATES.includes(id),
+    tilt: TILT_TEMPLATES.includes(id) ? layout.tilt : 'none',
+  };
+  ctx.stacked = isStacked(id, ctx.o, ctx.wide);
+  ctx.flipY = ctx.stacked && layout.textPosition !== 'auto' && layout.textPosition !== NATURAL_TEXT_POSITION(id);
+  const Template = TEMPLATE_COMPONENTS[id];
   return (
     <div
       style={{
@@ -148,7 +171,7 @@ export function Composition({ project, width, height, urls }: CompositionProps) 
         ...backgroundStyle(ctx),
       }}
     >
-      <Template {...ctx} />
+      {arrange(Template(ctx), ctx)}
     </div>
   );
 }
@@ -203,6 +226,210 @@ function backgroundStyle({ p, pal, u, style }: Ctx): CSSProperties {
         ].join(', '),
       };
   }
+}
+
+// ---------------------------------------------------------------------------
+// Layout options: mirror, text position, tilt
+// ---------------------------------------------------------------------------
+
+/** Whether a template puts its text above the screens (true) or beside them, in this format. */
+function isStacked(id: TemplateId, o: Orientation, wide: boolean): boolean {
+  switch (id) {
+    case 'app-store':
+      return true;
+    case 'spotlight':
+    case 'before-after':
+      return !wide;
+    case 'minimal':
+    case 'testimonial':
+      return false; // text only: the position aligns the text block instead
+    default:
+      return o !== 'landscape' && !wide;
+  }
+}
+
+/** Where the text sits in a template's own stacked layout. */
+const NATURAL_TEXT_POSITION = (id: TemplateId) => (id === 'editorial' ? 'bottom' : 'top');
+
+const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+
+/** Mirror a box left to right inside a canvas `w` wide. */
+function mirrorX<T extends CSSProperties>(st: T, w: number): T {
+  const { left: L, right: R, width: W } = st;
+  if (isNum(L) && isNum(W)) return { ...st, left: w - L - W };
+  if (isNum(L) && isNum(R)) return { ...st, left: R, right: L };
+  if (isNum(L)) {
+    const { left: _l, ...rest } = st;
+    return { ...rest, right: L } as T;
+  }
+  if (isNum(R)) {
+    const { right: _r, ...rest } = st;
+    return { ...rest, left: R } as T;
+  }
+  return st;
+}
+
+/**
+ * Mirror a box top to bottom. A frame that bled off the bottom edge would bleed off the top and
+ * lose its title bar, so it is shortened to start inside the canvas instead; phones and tablets keep
+ * their proportions and bleed (their height cannot change without distorting them).
+ */
+function mirrorY<T extends CSSProperties>(st: T, ctx: Ctx, keepRatio: boolean): T {
+  const { h } = ctx;
+  const { top: T, bottom: B, height: H } = st;
+  if (isNum(T) && isNum(H)) {
+    let top = h - T - H;
+    let height = H;
+    const margin = h * (ctx.o === 'portrait' ? 0.08 : 0.05);
+    if (!keepRatio && top < margin && T + H > h) {
+      height = H - (margin - top);
+      top = margin;
+    }
+    return { ...st, top, height };
+  }
+  if (isNum(T) && isNum(B)) return { ...st, top: B, bottom: T };
+  if (isNum(T)) {
+    // Boxes centred on `top` with translateY(-50%) keep their centre mirrored.
+    if (String(st.transform ?? '').includes('translateY(-50%)')) return { ...st, top: h - T };
+    const { top: _t, ...rest } = st;
+    return { ...rest, bottom: T } as T;
+  }
+  if (isNum(B)) {
+    const { bottom: _b, ...rest } = st;
+    return { ...rest, top: B } as T;
+  }
+  return st;
+}
+
+type Rect = { left: number; top: number; width: number; height: number };
+
+/** The rectangle a positioned child occupies, when its geometry is known in pixels. */
+function rectOf(st: CSSProperties | undefined): Rect | null {
+  if (!st || !isNum(st.left) || !isNum(st.top) || !isNum(st.width) || !isNum(st.height)) return null;
+  return { left: st.left, top: st.top, width: st.width, height: st.height };
+}
+
+/** Transform of the tilted screens. They lean toward the text, so mirroring turns them the other way. */
+function tiltTransform(ctx: Ctx): string {
+  const s = ctx.layout.mirror ? -1 : 1;
+  if (ctx.layout.tilt === 'tilt') return `rotate(${-3.5 * s}deg)`;
+  const p = Math.max(ctx.w, ctx.h) * 1.8;
+  return ctx.stacked
+    ? `perspective(${p}px) rotateX(${ctx.flipY ? -14 : 14}deg) rotateY(${-6 * s}deg) scale(0.96)`
+    : // The near edge grows in perspective: scale down a little so it stays on the canvas.
+      `perspective(${p}px) rotateY(${-20 * s}deg) rotateX(6deg) scale(0.94)`;
+}
+
+/** Vertical extent of a positioned box, when known in pixels. */
+function extentY(st: CSSProperties, h: number): { top: number; bottom: number } | null {
+  if (!isNum(st.top) || String(st.transform ?? '').includes('translate')) return null;
+  if (isNum(st.height)) return { top: st.top, bottom: st.top + st.height };
+  if (isNum(st.bottom)) return { top: st.top, bottom: h - st.bottom };
+  return null;
+}
+
+/**
+ * Apply the layout options to a template's output, without touching the template:
+ * - Mirror: every top-level box is mirrored left to right. Content inside a box is never mirrored.
+ * - Text at the other end of a stacked layout: the text boxes are mirrored top to bottom, and the
+ *   screens move as one block into the space the text left, so overlapping devices keep their order.
+ * - Tilt: the screens turn as one group, toward the text.
+ */
+function arrange(node: ReactNode, ctx: Ctx): ReactNode {
+  const { mirror, tilt } = ctx.layout;
+  if (!mirror && !ctx.flipY && tilt === 'none') return node;
+  const { h } = ctx;
+  const list = isValidElement<{ children?: ReactNode }>(node) && node.type === Fragment ? Children.toArray(node.props.children) : Children.toArray(node);
+
+  type Item = { el: ReactElement<Record<string, unknown>>; key: 'style' | 'box'; geo: CSSProperties; text: boolean; keepRatio: boolean };
+  const items: (Item | ReactNode)[] = list.map((child) => {
+    if (!isValidElement<{ style?: CSSProperties; box?: Rect }>(child)) return child;
+    const key = child.type === CodeWindow ? 'box' : 'style';
+    let geo = { ...((child.props[key] ?? {}) as CSSProperties) };
+    if (mirror) geo = mirrorX(geo, ctx.w);
+    return {
+      el: child as ReactElement<Record<string, unknown>>,
+      key,
+      geo,
+      text: child.type === TextBlock,
+      keepRatio: child.type === PhoneFrame || child.type === TabletFrame,
+    } satisfies Item;
+  });
+  const isItem = (v: Item | ReactNode): v is Item => !!v && typeof v === 'object' && 'el' in (v as object) && 'geo' in (v as object);
+
+  if (ctx.flipY) {
+    // Screens that can move as a block: known extent, and not a phone bleeding off the edge
+    // (those are mirrored on their own and bleed off the top, as on a store page).
+    const movable = (it: Item) => {
+      const e = extentY(it.geo, h);
+      return e && !(it.keepRatio && e.bottom > h + 1) ? e : null;
+    };
+    // Decorative layers (Spotlight's glow) move with the screens but do not size the block.
+    const decorative = (it: Item) => it.el.type === 'div' && it.el.props.children === undefined;
+    const block = items.filter(isItem).filter((it) => !it.text && !decorative(it)).map(movable).filter((e) => !!e);
+    const T = Math.min(...block.map((e) => e.top));
+    const B = Math.max(...block.map((e) => e.bottom));
+    // The block goes where the text was. A block that bled off the bottom starts just inside the top.
+    const margin = h * (ctx.o === 'portrait' ? 0.08 : 0.05);
+    const newTop = B > h ? margin : h - B;
+    const dy = newTop - T;
+    const limit = h - T; // the block must end where the text now starts
+    for (const it of items.filter(isItem)) {
+      const e = it.text ? null : movable(it);
+      if (!e || !block.length) {
+        it.geo = mirrorY(it.geo, ctx, it.keepRatio);
+        continue;
+      }
+      const g = { ...it.geo, top: e.top + dy };
+      if (isNum(it.geo.bottom) && !isNum(it.geo.height)) g.bottom = it.geo.bottom - dy;
+      // Frames that bled past the block's end are shortened (their screenshot is cropped, not squashed).
+      const over = e.bottom + dy - limit;
+      if (over > 0 && !it.keepRatio && isNum(it.geo.height)) g.height = it.geo.height - over;
+      it.geo = g;
+    }
+  }
+
+  const out: ReactNode[] = [];
+  const visuals: ReactNode[] = [];
+  const boxes: Rect[] = [];
+  let firstVisual = -1;
+  for (const it of items) {
+    if (!isItem(it)) {
+      out.push(it);
+      continue;
+    }
+    const next = cloneElement(it.el, { [it.key]: it.geo });
+    if (tilt === 'none' || it.text) {
+      out.push(next);
+      continue;
+    }
+    if (firstVisual < 0) firstVisual = out.length;
+    visuals.push(next);
+    const r = rectOf(it.geo);
+    if (r) boxes.push(r);
+  }
+  if (!visuals.length) return out;
+  // Turn around the centre of the visible part of the screens.
+  const l = Math.max(0, Math.min(...boxes.map((b) => b.left)));
+  const t = Math.max(0, Math.min(...boxes.map((b) => b.top)));
+  const r = Math.min(ctx.w, Math.max(...boxes.map((b) => b.left + b.width)));
+  const b = Math.min(h, Math.max(...boxes.map((b) => b.top + b.height)));
+  const origin = boxes.length ? `${(l + r) / 2}px ${(t + b) / 2}px` : '50% 50%';
+  out.splice(
+    firstVisual,
+    0,
+    <div key="tilt" data-tilt={tilt} style={{ position: 'absolute', inset: 0, transform: tiltTransform(ctx), transformOrigin: origin }}>
+      {visuals}
+    </div>,
+  );
+  return out;
+}
+
+/** Mirror a CSS grid line span ("1 / 3", "2") across `tracks` tracks. */
+function flipGridLines(spec: string, tracks: number): string {
+  const [a, b] = spec.split('/').map((v) => parseInt(v, 10));
+  const end = Number.isFinite(b) ? b : a + 1;
+  return `${tracks + 2 - end} / ${tracks + 2 - a}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -645,16 +872,25 @@ function TextBlock({
   // Instrument Serif has a single (regular) weight: never synthesise a faux bold.
   const serifHeading = headingFont === FONT_STACKS.serif;
   const tSize = titleSize(u, o, title.length, scale) * spec.titleScale;
-  const center = align === 'center';
+  const a = ctx.layout.textAlign === 'auto' ? align : ctx.layout.textAlign;
+  const center = a === 'center';
+  // Beside the screens (or alone), Top and Bottom move the vertically centred column to an edge.
+  const pos = ctx.layout.textPosition;
+  const column = !ctx.stacked && pos !== 'auto' && style?.justifyContent === 'center';
   return (
     <div
       style={{
         display: 'flex',
         flexDirection: 'column',
-        alignItems: center ? 'center' : 'flex-start',
-        textAlign: align,
+        alignItems: center ? 'center' : a === 'right' ? 'flex-end' : 'flex-start',
+        textAlign: a,
         gap: u * 1.8 * scale,
         ...style,
+        ...(column && {
+          justifyContent: pos === 'top' ? 'flex-start' : 'flex-end',
+          paddingTop: pos === 'top' ? ctx.h * 0.09 : undefined,
+          paddingBottom: pos === 'bottom' ? ctx.h * 0.09 : undefined,
+        }),
       }}
     >
       <Logo ctx={ctx} height={logoHeight(u, p.brand.logoSize ?? 'medium', scale)} />
@@ -691,7 +927,7 @@ function TextBlock({
             color: c.muted,
             whiteSpace: 'pre-wrap',
             overflowWrap: 'break-word',
-            maxWidth: center ? '92%' : '100%',
+            maxWidth: a === 'left' ? '100%' : '92%',
           }}
         >
           {sub}
@@ -823,6 +1059,19 @@ function Bento(ctx: Ctx) {
     rows = '1.05fr 1.4fr 1fr';
     areas = [area('1 / 3', '1'), area('1 / 3', '2'), area('1', '3'), area('2', '3')];
   }
+  // Bento is one grid: mirror its columns, and its rows to put the text card at the bottom.
+  const nCols = cols.split(' ').length;
+  const nRows = rows.split(' ').length;
+  const bottom = ctx.layout.textPosition === 'bottom';
+  if (ctx.layout.mirror || bottom) {
+    areas = areas.map((ar) => ({
+      ...ar,
+      gridColumn: ctx.layout.mirror ? flipGridLines(String(ar.gridColumn), nCols) : ar.gridColumn,
+      gridRow: bottom ? flipGridLines(String(ar.gridRow), nRows) : ar.gridRow,
+    })) as typeof areas;
+    if (ctx.layout.mirror) cols = cols.split(' ').reverse().join(' ');
+    if (bottom) rows = rows.split(' ').reverse().join(' ');
+  }
   const pad = o === 'portrait' ? { top: ctx.h * 0.12, bottom: ctx.h * 0.16, x: u * 5 } : { top: u * 4.5, bottom: u * 4.5, x: u * 4.5 };
   const onPrimary = pal.onPrimary;
   return (
@@ -921,6 +1170,8 @@ function BeforeAfter(ctx: Ctx) {
     b = abs(w * 0.52, h * top, w * 0.43, h * (0.93 - top));
     arrow = { x: w / 2, y: h * (top + (0.93 - top) / 2), rotate: 0 };
   }
+  // Mirroring moves every box; swap the two side-by-side shots first so Before still comes first.
+  if (ctx.layout.mirror && (wide || o !== 'portrait')) [a, b] = [b, a];
   const label = (txt: string, after: boolean) => (
     <span
       style={{
@@ -1822,8 +2073,8 @@ function Annotated(ctx: Ctx) {
         containerType: 'size',
         display: 'flex',
         alignItems: 'center',
-        // Stacked shots line up with the title and the legend on the left.
-        justifyContent: side ? 'center' : 'flex-start',
+        // Stacked shots line up with the title and the legend on the left (right when mirrored).
+        justifyContent: side ? 'center' : ctx.layout.mirror ? 'flex-end' : 'flex-start',
       }}
     >
       <div
@@ -1864,11 +2115,13 @@ function Annotated(ctx: Ctx) {
   const text = <TextBlock ctx={ctx} scale={textScale} style={{ flex: 'none' }} />;
   const root: CSSProperties = { position: 'absolute', inset: 0, padding: pad, display: 'flex', gap };
 
+  const mirror = ctx.layout.mirror;
+  const textLast = ctx.layout.textPosition === 'bottom';
   if (beside) {
     return (
-      <div style={{ ...root, flexDirection: 'row' }}>
+      <div style={{ ...root, flexDirection: mirror ? 'row-reverse' : 'row' }}>
         {image}
-        <div style={{ flex: '1 1 0', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: gap * 0.8 }}>
+        <div style={{ flex: '1 1 0', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: textLast ? 'column-reverse' : 'column', justifyContent: 'center', gap: gap * 0.8 }}>
           {text}
           {legend}
         </div>
@@ -1876,9 +2129,9 @@ function Annotated(ctx: Ctx) {
     );
   }
   return (
-    <div style={{ ...root, flexDirection: 'column' }}>
+    <div style={{ ...root, flexDirection: textLast ? 'column-reverse' : 'column' }}>
       {text}
-      <div style={{ flex: '1 1 0', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: side ? 'row' : 'column', gap }}>
+      <div style={{ flex: '1 1 0', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: side ? (mirror ? 'row-reverse' : 'row') : 'column', gap }}>
         {image}
         {legend}
       </div>

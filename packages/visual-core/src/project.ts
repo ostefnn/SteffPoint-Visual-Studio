@@ -106,6 +106,34 @@ export interface Brand {
   style: StyleId;
 }
 
+/** Where the text block sits. `auto` keeps the template's own placement. */
+export type TextPosition = 'auto' | 'top' | 'bottom';
+export const TEXT_POSITIONS: readonly TextPosition[] = ['auto', 'top', 'bottom'];
+export type TextAlign = 'auto' | 'left' | 'center' | 'right';
+export const TEXT_ALIGNS: readonly TextAlign[] = ['auto', 'left', 'center', 'right'];
+/** Screens drawn straight, slightly rotated, or turned in perspective. */
+export type Tilt = 'none' | 'tilt' | 'perspective';
+export const TILTS: readonly Tilt[] = ['none', 'tilt', 'perspective'];
+
+/**
+ * Layout options shared by every template. The defaults reproduce each template's own layout,
+ * so projects saved before these options existed look the same.
+ */
+export interface LayoutSettings {
+  /** Swap left and right: the text goes to the other side (see MIRROR_TEMPLATES). */
+  mirror: boolean;
+  /**
+   * Stacked layouts (text above the screens): `bottom` puts the text below them.
+   * Side-by-side and text-only layouts: aligns the text block to the top or bottom.
+   */
+  textPosition: TextPosition;
+  textAlign: TextAlign;
+  /** See TILT_TEMPLATES. */
+  tilt: Tilt;
+}
+
+export const DEFAULT_LAYOUT: LayoutSettings = { mirror: false, textPosition: 'auto', textAlign: 'auto', tilt: 'none' };
+
 export interface Background {
   type: BackgroundType;
   intensity: number; // 0 – 1
@@ -167,6 +195,8 @@ export interface Project {
   desktopFrame: DesktopFrame;
   /** LinkedIn carousel. With no slides, pages are generated from the project. */
   carousel: CarouselSettings;
+  /** Mirror, text position and alignment, tilt. Shared by the carousel pages. */
+  layout: LayoutSettings;
 }
 
 /** Text a variant can replace. A missing key inherits the project's text. */
@@ -276,6 +306,7 @@ export function createProject(init: Partial<Pick<Project, 'name' | 'template'>> 
     deviceOrientation: { tablet: 'portrait', mobile: 'portrait' },
     desktopFrame: STYLES.minimal.defaults.desktopFrame,
     carousel: { slides: [], pageNumbers: true, pageSize: '4:5' },
+    layout: { ...DEFAULT_LAYOUT },
   };
 }
 
@@ -345,6 +376,7 @@ export function migrateProject(raw: unknown): Project {
   const bg = obj(r.background);
   const custom = obj(r.customFormat);
   const orient = obj(r.deviceOrientation);
+  const layout = obj(r.layout);
 
   const assets: AssetRef[] = Array.isArray(r.assets)
     ? r.assets
@@ -458,6 +490,12 @@ export function migrateProject(raw: unknown): Project {
     },
     desktopFrame: oneOf(r.desktopFrame, DESKTOP_FRAMES, legacy ? STYLES.soft.defaults.desktopFrame : d.desktopFrame),
     carousel: migrateCarousel(obj(r.carousel), new Set(screenshots.map((x) => x.id))),
+    layout: {
+      mirror: layout.mirror === true,
+      textPosition: oneOf(layout.textPosition, TEXT_POSITIONS, 'auto'),
+      textAlign: oneOf(layout.textAlign, TEXT_ALIGNS, 'auto'),
+      tilt: oneOf(layout.tilt, TILTS, 'none'),
+    },
   };
 }
 

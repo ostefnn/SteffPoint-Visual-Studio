@@ -54,6 +54,7 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 | 🗂️ **Projects** | Create, rename, duplicate, delete, favourite, search. Automatic thumbnails. Autosave. |
 | 💾 **Local storage** | Projects, images and thumbnails stored in IndexedDB. Close the tab, come back later, everything is there. |
 | 🧩 **16 templates** | Browser Hero, Device Mix, App Store, Browser Duo, Mobile Trio, Bento, Spotlight, Before / After, Testimonial, Key Figures, Event, Features, Code, Annotated Panel, Editorial, Minimal. |
+| 🧭 **Layout** | Works on every template: **Mirror** (text on the other side), **text position** (above or below the screens; beside them, aligned to the top or bottom), **text alignment** (left, centre, right) and **screens** straight, tilted or in 3D. *Auto* keeps each template's own layout. Shared by every format and carousel page. |
 | 🖼️ **Screenshots** | Up to 4 per project. Add by click, drag & drop anywhere, or paste (Ctrl/Cmd+V). Desktop screenshots can sit in a browser, a macOS window, no frame, or a laptop. |
 | 🎯 **Crop & focal point** | Crop each edge, cover / contain, zoom in or out (0.5×–3×), and a focal point that stays visible when the layout changes between landscape, square and portrait. |
 | ✒️ **Styles** | One click sets typefaces, title scale, kicker, frames, shadows and background for every template: **Minimal** (default), **Editorial**, **Bold**, or **Soft** (the original look, kept as an option). Fonts are bundled, so exports look the same on every computer. |
@@ -136,7 +137,7 @@ At 2× and 3× the pixel size is multiplied. Very large exports (> ~33 MP) show 
 
 1. **New project** from the dashboard, or click a template to start from it.
 2. **Images** tab: add 1 to 4 screenshots (click, drop or paste).
-3. **Content** panel (right): kicker, title, subtitle, plus the fields of the current template (quote and author, figures, event details, devices and their orientation, desktop frame).
+3. **Content** panel (right): kicker, title, subtitle, plus the fields of the current template (quote and author, figures, event details, devices and their orientation, desktop frame). Below it, **Layout**: mirror, text position and alignment, and straight, tilted or 3D screens.
 4. **Templates** tab: pick a layout. Previews use your own screenshots.
 5. **Brand** tab: pick a **style** first, then colour, theme, radius, logo and its size (heading font and shadow in Soft). Best logo file: a transparent PNG or WebP cropped tight, at least 512 × 512 px for an icon or 800 px wide for a wordmark.
 6. **Background** tab: style and intensity.
@@ -273,13 +274,16 @@ Exported `project.json` / `*.svs.json`:
     "customFormat": { "width": 1600, "height": 900 },
     "devices": ["desktop", "mobile"],
     "deviceOrientation": { "tablet": "portrait", "mobile": "portrait" },
-    "desktopFrame": "browser"
+    "desktopFrame": "browser",
+    "layout": { "mirror": false, "textPosition": "auto", "textAlign": "auto", "tilt": "none" }
   },
   "assets": { "ast_…": "data:image/png;base64,…" }
 }
 ```
 
 `schemaVersion` lets future versions migrate older files. Every import goes through `migrateProject()`, which drops unknown fields, clamps values, removes dangling references and fills newer fields with defaults, so files from earlier versions open unchanged. Projects that used the retired *Desktop + Mobile* template open as *Device Mix* with desktop and mobile.
+
+`layout` holds the layout options: `mirror` (boolean), `textPosition` (`"auto"`, `"top"`, `"bottom"`), `textAlign` (`"auto"`, `"left"`, `"center"`, `"right"`) and `tilt` (`"none"`, `"tilt"`, `"perspective"`). Mirror is ignored by centred templates (App Store, Minimal, Testimonial); tilt only applies to templates that draw screens in frames.
 
 In `carousel.slides`, each page is a **variant**: a template, optional `content` overrides (a missing `kicker`, `title` or `subtitle` uses the project's), and `screenshotIds` (`null` = the project's screenshots). An empty `slides` list means automatic pages. `pageSize` is `"4:5"`, `"1:1"` or `"16:9"`.
 
@@ -354,7 +358,7 @@ Issues and pull requests are welcome.
 1. Fork and create a branch.
 2. `npm install`, then `npm test && npm run typecheck && npm run build`.
 3. Keep the product principle in mind: **a professional result in two minutes, without being a designer.** Prefer fewer, better options.
-4. New templates: add the definition in `packages/visual-core/src/templates.ts` and the layout in `apps/web/src/render/Composition.tsx`, and make sure it looks right in landscape, square, portrait and banner formats.
+4. New templates: add the definition in `packages/visual-core/src/templates.ts` and the layout in `apps/web/src/render/Composition.tsx`, and make sure it looks right in landscape, square, portrait and banner formats. Mirror, text position and tilt work on its top-level boxes without extra code; list the template in `MIRROR_TEMPLATES` or `TILT_TEMPLATES` when those options make sense for it.
 
 ## License & credits
 

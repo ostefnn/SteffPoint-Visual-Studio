@@ -24,6 +24,11 @@ import {
   resolveFormat,
   screenshotRange,
   sanitizeText,
+  DEFAULT_LAYOUT,
+  MIRROR_TEMPLATES,
+  TILT_TEMPLATES,
+  TEMPLATES,
+  applyVariant,
 } from './index';
 
 describe('Tint and Technical palettes', () => {
@@ -484,5 +489,39 @@ describe('carousel page size', () => {
     expect(analyzeCarousel(p).map((s) => s.id)).not.toContain('carousel-wide');
     p.carousel.pageSize = '16:9';
     expect(analyzeCarousel(p).map((s) => s.id)).toContain('carousel-wide');
+  });
+});
+
+describe('layout options', () => {
+  it('default to the template layout, also for projects saved before they existed', () => {
+    expect(createProject().layout).toEqual(DEFAULT_LAYOUT);
+    expect(migrateProject({}).layout).toEqual({ mirror: false, textPosition: 'auto', textAlign: 'auto', tilt: 'none' });
+  });
+
+  it('keep valid choices and drop invalid ones', () => {
+    expect(migrateProject({ layout: { mirror: true, textPosition: 'bottom', textAlign: 'right', tilt: 'perspective' } }).layout).toEqual({
+      mirror: true,
+      textPosition: 'bottom',
+      textAlign: 'right',
+      tilt: 'perspective',
+    });
+    expect(migrateProject({ layout: { mirror: 'yes', textPosition: 'middle', textAlign: 'justify', tilt: 45 } }).layout).toEqual(DEFAULT_LAYOUT);
+    expect(migrateProject({ layout: 'mirror' }).layout).toEqual(DEFAULT_LAYOUT);
+  });
+
+  it('round trip and are shared by the carousel pages', () => {
+    const p = createProject();
+    p.layout = { mirror: true, textPosition: 'top', textAlign: 'center', tilt: 'tilt' };
+    expect(migrateProject(JSON.parse(JSON.stringify(p))).layout).toEqual(p.layout);
+    expect(applyVariant(p, createVariant({ template: 'browser-hero' })).layout).toEqual(p.layout);
+  });
+
+  it('offer mirror and tilt only where they change something', () => {
+    const ids = TEMPLATES.map((t) => t.id);
+    for (const id of [...MIRROR_TEMPLATES, ...TILT_TEMPLATES]) expect(ids).toContain(id);
+    // Centred templates look the same mirrored.
+    for (const id of ['app-store', 'minimal', 'testimonial'] as const) expect(MIRROR_TEMPLATES).not.toContain(id);
+    // Full-bleed images, grids, legends and text-only templates stay straight.
+    for (const id of ['editorial', 'bento', 'annotated', 'stats', 'features', 'minimal'] as const) expect(TILT_TEMPLATES).not.toContain(id);
   });
 });

@@ -41,6 +41,40 @@ export const DESKTOP_FRAMES: readonly DesktopFrame[] = ['browser', 'window', 'pl
 /** Templates that draw desktop screenshots in a desktop frame. */
 export const DESKTOP_FRAME_TEMPLATES: readonly TemplateId[] = ['browser-hero', 'browser-duo', 'device-mix', 'app-store'];
 
+/**
+ * Templates whose layout can be mirrored (text on the other side). Centred templates (App Store,
+ * Minimal, Testimonial) look the same mirrored, so the option is not offered there.
+ */
+export const MIRROR_TEMPLATES: readonly TemplateId[] = [
+  'browser-hero',
+  'device-mix',
+  'browser-duo',
+  'mobile-trio',
+  'bento',
+  'spotlight',
+  'before-after',
+  'editorial',
+  'stats',
+  'event',
+  'features',
+  'code',
+  'annotated',
+];
+/**
+ * Templates whose screens can be tilted. Full-bleed images, grids, legends and text-only
+ * templates stay straight: tilting them would expose the corners or misalign the call-outs.
+ */
+export const TILT_TEMPLATES: readonly TemplateId[] = [
+  'browser-hero',
+  'device-mix',
+  'app-store',
+  'browser-duo',
+  'mobile-trio',
+  'spotlight',
+  'before-after',
+  'code',
+];
+
 /** Tablet and phone frames can be held upright or turned sideways. */
 export type DeviceOrientation = 'portrait' | 'landscape';
 export type RotatableDevice = Exclude<DeviceKind, 'desktop'>;

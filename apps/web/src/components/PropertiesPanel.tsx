@@ -5,6 +5,9 @@ import {
   clampCode,
   CROP_MAX,
   DESKTOP_FRAME_TEMPLATES,
+  DEFAULT_LAYOUT,
+  MIRROR_TEMPLATES,
+  TILT_TEMPLATES,
   DEVICE_KINDS,
   DEVICE_LABELS,
   getTemplate,
@@ -23,6 +26,9 @@ import {
   type DeviceKind,
   type DeviceOrientation,
   type LegendItem,
+  type TextAlign,
+  type TextPosition,
+  type Tilt,
   type RotatableDevice,
   type ScreenshotSlot,
 } from '@svs/visual-core';
@@ -34,6 +40,7 @@ export function PropertiesPanel({ className }: { className?: string }) {
   return (
     <aside className={className}>
       <ContentSection />
+      <LayoutSection />
       <ImageSection />
       <Suggestions />
     </aside>
@@ -301,6 +308,92 @@ function LegendField({ legend, onChange }: { legend: LegendItem[]; onChange: (le
       />
       <span className="mt-1 block text-xs text-muted">Line 1 names badge 1 in the image. Add “| off” for a field that is greyed out.</span>
     </Field>
+  );
+}
+
+/**
+ * Layout options shared by every template: mirror, text position and alignment, tilt.
+ * Auto keeps the template's own layout; options a template cannot use are not shown.
+ */
+function LayoutSection() {
+  const layout = useEditor((s) => s.project?.layout) ?? DEFAULT_LAYOUT;
+  const template = useEditor((s) =>
+    s.project ? (s.carouselPage !== null ? buildCarouselSlides(s.project)[s.carouselPage]?.variant.template : undefined) ?? s.project.template : undefined,
+  );
+  const { update } = useEditor.getState();
+  if (!template) return null;
+  const canMirror = MIRROR_TEMPLATES.includes(template);
+  const canTilt = TILT_TEMPLATES.includes(template);
+  const custom = layout.mirror || layout.textPosition !== 'auto' || layout.textAlign !== 'auto' || layout.tilt !== 'none';
+  return (
+    <Section
+      title="Layout"
+      action={
+        custom ? (
+          <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[11px]" onClick={() => update((d) => void (d.layout = { ...DEFAULT_LAYOUT }))}>
+            Reset
+          </Button>
+        ) : undefined
+      }
+    >
+      {canMirror && (
+        <label className="flex items-center gap-2 text-xs font-medium text-ink">
+          <input
+            type="checkbox"
+            checked={layout.mirror}
+            onChange={(e) => update((d) => void (d.layout.mirror = e.target.checked))}
+            className="size-4 accent-accent"
+          />
+          Mirror: text on the other side
+        </label>
+      )}
+      <div>
+          <p className="mb-1 text-xs font-medium text-muted">Text position</p>
+        <Segmented<TextPosition>
+          label="Text position"
+          value={layout.textPosition}
+          options={[
+            { value: 'auto', label: 'Auto' },
+            { value: 'top', label: 'Top' },
+            { value: 'bottom', label: 'Bottom' },
+          ]}
+          onChange={(v) => update((d) => void (d.layout.textPosition = v))}
+        />
+      </div>
+      <div>
+          <p className="mb-1 text-xs font-medium text-muted">Text alignment</p>
+        <Segmented<TextAlign>
+          label="Text alignment"
+          value={layout.textAlign}
+          options={[
+            { value: 'auto', label: 'Auto' },
+            { value: 'left', label: 'Left' },
+            { value: 'center', label: 'Center' },
+            { value: 'right', label: 'Right' },
+          ]}
+          onChange={(v) => update((d) => void (d.layout.textAlign = v))}
+        />
+      </div>
+      {canTilt && (
+        <div>
+          <p className="mb-1 text-xs font-medium text-muted">Screens</p>
+          <Segmented<Tilt>
+            label="Screens"
+            value={layout.tilt}
+            options={[
+              { value: 'none', label: 'Straight' },
+              { value: 'tilt', label: 'Tilted' },
+              { value: 'perspective', label: '3D' },
+            ]}
+            onChange={(v) => update((d) => void (d.layout.tilt = v))}
+          />
+        </div>
+      )}
+      <p className="text-[11px] text-muted">
+        Auto keeps the template’s own layout. Bottom puts the text under the screens; beside them, Top and Bottom align it to that edge.
+        Shared by every format and carousel page.
+      </p>
+    </Section>
   );
 }
 
