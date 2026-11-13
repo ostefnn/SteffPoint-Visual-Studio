@@ -14,11 +14,14 @@ test('editor is usable on touch devices', async ({ page }) => {
   await expect(page.getByRole('dialog')).toBeVisible();
 });
 
-test('on a phone the editor bar is one row and the preview takes the format’s shape', async ({ page, isMobile }) => {
-  test.skip(!isMobile, 'phone layout');
+test('on phones and tablets the preview takes the format’s shape; on a phone the bar is one row', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'touch layout');
   await newProject(page);
-  const bar = (await page.getByRole('banner').first().boundingBox())!;
-  expect(bar.height).toBeLessThan(64);
+  // The one-row bar is the phone layout (below 640 px); tablets keep the wrapping bar with labels.
+  if (page.viewportSize()!.width < 640) {
+    const bar = (await page.getByRole('banner').first().boundingBox())!;
+    expect(bar.height).toBeLessThan(64);
+  }
   // LinkedIn (landscape): the preview box is wider than tall.
   const canvas = (await page.getByTestId('canvas').boundingBox())!;
   expect(canvas.width).toBeGreaterThan(canvas.height);
