@@ -1,6 +1,7 @@
 /**
  * Carousel tab: the pages of the LinkedIn carousel PDF.
- * Automatic mode derives pages from the project; "Customize" turns them into editable
+ * Automatic mode derives pages from the project following a plan (launch, tutorial, release notes)
+ * and closes on a Call to Action page once there is a link; "Customize" turns them into editable
  * variants (own template, optional own text, own screenshot selection), which can be
  * added, duplicated, reordered (buttons, drag & drop, Alt+↑/↓) and removed.
  */
@@ -10,6 +11,7 @@ import {
   autoCarouselVariants,
   buildCarouselSlides,
   CAROUSEL_PAGE_SIZES,
+  CAROUSEL_PLANS,
   carouselFormat,
   CAROUSEL_MAX_SLIDES,
   createVariant,
@@ -19,6 +21,7 @@ import {
   TEMPLATES,
   uid,
   type CarouselPageSize,
+  type CarouselPlan,
   type TemplateId,
   type Variant,
 } from '@svs/visual-core';
@@ -31,6 +34,13 @@ import { t, tMessage } from '../i18n';
 const TEXT_LABEL = { kicker: 'Kicker', title: 'Title', subtitle: 'Subtitle' } as const;
 const TEXT_LIMIT = { kicker: LIMITS.kicker, title: LIMITS.title, subtitle: LIMITS.subtitle } as const;
 
+const PLAN_LABEL: Record<CarouselPlan, string> = { launch: 'Launch', tutorial: 'Tutorial', release: 'Release Notes' };
+const PLAN_HINT: Record<CarouselPlan, string> = {
+  launch: 'Automatic pages: cover, one page per screenshot (titled with its caption), then your features.',
+  tutorial: 'Automatic pages: cover, your steps, then one zoomed page per screenshot (titled with its caption).',
+  release: 'Automatic pages: cover, your features, the first two screenshots as Before / After, then one page per other screenshot.',
+};
+
 export function CarouselPanel() {
   const project = useEditor((s) => s.project)!;
   const urls = useEditor((s) => s.previewUrls); // small previews: reduced copies (lib/previews)
@@ -40,6 +50,7 @@ export function CarouselPanel() {
   const format = resolveFormat(carouselFormat(project));
   const advice = useMemo(() => analyzeCarousel(project), [project]);
   const custom = project.carousel.slides.length > 0;
+  const guide = project.template === 'annotated';
   const [dragFrom, setDragFrom] = useState<number | null>(null);
 
   // Opening the tab shows the carousel on the canvas; leaving it shows the project again.
@@ -93,8 +104,46 @@ export function CarouselPanel() {
         <p className="text-xs text-muted">
           {custom
             ? t('Custom pages. Brand, background and images stay shared with the project.')
-            : t('Automatic pages: cover, one page per screenshot (titled with its caption), then your features.')}
+            : guide
+              ? t('Automatic pages: a title page, then one annotated page per group.')
+              : `${t(PLAN_HINT[project.carousel.plan])} ${t('A Call to Action page closes the carousel once you add a link.')}`}
         </p>
+        {!custom && !guide && (
+          <div>
+            <p className="mb-1 text-xs font-medium text-ink-soft">{t('Plan')}</p>
+            <Segmented<CarouselPlan>
+              label={t('Carousel plan')}
+              value={project.carousel.plan}
+              options={CAROUSEL_PLANS.map((v) => ({ value: v, label: t(PLAN_LABEL[v]) }))}
+              onChange={(v) => {
+                update((d) => void (d.carousel.plan = v));
+                setCarouselPage(0);
+              }}
+            />
+          </div>
+        )}
+        {!custom && project.template !== 'cta' && (
+          <div className="space-y-2">
+            <Field label={t('Closing page link')}>
+              <input
+                value={project.content.link}
+                maxLength={LIMITS.link}
+                onChange={(e) => update((d) => void (d.content.link = e.target.value), 'carousel-link')}
+                className={inputCls}
+                placeholder={t('e.g. steffpoint.com/visual-studio…')}
+              />
+            </Field>
+            <Field label={t('Closing page button')}>
+              <input
+                value={project.content.cta}
+                maxLength={LIMITS.cta}
+                onChange={(e) => update((d) => void (d.content.cta = e.target.value), 'carousel-cta')}
+                className={inputCls}
+                placeholder={t('e.g. Try it free…')}
+              />
+            </Field>
+          </div>
+        )}
         <div className="flex flex-wrap gap-2">
           {custom ? (
             <>

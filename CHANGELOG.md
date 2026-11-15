@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- **Carousel plans.** The automatic LinkedIn carousel follows a plan chosen in the Carousel tab: *Launch* (as before), *Tutorial* (your steps, then one Detail Zoom page per screenshot) or *Release Notes* (your features, the first two screenshots as Before / After, then the others). Steps and features get a page once they are real. Annotated Panel projects stay a guide. Saved projects open on *Launch*.
+- **The automatic carousel closes on a Call to Action page** once the project has a link, which can now be typed in the Carousel tab (with the button text). Before, the carousel advice asked for a closing page that automatic pages could not add.
+
 ## 1.0.1 (2026-11-13)
 
 - **iPhone: no more crash with large photos.** Safari on iPhone could close the editor tab ("A problem repeatedly occurred") once a project held a few large images (for example two 2000 × 2000 photos): the editor drew the full-size files in dozens of small previews and embedded them in the thumbnail rendered after each edit. Small previews (format strip, templates, styles, backgrounds, carousel, Images list, focal point) and the dashboard thumbnail now use a copy of at most 1024 px. On phones and small tablets the main preview uses it too. Exports and Copy Image always use the original file.

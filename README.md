@@ -71,7 +71,7 @@ It is deliberately **not** Canva, Figma or Photoshop. It is a guided, focused to
 | ↩️ **Undo / redo** | Bounded history (60 steps); rapid edits like typing or sliders are merged into one step. |
 | 📋 **Copy Image** | Copies the format on screen (or the carousel page) as a PNG, to paste straight into LinkedIn, Teams or an e-mail without downloading anything. |
 | 📦 **Export** | PNG, JPEG or WebP at 1×, 2× or 3×. One image, or a ZIP with every selected format plus `project.json`. |
-| 🗂️ **LinkedIn carousel** | A multi-page PDF for a LinkedIn document post, with 4:5 (default), 1:1 or 16:9 pages. Automatic pages (cover, one per screenshot, then your features once they are real), or your own: a template per page, page-specific content (texts, features, steps, figures, table… choose **This page** in the Content panel) and screenshots, add, duplicate, reorder (drag, buttons or Alt+↑/↓). Up to 12 pages, with carousel-specific advice. |
+| 🗂️ **LinkedIn carousel** | A multi-page PDF for a LinkedIn document post, with 4:5 (default), 1:1 or 16:9 pages. Automatic pages following a **plan**: *Launch* (cover, one page per screenshot, then your features once they are real), *Tutorial* (cover, your steps, one zoomed page per screenshot) or *Release Notes* (cover, features, the first two screenshots as Before / After, the other screenshots); every plan closes on a Call to Action page once you give it a link. Or your own pages: a template per page, page-specific content (texts, features, steps, figures, table… choose **This page** in the Content panel) and screenshots, add, duplicate, reorder (drag, buttons or Alt+↑/↓). Up to 12 pages, with carousel-specific advice. |
 | 💡 **Smart suggestions** | Deterministic checks, no AI: title length, WCAG AA contrast, legibility in feeds, wrong template or device for the screenshot orientation, images or logo too small for the export size, missing quote author, figures or event date, and **example text left in** (also shown in the Export dialog). Informative only, never blocks export. |
 | ❓ **Help and dark mode** | Press **?** (or the ? button) for the steps, the keyboard shortcuts and where your data lives. The editor follows the system's light or dark mode, or the one chosen in Help; exported visuals keep their own theme. |
 | 🌍 **English, French, Dutch** | The whole interface, suggestions and messages in EN, FR or NL (dashboard, top right). Detected from the browser, remembered per browser. New projects start with placeholder content in that language. |
@@ -169,7 +169,7 @@ At 2× and 3× the pixel size is multiplied. Very large exports (> ~33 MP) show 
 7. Select a screenshot to **crop** its edges and set **zoom, fit and focal point** (click or drag on the image, or use arrow keys).
 8. Check every format in the **bottom strip**; tick the ones to export. Turn on **Safe zones** if needed.
 9. **Export** → choose file type and resolution → download the ZIP.
-10. **LinkedIn carousel** (optional): open the **Carousel** tab and pick the **Page size** (4:5 by default, the largest in the feed; 1:1 or 16:9 also work). Pages are generated automatically (captions from the Image panel become page titles). Click **Customize Pages** to pick a template per page, give a page its own text or screenshots, add a closing page and reorder. Then in Export click **Export Carousel PDF** and post the file on LinkedIn as a document.
+10. **LinkedIn carousel** (optional): open the **Carousel** tab and pick the **Page size** (4:5 by default, the largest in the feed; 1:1 or 16:9 also work). Pick a **Plan** (Launch, Tutorial or Release Notes): pages are generated automatically (captions from the Image panel become page titles), and a **closing page link** adds a Call to Action page at the end. Click **Customize Pages** to pick a template per page, give a page its own text or screenshots, add a closing page and reorder. Then in Export click **Export Carousel PDF** and post the file on LinkedIn as a document.
 
 ### Annotated guide from a legend file
 
@@ -296,6 +296,7 @@ Exported `project.json` / `*.svs.json`:
     }],
     "exportPresets": ["linkedin", "open-graph", "square"],
     "carousel": {
+      "plan": "launch",
       "pageNumbers": true,
       "pageSize": "4:5",
       "slides": [
@@ -317,7 +318,7 @@ Exported `project.json` / `*.svs.json`:
 
 `layout` holds the layout options: `mirror` (boolean), `textPosition` (`"auto"`, `"top"`, `"bottom"`), `textAlign` (`"auto"`, `"left"`, `"center"`, `"right"`) and `tilt` (`"none"`, `"tilt"`, `"perspective"`). Mirror is ignored by centred templates (App Store, Minimal, Testimonial); tilt only applies to templates that draw screens in frames.
 
-In `carousel.slides`, each page is a **variant**: a template, optional `content` overrides (any content field; a missing one uses the project's), and `screenshotIds` (`null` = the project's screenshots). An empty `slides` list means automatic pages. `pageSize` is `"4:5"`, `"1:1"` or `"16:9"`.
+In `carousel.slides`, each page is a **variant**: a template, optional `content` overrides (any content field; a missing one uses the project's), and `screenshotIds` (`null` = the project's screenshots). An empty `slides` list means automatic pages, generated following `plan` (`"launch"`, `"tutorial"` or `"release"`; Annotated Panel projects are always a guide). `pageSize` is `"4:5"`, `"1:1"` or `"16:9"`.
 
 ## Architecture
 

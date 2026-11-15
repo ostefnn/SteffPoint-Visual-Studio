@@ -103,3 +103,41 @@ test('a carousel page can have its own template content', async ({ page }) => {
   await page.getByRole('button', { name: 'Use the project’s content again' }).click();
   await expect(canvas).not.toContainText('Only on this page');
 });
+
+test('automatic carousel: plans and a closing page once there is a link', async ({ page }) => {
+  await newProject(page);
+  await titleBox(page).fill('Cockpit SteffPoint');
+  await addScreenshot(page, 'desktop-magenta.png');
+  await addScreenshot(page, 'desktop-cyan.png');
+  await page.getByRole('tab', { name: 'Carousel' }).click();
+  await expect(pages(page)).toHaveCount(3);
+  await expect(page.getByText(/add a closing page link above/)).toBeVisible();
+
+  // A link adds the closing page; the advice goes away.
+  await page.getByRole('textbox', { name: 'Closing page link' }).fill('steffpoint.com');
+  await page.getByRole('textbox', { name: 'Closing page button' }).fill('Try it free');
+  await expect(pages(page)).toHaveCount(4);
+  await expect(pages(page).last()).toContainText('Call to Action');
+  await expect(page.getByText(/add a closing page link above/)).toHaveCount(0);
+
+  // Tutorial: one zoomed page per screenshot, still closing on the link.
+  const plans = page.getByRole('radiogroup', { name: 'Carousel plan' });
+  await expect(plans.getByRole('radio', { name: 'Launch' })).toBeChecked();
+  await plans.getByRole('radio', { name: 'Tutorial' }).click();
+  await expect(pages(page)).toHaveCount(4);
+  await expect(pages(page).nth(1)).toContainText('Detail Zoom');
+
+  // Release notes: the two screenshots become one Before / After page.
+  await plans.getByRole('radio', { name: 'Release Notes' }).click();
+  await expect(pages(page)).toHaveCount(3);
+  await expect(pages(page).nth(1)).toContainText('Before / After');
+
+  // The plan is saved with the project, and customising starts from its pages.
+  await expect(page.getByTestId('save-state')).toHaveText('Saved');
+  await page.reload();
+  await page.getByRole('tab', { name: 'Carousel' }).click();
+  await expect(page.getByRole('radiogroup', { name: 'Carousel plan' }).getByRole('radio', { name: 'Release Notes' })).toBeChecked();
+  await page.getByRole('button', { name: 'Customize Pages' }).click();
+  await expect(pages(page)).toHaveCount(3);
+  await expect(page.getByRole('radiogroup', { name: 'Carousel plan' })).toHaveCount(0);
+});

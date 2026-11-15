@@ -296,9 +296,19 @@ export interface Variant {
 export type CarouselPageSize = '4:5' | '1:1' | '16:9';
 export const CAROUSEL_PAGE_SIZES: readonly CarouselPageSize[] = ['4:5', '1:1', '16:9'];
 
+/**
+ * Story the automatic pages tell (see carousel.ts). Annotated Panel projects are always a guide.
+ *   launch   – cover, one page per screenshot, features, closing page
+ *   tutorial – cover, steps, one zoomed page per screenshot, closing page
+ *   release  – cover, features, before / after, other screenshots, closing page
+ */
+export type CarouselPlan = 'launch' | 'tutorial' | 'release';
+export const CAROUSEL_PLANS: readonly CarouselPlan[] = ['launch', 'tutorial', 'release'];
+
 export interface CarouselSettings {
-  /** Custom pages. Empty = automatic pages (cover, one per screenshot, features). */
+  /** Custom pages. Empty = automatic pages, generated from the project following `plan`. */
   slides: Variant[];
+  plan: CarouselPlan;
   pageSize: CarouselPageSize;
   /** Write "2 / 5" in the kicker of every page after the cover (unless the page sets its own kicker). */
   pageNumbers: boolean;
@@ -439,7 +449,7 @@ export function createProject(init: Partial<Pick<Project, 'name' | 'template'>> 
     devices: [...DEVICE_KINDS],
     deviceOrientation: { tablet: 'portrait', mobile: 'portrait' },
     desktopFrame: STYLES[DEFAULT_STYLE].defaults.desktopFrame,
-    carousel: { slides: [], pageNumbers: true, pageSize: '4:5' },
+    carousel: { slides: [], plan: 'launch', pageNumbers: true, pageSize: '4:5' },
     layout: { ...DEFAULT_LAYOUT },
   };
 }
@@ -711,5 +721,10 @@ function migrateCarousel(raw: Record<string, unknown>, slotIds: Set<string>, bas
           return { id: typeof v.id === 'string' && v.id ? v.id : uid('var'), template, content: overrides, screenshotIds: ids };
         })
     : [];
-  return { slides, pageNumbers: raw.pageNumbers !== false, pageSize: oneOf(raw.pageSize, CAROUSEL_PAGE_SIZES, '4:5') };
+  return {
+    slides,
+    plan: oneOf(raw.plan, CAROUSEL_PLANS, 'launch'),
+    pageNumbers: raw.pageNumbers !== false,
+    pageSize: oneOf(raw.pageSize, CAROUSEL_PAGE_SIZES, '4:5'),
+  };
 }

@@ -425,6 +425,64 @@ describe('LinkedIn carousel', () => {
     expect(analyzeCarousel(withShots()).map((s) => s.id)).toContain('carousel-cta');
   });
 
+  it('closes the automatic pages with a Call to Action page once there is a link', () => {
+    const p = withShots();
+    expect(templates(p)).not.toContain('cta');
+    p.content.link = '  ';
+    expect(templates(p)).not.toContain('cta');
+    p.content.link = 'steffpoint.com';
+    expect(templates(p)).toEqual(['browser-hero', 'spotlight', 'mobile-trio', 'cta']);
+    expect(analyzeCarousel(p).map((s) => s.id)).not.toContain('carousel-cta');
+    // Kept when the plan is longer than the cap.
+    for (let i = 0; i < 20; i++) p.screenshots.push(createScreenshotSlot('d'));
+    const many = templates(p);
+    expect(many).toHaveLength(CAROUSEL_MAX_SLIDES);
+    expect(many.at(-1)).toBe('cta');
+    // Never twice when the cover is already the closing page.
+    const q = withShots();
+    q.template = 'cta';
+    q.content.link = 'steffpoint.com';
+    expect(templates(q).filter((t) => t === 'cta')).toHaveLength(1);
+  });
+
+  it('follows the tutorial plan: steps, then one zoomed page per screenshot', () => {
+    const p = withShots();
+    p.carousel.plan = 'tutorial';
+    expect(templates(p)).toEqual(['browser-hero', 'detail-zoom', 'detail-zoom']); // example steps left out
+    p.content.steps = [{ title: 'Open the app', text: '' }];
+    const slides = buildCarouselSlides(p);
+    expect(slides.map((s) => s.variant.template)).toEqual(['browser-hero', 'steps', 'detail-zoom', 'detail-zoom']);
+    expect(slides[2].project.content.title).toBe('Dashboard');
+    expect(slides[2].project.screenshots.map((x) => x.id)).toEqual(['sd']);
+  });
+
+  it('follows the release notes plan: features, before / after, then the other screenshots', () => {
+    const p = withShots();
+    p.carousel.plan = 'release';
+    p.content.features = ['Dark mode'];
+    p.screenshots.push({ ...createScreenshotSlot('d'), id: 'sx', caption: 'Settings' });
+    const slides = buildCarouselSlides(p);
+    expect(slides.map((s) => s.variant.template)).toEqual(['browser-hero', 'features', 'before-after', 'spotlight']);
+    expect(slides[2].project.screenshots.map((x) => x.id)).toEqual(['sd', 'sm']);
+    expect(slides[3].project.content.title).toBe('Settings');
+    // One screenshot, or a Before / After cover: no pair page.
+    const one = withShots();
+    one.carousel.plan = 'release';
+    one.screenshots.pop();
+    expect(templates(one)).toEqual(['browser-hero', 'spotlight']);
+    const ba = withShots();
+    ba.carousel.plan = 'release';
+    ba.template = 'before-after';
+    expect(templates(ba)).toEqual(['before-after', 'spotlight', 'mobile-trio']);
+  });
+
+  it('keeps the guide for Annotated Panel projects, whatever the plan', () => {
+    const p = withShots();
+    p.template = 'annotated';
+    p.carousel.plan = 'release';
+    expect(templates(p)).toEqual(['minimal', 'annotated', 'annotated']);
+  });
+
   it('migrates captions and carousel pages safely', () => {
     const p = migrateProject({
       assets: [{ id: 'a', mime: 'image/png' }],
@@ -444,7 +502,9 @@ describe('LinkedIn carousel', () => {
     expect(p.carousel.slides).toHaveLength(CAROUSEL_MAX_SLIDES);
     expect(p.carousel.slides[0]).toMatchObject({ template: 'minimal', content: { title: 'T' }, screenshotIds: ['s1'] });
     expect(p.carousel.slides[1]).toMatchObject({ template: 'device-mix', screenshotIds: null });
-    expect(migrateProject({}).carousel).toEqual({ slides: [], pageNumbers: true, pageSize: '4:5' });
+    expect(migrateProject({}).carousel).toEqual({ slides: [], plan: 'launch', pageNumbers: true, pageSize: '4:5' });
+    expect(migrateProject({ carousel: { plan: 'tutorial' } }).carousel.plan).toBe('tutorial');
+    expect(migrateProject({ carousel: { plan: 'webinar' } }).carousel.plan).toBe('launch');
   });
 });
 

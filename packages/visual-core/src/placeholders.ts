@@ -112,3 +112,8 @@ export function placeholderFields(project: Pick<Project, 'template' | 'content'>
 export function hasRealFeatures(c: Pick<Content, 'features'>): boolean {
   return c.features.some((f) => f.trim() && !isPlaceholder(f));
 }
+
+/** True when the step list holds at least one real (non-example) step. */
+export function hasRealSteps(c: Pick<Content, 'steps'>): boolean {
+  return c.steps.some((s) => (s.title.trim() && !isPlaceholder(s.title)) || (s.text.trim() && !isPlaceholder(s.text)));
+}
